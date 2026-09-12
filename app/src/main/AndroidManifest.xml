@@ -437,6 +437,9 @@
             android:name=".ui.login.LoginActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.login.WebLoginActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.app.AppActivity"
             android:exported="false" />
         <activity

@@ -155,6 +155,16 @@ class NetworkRepo @Inject constructor(
         Result.success(accountService.getCaptcha(url).response())
     }
 
+    /** 短信登录第一步：取 /auth/login?type=mobile 页面里的 requestHash */
+    suspend fun getSmsLoginParam() = fire {
+        Result.success(accountService.getSmsLoginParam().response())
+    }
+
+    /** 短信登录第二步：请求下发短信验证码 */
+    suspend fun getSmsToken(data: HashMap<String, String?>) = fire {
+        Result.success(accountService.getSmsToken(data = data).response())
+    }
+
     suspend fun getValidateCaptcha(url: String) = fire {
         Result.success(apiService.getValidateCaptcha(url).response())
     }

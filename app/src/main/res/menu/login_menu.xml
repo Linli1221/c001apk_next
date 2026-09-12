@@ -13,4 +13,10 @@
         android:showAsAction="always"
         android:title="@string/loginPhone" />
 
+    <item
+        android:id="@+id/loginWeb"
+        android:icon="@drawable/ic_link"
+        android:showAsAction="always"
+        android:title="@string/loginWeb" />
+
 </menu>
