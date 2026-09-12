@@ -25,7 +25,7 @@ import com.example.c001apk.ui.settings.params.ParamsActivity
 import com.example.c001apk.util.CacheDataManager
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
-import com.example.c001apk.util.TokenDeviceUtils.getDeviceCode
+import com.example.c001apk.util.TokenDeviceUtils.applyDefaultFingerprint
 import com.example.c001apk.util.TokenDeviceUtils.randHexString
 import com.example.c001apk.util.doOnMainThreadIdle
 import com.example.c001apk.util.setBottomPaddingSpace
@@ -186,12 +186,14 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 setNegativeButton(android.R.string.cancel, null)
                 setPositiveButton(android.R.string.ok) { _, _ ->
                     PrefManager.SZLMID = editText.text.toString()
-                    PrefManager.xAppDevice = getDeviceCode(false)
+                    // 注意：szlmId 是设备串的首字段，改它就得重造设备串，而任何非官方设备串
+                    // 都会被酷安要求验证码。所以这里只记录 SZLMID，设备后缀维持官方那一组。
+                    applyDefaultFingerprint()
                 }
                 if (BuildConfig.DEBUG) {
                     setNeutralButton(R.string.random_value) { _, _ ->
                         PrefManager.SZLMID = randHexString(16)
-                        PrefManager.xAppDevice = getDeviceCode(false)
+                        applyDefaultFingerprint()
                     }
                 }
             }.create().apply {

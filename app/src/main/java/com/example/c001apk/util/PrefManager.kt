@@ -75,6 +75,22 @@ object PrefManager {
         get() = pref.getString("xAppToken", "")!!
         set(value) = pref.edit().putString("xAppToken", value).apply()
 
+    /** 设备指纹版本：低于 TokenDeviceUtils.FINGERPRINT_VERSION 时会被强制重置为默认指纹 */
+    var DEVICE_FINGERPRINT_VERSION: Int
+        get() = pref.getInt("DEVICE_FINGERPRINT_VERSION", 0)
+        set(value) = pref.edit().putInt("DEVICE_FINGERPRINT_VERSION", value).apply()
+
+    /**
+     * 用户是否**显式**指定过自定义 X-App-Device。
+     *
+     * 只有「设置 - 参数 - X-App-Device」里手填/重新生成才会置位；
+     * 未置位时 [com.example.c001apk.util.TokenDeviceUtils.getLastingDeviceCode] 会把设备串
+     * 强制拉回官方认可的那一组（否则详情页会被风控要求验证码）。
+     */
+    var customFingerprint: Boolean
+        get() = pref.getBoolean("customFingerprint", false)
+        set(value) = pref.edit().putBoolean("customFingerprint", value).apply()
+
     var xAppDevice: String
         get() = pref.getString("xAppDevice", "")!!
         set(value) = pref.edit().putString("xAppDevice", value).apply()

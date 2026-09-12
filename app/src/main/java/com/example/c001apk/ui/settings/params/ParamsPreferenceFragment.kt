@@ -15,7 +15,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.c001apk.R
 import com.example.c001apk.constant.Constants
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.TokenDeviceUtils.applyDefaultFingerprint
 import com.example.c001apk.util.TokenDeviceUtils.getDeviceCode
+import com.example.c001apk.util.TokenDeviceUtils.getLastingDeviceCode
+import com.example.c001apk.util.TokenDeviceUtils.getTokenV3
 import com.example.c001apk.util.TokenDeviceUtils.randHexString
 import com.example.c001apk.util.Utils.randomAndroidVersionRelease
 import com.example.c001apk.util.Utils.randomBrand
@@ -406,6 +409,8 @@ class ParamsPreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.O
         }
 
         findPreference<Preference>("xAppToken")?.apply {
+            // 按当前参数实时生成 v3 token，方便抓包对照/排错
+            PrefManager.xAppToken = getLastingDeviceCode().getTokenV3(PrefManager.VERSION_CODE)
             summary = PrefManager.xAppToken
             setOnPreferenceClickListener {
                 val view = LayoutInflater.from(requireContext())
@@ -452,8 +457,24 @@ class ParamsPreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.O
                     setView(view)
                     setTitle("X-App-Device")
                     setNegativeButton(android.R.string.cancel, null)
+                    // 手填/粘贴非官方设备串会被风控要求验证码，这里给一条一键回退的通道
+                    setNeutralButton("恢复默认") { _, _ ->
+                        applyDefaultFingerprint()
+                        Snackbar.make(requireView(), "已恢复官方认可的默认设备串", Snackbar.LENGTH_SHORT)
+                            .show()
+                    }
                     setPositiveButton(android.R.string.ok) { _, _ ->
-                        PrefManager.xAppDevice = editText.text.toString()
+                        val device = editText.text.toString()
+                        PrefManager.xAppDevice = device.ifEmpty { Constants.DEFAULT_DEVICE_CODE }
+                        // 与默认串一致就不算自定义，避免以后官方指纹升级时被这份旧值卡住
+                        PrefManager.customFingerprint =
+                            PrefManager.xAppDevice != Constants.DEFAULT_DEVICE_CODE
+                        if (PrefManager.customFingerprint)
+                            Snackbar.make(
+                                requireView(),
+                                "自定义设备串可能被酷安风控要求验证码",
+                                Snackbar.LENGTH_LONG
+                            ).show()
                     }
                 }.create().apply {
                     window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
@@ -465,7 +486,9 @@ class ParamsPreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.O
 
         findPreference<Preference>("regenerate")?.setOnPreferenceClickListener {
             PrefManager.xAppDevice = getDeviceCode(true)
-            Snackbar.make(requireView(), "已重新生成", Snackbar.LENGTH_SHORT).show()
+            // 随机生成 = 显式自定义：置位后不再被自动还原（但很可能触发风控）
+            PrefManager.customFingerprint = true
+            Snackbar.make(requireView(), "已重新生成（自定义设备串可能触发风控）", Snackbar.LENGTH_LONG).show()
             true
         }
 

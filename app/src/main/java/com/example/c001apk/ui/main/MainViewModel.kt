@@ -31,11 +31,14 @@ class MainViewModel @Inject constructor(
                     val appInfo = result.getOrNull()
                     if (appInfo?.data != null) {
                         try {
-                            PrefManager.VERSION_NAME = appInfo.data.apkversionname ?: ""
-                            PrefManager.API_VERSION = "13"
-                            PrefManager.VERSION_CODE = appInfo.data.apkversioncode ?: ""
+                            // 跟随官方最新版本号，保持请求头“现代”；空值不覆盖，避免生成无效 token
+                            val versionName = appInfo.data.apkversionname
+                            val versionCode = appInfo.data.apkversioncode
+                            if (!versionName.isNullOrBlank()) PrefManager.VERSION_NAME = versionName
+                            if (!versionCode.isNullOrBlank()) PrefManager.VERSION_CODE = versionCode
+                            PrefManager.API_VERSION = Constants.API_VERSION
                             PrefManager.USER_AGENT =
-                                "Dalvik/2.1.0 (Linux; U; Android ${PrefManager.ANDROID_VERSION}; ${PrefManager.MODEL} ${PrefManager.BUILDNUMBER}) (#Build; ${PrefManager.BRAND}; ${PrefManager.MODEL}; ${PrefManager.BUILDNUMBER}; ${PrefManager.ANDROID_VERSION}) +CoolMarket/${appInfo.data.apkversionname}-${appInfo.data.apkversioncode}-${Constants.MODE}"
+                                "Dalvik/2.1.0 (Linux; U; Android ${PrefManager.ANDROID_VERSION}; ${PrefManager.MODEL} ${PrefManager.BUILDNUMBER}) (#Build; ${PrefManager.BRAND}; ${PrefManager.MODEL}; ${PrefManager.BUILDNUMBER}; ${PrefManager.ANDROID_VERSION}) +CoolMarket/${PrefManager.VERSION_NAME}-${PrefManager.VERSION_CODE}-${Constants.MODE}"
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
