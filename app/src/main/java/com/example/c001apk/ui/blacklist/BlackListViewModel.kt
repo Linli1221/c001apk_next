@@ -48,14 +48,18 @@ class BlackListViewModel @AssistedInject constructor(
             loading.postValue(true)
             val users = blackListRepo.fetchCloudUsers()
             if (users == null) toastText.postValue(Event("云端黑名单获取失败"))
-            else cloudUsers.postValue(users)
+            else publishCloudUsers(users)
             loading.postValue(false)
         }
     }
 
     private suspend fun reload() {
-        val users = blackListRepo.fetchCloudUsers()
-        if (users != null) cloudUsers.postValue(users)
+        blackListRepo.fetchCloudUsers()?.let { publishCloudUsers(it) }
+    }
+
+    /** cloudUsers 声明为非空，统一在这里下发（避免 NullSafeMutableLiveData lint 报错） */
+    private fun publishCloudUsers(users: List<BlackListUser>) {
+        cloudUsers.postValue(users)
     }
 
     /** 按 uid 加入云端黑名单 */
@@ -88,7 +92,9 @@ class BlackListViewModel @AssistedInject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val synced = blackListRepo.deleteUid(uid)
             if (synced) {
-                cloudUsers.postValue(cloudUsers.value?.filterNot { it.uid == uid })
+                cloudUsers.value?.let { list ->
+                    publishCloudUsers(list.filterNot { it.uid == uid })
+                }
                 toastText.postValue(Event("已移出黑名单"))
             } else {
                 toastText.postValue(Event("移出失败，请检查网络后重试"))
