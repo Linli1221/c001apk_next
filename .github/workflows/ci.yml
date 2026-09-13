@@ -42,8 +42,9 @@ jobs:
             echo KEY_PASSWORD='${{ secrets.KEY_PASSWORD }}' >> local.properties
           fi
 
+      # 注意：不要钉死补丁号（如 v4.0.2），GitHub 会把废弃的旧版本直接判失败
       - name: Cache Gradle Dependencies
-        uses: actions/cache@v4.0.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
