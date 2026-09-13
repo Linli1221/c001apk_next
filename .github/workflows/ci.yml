@@ -40,6 +40,8 @@ jobs:
             echo KEYSTORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' >> local.properties
             echo KEY_ALIAS='${{ secrets.KEY_ALIAS }}' >> local.properties
             echo KEY_PASSWORD='${{ secrets.KEY_PASSWORD }}' >> local.properties
+          else
+            echo "::warning::未配置 SIGN_KEYSTORE_BASE64，release 将退回 debug 签名（仅供测试，不可作为正式版分发）"
           fi
 
       # 注意：不要钉死补丁号（如 v4.0.2），GitHub 会把废弃的旧版本直接判失败
@@ -70,6 +72,21 @@ jobs:
         with:
           name: ${{ steps.buildRelease.outputs.releaseName }}
           path: "app/build/outputs/apk/release/*.apk"
+
+      # 每次都把 release 的签名证书指纹打到日志，防止某次悄悄退回 debug 签名
+      - name: Verify release signature
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          set -o pipefail
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          BT=$(ls -d "$SDK"/build-tools/* 2>/dev/null | sort -V | tail -1)
+          if [ -n "$BT" ] && [ -x "$BT/apksigner" ]; then
+            "$BT/apksigner" verify --print-certs "$APK" | tee /tmp/certs.txt
+            echo "::notice::$(basename "$APK") 签名证书 SHA-256 = $(grep -m1 'certificate SHA-256 digest' /tmp/certs.txt | sed 's/.*digest: //')"
+          else
+            echo "::warning::未找到 apksigner，跳过签名校验"
+          fi
 
       - name: Upload mappings
         if: success()

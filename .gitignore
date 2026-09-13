@@ -32,3 +32,8 @@ local.properties
 /captured_device.json
 # 本地 IDE 配置（不入库）
 /.vscode/
+
+# ===== 签名密钥：绝不入库（keystore、base64 备份、密码清单）=====
+*.jks
+*.keystore
+/key.jks
