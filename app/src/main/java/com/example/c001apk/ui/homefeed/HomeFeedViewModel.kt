@@ -11,6 +11,7 @@ import com.example.c001apk.constant.Constants.LOADING_FAILED
 import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
+import com.example.c001apk.logic.repository.SpamConfigRepo
 import com.example.c001apk.ui.base.BaseAppViewModel
 import com.example.c001apk.util.Event
 import com.example.c001apk.util.PrefManager
@@ -25,7 +26,8 @@ class HomeFeedViewModel @AssistedInject constructor(
     @Assisted private val installTime: String,
     blackListRepo: BlackListRepo,
     historyRepo: HistoryFavoriteRepo,
-    networkRepo: NetworkRepo
+    networkRepo: NetworkRepo,
+    private val spamConfigRepo: SpamConfigRepo
 ) : BaseAppViewModel(blackListRepo, historyRepo, networkRepo) {
 
     @AssistedFactory
@@ -143,9 +145,15 @@ class HomeFeedViewModel @AssistedInject constructor(
                                                 else {
                                                     it.entities = it.entities?.filter { item ->
                                                         (item.entityType in listOf(
-                                                            "topic", "product"
+                                                            "topic", "product", "recentHistory"
                                                         ))
                                                                 && !blackListRepo.checkTopic(item.title)
+                                                                && !blackListRepo.checkUid(
+                                                                    item.url.substringAfter(
+                                                                        "/u/",
+                                                                        ""
+                                                                    )
+                                                                )
                                                     }?.toMutableList()
                                                     if (!it.entities.isNullOrEmpty())
                                                         currentList.add(it)
@@ -175,6 +183,7 @@ class HomeFeedViewModel @AssistedInject constructor(
                                                     it.tags + it.ttitle +
                                                             it.relationRows?.getOrNull(0)?.title
                                                 )
+                                                && !spamConfigRepo.isSpam(it)
                                             ) {
                                                 // hot reply
                                                 if (!it.replyRows.isNullOrEmpty()) {
@@ -309,6 +318,7 @@ class HomeFeedViewModel @AssistedInject constructor(
                                                     it.tags + it.ttitle +
                                                             it.relationRows?.getOrNull(0)?.title
                                                 )
+                                                && !spamConfigRepo.isSpam(it)
                                             )
                                                 currentList.add(it)
                                         }

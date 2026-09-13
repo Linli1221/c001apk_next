@@ -96,9 +96,27 @@
             android:visibility="@{data.deviceTitle == null || data.deviceTitle.isEmpty ? View.GONE : View.VISIBLE}"
             app:customText="@{data.deviceTitle}"
             app:icon="@{@drawable/ic_device}"
-            app:layout_constraintEnd_toStartOf="@id/follow"
+            app:layout_constraintEnd_toStartOf="@id/privateBadge"
             app:layout_constraintStart_toEndOf="@id/pubDate"
             app:layout_constraintTop_toBottomOf="@id/uname" />
+
+        <TextView
+            android:id="@+id/privateBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_private_badge"
+            android:paddingStart="5dp"
+            android:paddingTop="1dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="1dp"
+            android:text="@string/publish_status_private"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="11sp"
+            android:visibility="@{data.publishStatus != null &amp;&amp; data.publishStatus == 1 ? View.VISIBLE : View.GONE}"
+            app:layout_constraintBottom_toBottomOf="@id/device"
+            app:layout_constraintEnd_toStartOf="@id/follow"
+            app:layout_constraintTop_toTopOf="@id/device" />
 
         <TextView
             android:id="@+id/messageTitle"

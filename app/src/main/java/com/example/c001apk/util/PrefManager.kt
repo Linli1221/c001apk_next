@@ -91,6 +91,17 @@ object PrefManager {
         get() = pref.getBoolean("customFingerprint", false)
         set(value) = pref.edit().putBoolean("customFingerprint", value).apply()
 
+    /**
+     * 是否把**本机真实机型**上报给服务器（默认开）。
+     *
+     * 服务端用 `X-App-Device` 里的「厂商/品牌/型号」认机型，决定帖子/回复下方那行
+     * 「来自 xxx」。开启后每台手机上报自己的型号，不会再人人都是「一加13」；
+     * 关掉则回落到 [com.example.c001apk.constant.Constants.DEFAULT_DEVICE_CODE]。
+     */
+    var reportRealDevice: Boolean
+        get() = pref.getBoolean("reportRealDevice", true)
+        set(value) = pref.edit().putBoolean("reportRealDevice", value).apply()
+
     var xAppDevice: String
         get() = pref.getString("xAppDevice", "")!!
         set(value) = pref.edit().putString("xAppDevice", value).apply()
@@ -174,6 +185,11 @@ object PrefManager {
     var isCheckUpdate: Boolean
         get() = pref.getBoolean("isCheckUpdate", true)
         set(value) = pref.edit().putBoolean("isCheckUpdate", value).apply()
+
+    /** 其他屏蔽项（关键字/用户/节点）的服务端配置缓存，离线也能先过滤 */
+    var spamConfig: String
+        get() = pref.getString("spamConfig", "")!!
+        set(value) = pref.edit().putString("spamConfig", value).apply()
 
     var recentIds: String
         get() = pref.getString("recentIds", "")!!

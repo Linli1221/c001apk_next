@@ -13,7 +13,9 @@ class PopClickListener(
     val entityType: String,
     val id: String,
     val uid: String,
-    val position: Int
+    val position: Int,
+    // 该条动态当前是否已在自己主页置顶（只有 feed 卡片会传，回复卡片用默认值）
+    val isStickTop: Boolean = false
 ) :
     PopupMenu.OnMenuItemClickListener {
     override fun onMenuItemClick(item: MenuItem?): Boolean {
@@ -38,6 +40,14 @@ class PopClickListener(
 
             R.id.delete -> {
                 listener.onDeleteClicked(entityType, id, position)
+            }
+
+            R.id.publishStatus -> {
+                listener.onChangePublishStatus(id, position)
+            }
+
+            R.id.stickTop -> {
+                listener.onChangeStickTop(id, isStickTop, position)
             }
 
             R.id.show -> {

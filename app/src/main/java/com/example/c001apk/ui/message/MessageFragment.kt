@@ -19,8 +19,9 @@ import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.adapter.PlaceHolderAdapter
 import com.example.c001apk.databinding.FragmentMessageBinding
 import com.example.c001apk.ui.base.BaseFragment
-import com.example.c001apk.ui.login.LoginActivity
+import com.example.c001apk.ui.login.WebLoginActivity
 import com.example.c001apk.ui.main.MainActivity
+import com.example.c001apk.ui.others.WebViewActivity
 import com.example.c001apk.util.CookieUtil
 import com.example.c001apk.util.CookieUtil.atcommentme
 import com.example.c001apk.util.CookieUtil.atme
@@ -78,7 +79,7 @@ class MessageFragment : BaseFragment<FragmentMessageBinding>() {
             initMenu()
         } else {
             binding.clickToLogin.setOnClickListener {
-                IntentUtil.startActivity<LoginActivity>(requireContext()) {}
+                IntentUtil.startActivity<WebLoginActivity>(requireContext()) {}
             }
         }
     }
@@ -251,6 +252,26 @@ class MessageFragment : BaseFragment<FragmentMessageBinding>() {
             inflateMenu(R.menu.message_menu)
             setOnMenuItemClickListener {
                 when (it.itemId) {
+                    R.id.myDevice -> {
+                        IntentUtil.startActivity<WebViewActivity>(requireContext()) {
+                            putExtra(
+                                "url",
+                                "https://m.coolapk.com/myDevice/${PrefManager.uid}"
+                            )
+                        }
+                        true
+                    }
+
+                    R.id.editDevice -> {
+                        IntentUtil.startActivity<WebViewActivity>(requireContext()) {
+                            putExtra(
+                                "url",
+                                "https://m.coolapk.com/mp/do?c=product&m=editProductOwner&from=home"
+                            )
+                        }
+                        true
+                    }
+
                     R.id.logout -> {
                         MaterialAlertDialogBuilder(requireContext()).apply {
                             setTitle(R.string.logoutTitle)

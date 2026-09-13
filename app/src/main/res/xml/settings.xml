@@ -54,6 +54,18 @@
             android:title="@string/topic_black_list" />
         <Preference
             android:icon="@drawable/ic_text_fields"
+            android:key="spamWord"
+            android:title="@string/spam_shield_word" />
+        <Preference
+            android:icon="@drawable/ic_block"
+            android:key="spamUser"
+            android:title="@string/spam_shield_user" />
+        <Preference
+            android:icon="@drawable/ic_block"
+            android:key="spamNode"
+            android:title="@string/spam_shield_node" />
+        <Preference
+            android:icon="@drawable/ic_text_fields"
             android:key="fontScale"
             android:title="@string/font_scale" />
         <Preference

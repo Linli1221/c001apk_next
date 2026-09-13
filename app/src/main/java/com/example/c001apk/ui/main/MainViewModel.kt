@@ -4,7 +4,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.c001apk.constant.Constants
+import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.NetworkRepo
+import com.example.c001apk.logic.repository.SpamConfigRepo
 import com.example.c001apk.util.CookieUtil
 import com.example.c001apk.util.Event
 import com.example.c001apk.util.PrefManager
@@ -17,7 +19,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val networkRepo: NetworkRepo
+    private val networkRepo: NetworkRepo,
+    private val blackListRepo: BlackListRepo,
+    private val spamConfigRepo: SpamConfigRepo,
 ) : ViewModel() {
 
     var lastCheck = System.currentTimeMillis()
@@ -93,9 +97,21 @@ class MainViewModel @Inject constructor(
                             if (CookieUtil.badge != 0)
                                 setBadge.postValue(Event(true))
 
+                            syncBlackList()
                         }
                     }
                 }
+        }
+    }
+
+    /** 启动/登录后同步云端数据：黑名单镜像进本地库、其他屏蔽项（关键字/用户/节点）进内存缓存 */
+    private fun syncBlackList() {
+        if (!PrefManager.isLogin) return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { blackListRepo.syncFromCloud() }
+                .onFailure { it.printStackTrace() }
+            runCatching { spamConfigRepo.refresh() }
+                .onFailure { it.printStackTrace() }
         }
     }
 

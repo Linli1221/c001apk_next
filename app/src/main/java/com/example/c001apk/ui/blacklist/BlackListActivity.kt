@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivityBlackListBinding
 import com.example.c001apk.logic.model.StringEntity
@@ -43,6 +44,7 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
     )
     private lateinit var mAdapter: HistoryAdapter
     private lateinit var mLayoutManager: FlexboxLayoutManager
+    private lateinit var userAdapter: UserBlackListAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,17 +59,41 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
     }
 
     private fun initObserve() {
-        viewModel.blackListLiveData.observe(this) {
-            binding.indicator.isIndeterminate = false
-            binding.indicator.isVisible = false
-            mAdapter.submitList(it)
-            binding.clearAll.isVisible = it.isNotEmpty()
+        if (viewModel.isCloud) {
+            viewModel.cloudUsers.observe(this) {
+                binding.indicator.isIndeterminate = false
+                binding.indicator.isVisible = false
+                userAdapter.submitList(it)
+                binding.clearAll.isVisible = it.isNotEmpty()
+                binding.title.text = "${getString(R.string.user_black_list)}（${it.size}）"
+            }
+            viewModel.loading.observe(this) {
+                binding.indicator.isIndeterminate = it
+                binding.indicator.isVisible = it
+            }
+            viewModel.loadCloudUsers()
+        } else {
+            viewModel.blackListLiveData.observe(this) {
+                binding.indicator.isIndeterminate = false
+                binding.indicator.isVisible = false
+                mAdapter.submitList(it)
+                binding.clearAll.isVisible = it.isNotEmpty()
+            }
         }
 
         viewModel.toastText.observe(this) { event ->
             event?.getContentIfNotHandledOrReturnNull()?.let {
                 makeToast(it)
             }
+        }
+    }
+
+    /** 当前黑名单的 uid / 关键字列表（user 走云端数据，topic 走本地库） */
+    private fun currentUids(): List<String> {
+        return if (viewModel.isCloud) {
+            viewModel.cloudUsers.value?.mapNotNull { it.uid } ?: emptyList()
+        } else {
+            viewModel.blackListLiveData.value?.map { it.data } ?: emptyList()
         }
     }
 
@@ -83,7 +109,7 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
             setOnMenuItemClickListener {
                 return@setOnMenuItemClickListener when (it.itemId) {
                     R.id.backup -> {
-                        if (viewModel.blackListLiveData.value.isNullOrEmpty()) {
+                        if (currentUids().isEmpty()) {
                             makeToast("黑名单为空")
                         } else {
                             try {
@@ -123,11 +149,7 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
                 if (output == null)
                     makeToast("导出失败")
                 else
-                    output.write(Gson().toJson(
-                        viewModel.blackListLiveData.value?.map { item ->
-                            item.data
-                        } ?: emptyList<String>()
-                    ).toByteArray())
+                    output.write(Gson().toJson(currentUids()).toByteArray())
             }
             makeToast("导出成功")
         }
@@ -143,8 +165,7 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
                     string,
                     Array<String>::class.java
                 ).toList()
-                val currentList: List<String> =
-                    viewModel.blackListLiveData.value?.map { it.data } ?: emptyList()
+                val currentList: List<String> = currentUids()
                 val newList: List<String> =
                     if (currentList.isEmpty())
                         dataList
@@ -156,6 +177,8 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
                     viewModel.insertList(newList.map {
                         StringEntity(it)
                     })
+                else
+                    makeToast("没有需要导入的新条目")
             }.onFailure {
                 MaterialAlertDialogBuilder(this)
                     .setTitle("导入失败")
@@ -176,7 +199,10 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
     private fun initClearHistory() {
         binding.clearAll.setOnClickListener {
             MaterialAlertDialogBuilder(this).apply {
-                setTitle("确定清除全部黑名单？")
+                setTitle(
+                    if (viewModel.isCloud) "确定移除云端全部黑名单？"
+                    else "确定清除全部黑名单？"
+                )
                 setNegativeButton(android.R.string.cancel, null)
                 setPositiveButton(android.R.string.ok) { _, _ ->
                     viewModel.deleteAll()
@@ -190,14 +216,34 @@ class BlackListActivity : BaseActivity<ActivityBlackListBinding>(), IOnItemClick
     private fun initView() {
         binding.indicator.isIndeterminate = true
         binding.indicator.isVisible = true
-        mLayoutManager = FlexboxLayoutManager(this)
-        mLayoutManager.flexDirection = FlexDirection.ROW
-        mLayoutManager.flexWrap = FlexWrap.WRAP
-        mAdapter = HistoryAdapter()
-        mAdapter.setOnItemClickListener(this)
-        binding.recyclerView.apply {
-            adapter = mAdapter
-            layoutManager = mLayoutManager
+        if (viewModel.isCloud) {
+            userAdapter = UserBlackListAdapter()
+            userAdapter.setOnItemClickListener(
+                onItemClick = { user ->
+                    user.uid?.let {
+                        IntentUtil.startActivity<UserActivity>(this) {
+                            putExtra("id", it)
+                        }
+                    }
+                },
+                onRemoveClick = { user ->
+                    user.uid?.let { viewModel.removeCloudUser(it) }
+                }
+            )
+            binding.recyclerView.apply {
+                adapter = userAdapter
+                layoutManager = LinearLayoutManager(this@BlackListActivity)
+            }
+        } else {
+            mLayoutManager = FlexboxLayoutManager(this)
+            mLayoutManager.flexDirection = FlexDirection.ROW
+            mLayoutManager.flexWrap = FlexWrap.WRAP
+            mAdapter = HistoryAdapter()
+            mAdapter.setOnItemClickListener(this)
+            binding.recyclerView.apply {
+                adapter = mAdapter
+                layoutManager = mLayoutManager
+            }
         }
     }
 

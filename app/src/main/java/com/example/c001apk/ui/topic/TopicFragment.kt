@@ -2,6 +2,7 @@ package com.example.c001apk.ui.topic
 
 import android.app.ActivityOptions
 import android.content.Intent
+import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
@@ -100,11 +101,20 @@ class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
         order.isVisible = tab?.position == tabList.indexOf("讨论")
     }
 
-    override fun getFragment(position: Int): Fragment =
-        TopicContentFragment.newInstance(
-            viewModel.topicList?.getOrNull(position)?.url.orEmpty(),
-            viewModel.topicList?.getOrNull(position)?.title.orEmpty(),
+    override fun getFragment(position: Int): Fragment {
+        val bean = viewModel.topicList?.getOrNull(position)
+        val paramsUrl = viewModel.paramsUrl
+        // 「参数」标签官方就是一张 H5 规格页（原生接口只下发了未支持的 productConfigList/listCard 卡片）
+        if (SDK_INT >= 28 && (bean?.pageName == "main" || bean?.title == "参数")
+            && paramsUrl != null && paramsUrl.isNotEmpty()
+        ) {
+            return ParamsWebFragment.newInstance(paramsUrl)
+        }
+        return TopicContentFragment.newInstance(
+            bean?.url.orEmpty(),
+            bean?.title.orEmpty(),
         )
+    }
 
     override fun initTabList() {
         binding.tabLayout.apply {

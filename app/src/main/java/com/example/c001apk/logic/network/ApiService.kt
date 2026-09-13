@@ -1,12 +1,21 @@
 package com.example.c001apk.logic.network
 
+import com.example.c001apk.logic.model.BlackListActionResponse
+import com.example.c001apk.logic.model.BlackListResponse
 import com.example.c001apk.logic.model.CheckCountResponse
 import com.example.c001apk.logic.model.CheckResponse
+import com.example.c001apk.logic.model.CollectionActionResponse
+import com.example.c001apk.logic.model.CollectionCheckCountResponse
+import com.example.c001apk.logic.model.CollectionDetailResponse
+import com.example.c001apk.logic.model.CollectionListResponse
+import com.example.c001apk.logic.model.CollectionUploadResponse
 import com.example.c001apk.logic.model.CreateFeedResponse
+import com.example.c001apk.logic.model.SpamConfigResponse
 import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.LikeFeedResponse
 import com.example.c001apk.logic.model.LikeReplyResponse
+import com.example.c001apk.logic.model.LimitActionResponse
 import com.example.c001apk.logic.model.LoadUrlResponse
 import com.example.c001apk.logic.model.MessageResponse
 import com.example.c001apk.logic.model.OSSUploadPrepareResponse
@@ -17,6 +26,7 @@ import com.example.c001apk.logic.model.UserProfileResponse
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Call
+import retrofit2.http.Field
 import retrofit2.http.FieldMap
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -77,6 +87,28 @@ interface ApiService {
         @Query("page") page: Int,
         @Query("lastItem") lastItem: String?
     ): Call<TotalReplyResponse>
+
+    // 用户黑名单（云端）：列表 / 加入 / 移出 / 状态（uid 都在 query 或 form）
+    @GET("/v6/user/blackList")
+    fun getBlackList(
+        @Query("page") page: Int,
+    ): Call<BlackListResponse>
+
+    @POST("/v6/user/addToBlackList")
+    fun addToBlackList(
+        @Query("uid") uid: String,
+    ): Call<BlackListActionResponse>
+
+    @POST("/v6/user/removeFromBlackList")
+    fun removeFromBlackList(
+        @Query("uid") uid: String,
+    ): Call<BlackListActionResponse>
+
+    @FormUrlEncoded
+    @POST("/v6/user/getLimitAction")
+    fun getLimitAction(
+        @Field("uid") uid: String,
+    ): Call<LimitActionResponse>
 
     @GET("/v6/user/space")
     fun getUserSpace(
@@ -148,24 +180,78 @@ interface ApiService {
     fun checkLoginInfo(
     ): Call<CheckResponse>
 
-    @GET("/auth/login/")
-    fun preGetLoginParam(
-        @Query("type") type: String = "mobile"
-    ): Call<ResponseBody>
-
-    @GET("/auth/loginByCoolApk")
-    fun getLoginParam(
-    ): Call<ResponseBody>
-
-    @POST("/auth/loginByCoolApk")
-    @FormUrlEncoded
-    fun tryLogin(@FieldMap data: HashMap<String, String?>): Call<ResponseBody>
-
-    @GET
-    fun getCaptcha(@Url url: String): Call<ResponseBody>
-
+    // 验证码（动态/回复里服务端要求换验证码时用），登录表单相关的接口已随表单登录一起移除
     @GET
     fun getValidateCaptcha(@Url url: String): Call<ResponseBody>
+
+    // ===== 其他屏蔽项（关键字 / 用户 / 节点）：读 spamWordList，写 updateConfig =====
+
+    @GET("/v6/user/spamWordList")
+    fun getSpamWordList(): Call<SpamConfigResponse>
+
+    @FormUrlEncoded
+    @POST("/v6/account/updateConfig")
+    fun updateConfig(
+        @Field("key") key: String,
+        @Field("value") value: String,
+    ): Call<CheckResponse>
+
+    // ===== 收藏夹（多收藏夹）=====
+
+    /** 收藏夹列表；带 `id=<动态id>&type=feed&showDefault=1` 时会下发 `isBeCollected` 表示该动态是否已在此夹 */
+    @GET("/v6/collection/list")
+    fun getCollectionList(
+        @Query("uid") uid: String,
+        @Query("id") id: String,
+        @Query("type") type: String,
+        @Query("showDefault") showDefault: Int,
+        @Query("page") page: Int,
+    ): Call<CollectionListResponse>
+
+    /** 收藏：`id=收藏夹id`、`cancelId` 留空；取消收藏：`id` 留空、`cancelId=收藏夹id` */
+    @FormUrlEncoded
+    @POST("/v6/collection/addItem")
+    fun addToCollection(
+        @Field("id") id: String,
+        @Field("cancelId") cancelId: String,
+        @Field("targetId") targetId: String,
+        @Field("type") type: String,
+    ): Call<CollectionActionResponse>
+
+    /** 新建收藏夹（multipart，封面为 OSS URL 或空串） */
+    @Multipart
+    @POST("/v6/collection/create")
+    fun createCollection(
+        @Part("isOpen") isOpen: String,
+        @Part("pic") pic: String,
+        @Part("description") description: String,
+        @Part("title") title: String,
+        @Part("sourceId") sourceId: String,
+    ): Call<CollectionDetailResponse>
+
+    /** 改收藏夹（标题 / 简介 / 封面 / 公开或私密） */
+    @FormUrlEncoded
+    @POST("/v6/collection/update")
+    fun updateCollection(
+        @Field("id") id: String,
+        @Field("title") title: String,
+        @Field("description") description: String,
+        @Field("pic") pic: String,
+        @Field("isOpen") isOpen: Int,
+    ): Call<CollectionDetailResponse>
+
+    /** 收藏夹封面图上传（multipart，fileMd5 为图片 md5，文件名也用 md5） */
+    @Multipart
+    @POST("/v6/collection/uploadImage")
+    fun uploadCollectionImage(
+        @Query("fieldName") fieldName: String,
+        @Query("uploadDir") uploadDir: String,
+        @Query("fileMd5") fileMd5: String,
+        @Part file: MultipartBody.Part,
+    ): Call<CollectionUploadResponse>
+
+    @GET("/v6/collection/checkCount")
+    fun getCollectionCheckCount(): Call<CollectionCheckCountResponse>
 
     @POST("v6/feed/reply")
     @FormUrlEncoded
@@ -191,18 +277,6 @@ interface ApiService {
         @Query("page") page: Int,
         @Query("lastItem") lastItem: String?
     ): Call<HomeFeedResponse>
-
-    @GET("/auth/login")
-    fun getSmsLoginParam(
-        @Query("type") type: String = "mobile",
-    ): Call<ResponseBody>
-
-    @POST("/auth/login")
-    @FormUrlEncoded
-    fun getSmsToken(
-        @Query("type") type: String = "mobile",
-        @FieldMap data: HashMap<String, String?>
-    ): Call<ResponseBody>
 
     @GET
     fun getMessage(
@@ -266,10 +340,37 @@ interface ApiService {
         @Query("id") id: String,
     ): Call<LikeReplyResponse>
 
+    // 修改动态可见性。注意 id 与 publish_status 都必须放在表单 body 里，
+    // 放到 query 上服务端只看到空 id → 返回 -1「动态id不能为空」。
+    @POST("/v6/feed/updatePublishStatus")
+    @FormUrlEncoded
+    fun postPublishStatus(
+        @FieldMap data: HashMap<String, String?>
+    ): Call<LikeReplyResponse>
+
     @POST("/v6/product/changeFollowStatus")
     @FormUrlEncoded
     fun postFollow(
         @FieldMap data: HashMap<String, String>
+    ): Call<LikeReplyResponse>
+
+    // 个人主页置顶。nodeType=member + nodeId=自己的 uid + feedId=动态 id，
+    // 三个都是表单字段，成功返回 data="个人主页置顶成功"。
+    @POST("/v6/feed/addTopToNode")
+    @FormUrlEncoded
+    fun addTopToNode(
+        @Field("nodeType") nodeType: String,
+        @Field("nodeId") nodeId: String,
+        @Field("feedId") feedId: String,
+    ): Call<LikeReplyResponse>
+
+    // 取消个人主页置顶，参数同 addTopToNode，成功返回 data="个人主页取消置顶成功"
+    @POST("/v6/feed/cancelTopFromNode")
+    @FormUrlEncoded
+    fun cancelTopFromNode(
+        @Field("nodeType") nodeType: String,
+        @Field("nodeId") nodeId: String,
+        @Field("feedId") feedId: String,
     ): Call<LikeReplyResponse>
 
     @GET

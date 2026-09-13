@@ -30,3 +30,5 @@ local.properties
 /har_*.txt
 /api_report.txt
 /captured_device.json
+# 本地 IDE 配置（不入库）
+/.vscode/

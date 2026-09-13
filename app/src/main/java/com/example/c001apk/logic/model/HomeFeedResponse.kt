@@ -119,7 +119,23 @@ data class HomeFeedResponse(
         val userAction: UserAction?,
         val userInfo: UserInfo?,
         val fUserInfo: UserInfo?,
-        var isFollow: Int?
+        var isFollow: Int?,
+        // 1 = 仅自己可见，0 = 公开（详情与列表接口都会下发）
+        @SerializedName("publish_status") val publishStatus: Int?,
+        // 1 = 该条已在自己的个人主页置顶。
+        // 注意：只有「自己主页的 /v6/user/feedList」才下发，详情接口与他人主页都没有这个字段，
+        // 所以不能靠它判断「当前登录用户之外」的置顶状态。
+        @SerializedName("isStickTop") val isStickTop: Int? = null,
+        // 产品页（/v6/product/detail）返回的各版本配置，url 指向官方 H5 参数页
+        val configRows: List<ConfigRow>? = null
+    ) : Parcelable
+
+    @Parcelize
+    data class ConfigRow(
+        val id: Int?,
+        val title: String?,
+        val price: Int?,
+        val url: String?,
     ) : Parcelable
 
     @Parcelize
@@ -255,7 +271,8 @@ data class HomeFeedResponse(
         val id: String?,
         val entityType: String?,
         @SerializedName("alias_title") val aliasTitle: String?,
-        val userInfo: UserInfo
+        val userInfo: UserInfo,
+        @SerializedName("target_type_title") val targetTypeTitle: String? = null
     ) : Parcelable
 
 }

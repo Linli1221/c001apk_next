@@ -20,6 +20,7 @@ import com.example.c001apk.databinding.ItemHomeIconMiniScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeImageCarouselCardBinding
 import com.example.c001apk.databinding.ItemHomeImageSquareScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeImageTextScrollCardBinding
+import com.example.c001apk.databinding.ItemHomeUnsupportedBinding
 import com.example.c001apk.databinding.ItemRecentHistoryBinding
 import com.example.c001apk.databinding.ItemSearchApkBinding
 import com.example.c001apk.databinding.ItemSearchTopicBinding
@@ -42,6 +43,7 @@ class AppAdapter(
         var entityType: String = ""
         var id: String = ""
         var uid: String = ""
+        var isStickTop: Boolean = false
 
         init {
             binding.expand.setOnClickListener {
@@ -51,6 +53,16 @@ class AppAdapter(
                         menu.findItem(R.id.delete)?.isVisible = PrefManager.uid == uid
                         menu.findItem(R.id.show)?.isVisible = false
                         menu.findItem(R.id.report)?.isVisible = PrefManager.isLogin
+                        // 只有自己的动态才能改可见性
+                        menu.findItem(R.id.publishStatus)?.isVisible =
+                            PrefManager.uid == uid && entityType == "feed"
+                        // 只有自己的动态才能置顶，标题按当前状态切换
+                        menu.findItem(R.id.stickTop)?.apply {
+                            isVisible = PrefManager.uid == uid && entityType == "feed"
+                            title = it.context.getString(
+                                if (isStickTop) R.string.unstick_top else R.string.stick_top
+                            )
+                        }
                     }
                     setOnMenuItemClickListener(
                         PopClickListener(
@@ -59,7 +71,8 @@ class AppAdapter(
                             entityType,
                             id,
                             uid,
-                            bindingAdapterPosition
+                            bindingAdapterPosition,
+                            isStickTop
                         )
                     )
                     show()
@@ -71,6 +84,7 @@ class AppAdapter(
             entityType = data.entityType
             id = data.id ?: ""
             uid = data.uid ?: ""
+            isStickTop = data.isStickTop == 1
 
             binding.setVariable(BR.data, data)
             binding.setVariable(BR.listener, listener)
@@ -86,7 +100,8 @@ class AppAdapter(
             lp.setMargins(if (data.infoHtml.isNullOrEmpty()) 10.dp else 5.dp, 0, 0, 0)
             lp.topToBottom = binding.uname.id
             lp.startToEnd = binding.from.id
-            lp.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+            // 设备串要停在「置顶 / 仅自己可见」两个小标记左侧（两个都隐藏时自动延伸到最右）
+            lp.endToEnd = binding.topBadge.id
             binding.device.layoutParams = lp
         }
     }
@@ -376,6 +391,20 @@ class AppAdapter(
         }
     }
 
+    // 未支持的卡片模板：显示一行提示，而不是抛异常让整页空白/崩溃
+    class UnsupportedViewHolder(
+        val binding: ItemHomeUnsupportedBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.tip.text = binding.root.context.getString(
+                R.string.unsupported_card,
+                data.entityTemplate ?: data.entityType.orEmpty()
+            )
+        }
+    }
+
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
@@ -505,7 +534,14 @@ class AppAdapter(
                 )
             }
 
-            else -> throw IllegalArgumentException("viewType error: $viewType")
+            else -> {
+                UnsupportedViewHolder(
+                    ItemHomeUnsupportedBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
         }
     }
 
@@ -581,7 +617,8 @@ class AppAdapter(
 
                     "imageSquareScrollCard" -> 13
 
-                    else -> throw IllegalArgumentException("entityType error: ${currentList[position].entityTemplate}")
+                    // 未支持的卡片模板交给占位 ViewHolder，避免整页空白/崩溃
+                    else -> 14
                 }
             }
 
@@ -604,7 +641,8 @@ class AppAdapter(
 
             "recentHistory" -> 12
 
-            else -> throw IllegalArgumentException("entityType error: ${currentList[position].entityType}")
+            // 未支持的实体类型同样兜底到占位，避免整页空白/崩溃
+            else -> 14
         }
     }
 

@@ -3,7 +3,6 @@ package com.example.c001apk.di
 import com.example.c001apk.BuildConfig
 import com.example.c001apk.logic.network.ApiService
 import com.example.c001apk.util.AddCookiesInterceptor
-import com.example.c001apk.util.LoginCookiesInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,17 +26,12 @@ annotation class Api1ServiceNoRedirect
 @Retention(AnnotationRetention.BINARY)
 annotation class Api2Service
 
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class AccountService
-
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     private const val API_BASE_URL = "https://api.coolapk.com"
     private const val API2_BASE_URL = "https://api2.coolapk.com"
-    private const val ACCOUNT_BASE_URL = "https://account.coolapk.com"
 
     @Api1Service
     @Singleton
@@ -57,13 +51,6 @@ object NetworkModule {
     @Singleton
     @Provides
     fun provideApi2Service(@Api2Service retrofit: Retrofit): ApiService {
-        return retrofit.create(ApiService::class.java)
-    }
-
-    @AccountService
-    @Singleton
-    @Provides
-    fun provideAccountService(@AccountService retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
     }
 
@@ -100,17 +87,6 @@ object NetworkModule {
             .build()
     }
 
-    @AccountService
-    @Singleton
-    @Provides
-    fun provideAccountServiceRetrofit(@AccountService okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(ACCOUNT_BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(okHttpClient)
-            .build()
-    }
-
     @Api1Service
     @Singleton
     @Provides
@@ -140,21 +116,6 @@ object NetworkModule {
                 )
             )
             .followRedirects(false)
-            .build()
-    }
-
-    @AccountService
-    @Singleton
-    @Provides
-    fun provideAccountServiceOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
-            .addInterceptor(LoginCookiesInterceptor)
-            .addInterceptor(
-                HttpLoggingInterceptor().setLevel(
-                    if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
-                    else HttpLoggingInterceptor.Level.NONE
-                )
-            )
             .build()
     }
 

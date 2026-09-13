@@ -5,6 +5,7 @@ import com.example.c001apk.adapter.AppAdapter
 import com.example.c001apk.adapter.FooterAdapter
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.adapter.HeaderAdapter
+import com.example.c001apk.util.showPublishStatusDialog
 import com.example.c001apk.ui.home.IOnTabClickContainer
 import com.example.c001apk.ui.home.IOnTabClickListener
 
@@ -30,6 +31,14 @@ abstract class BaseAppFragment<VM : BaseAppViewModel> : BaseViewFragment<VM>(),
             appAdapter.submitList(it)
             if (binding.vfContainer.displayedChild != it.size)
                 binding.vfContainer.displayedChild = it.size
+        }
+
+        viewModel.publishStatusEvent.observe(viewLifecycleOwner) { event ->
+            event.getContentIfNotHandledOrReturnNull()?.let { id ->
+                showPublishStatusDialog(requireContext(), viewModel.publishStatusOf(id)) {
+                    viewModel.onPostPublishStatus(id, it)
+                }
+            }
         }
 
     }

@@ -11,11 +11,14 @@ import android.widget.EditText
 import androidx.core.graphics.ColorUtils
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.c001apk.R
 import com.example.c001apk.constant.Constants
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.TokenDeviceUtils.applyDefaultFingerprint
+import com.example.c001apk.util.TokenDeviceUtils.applyRealDeviceFingerprint
+import com.example.c001apk.util.TokenDeviceUtils.detectRealDevice
 import com.example.c001apk.util.TokenDeviceUtils.getDeviceCode
 import com.example.c001apk.util.TokenDeviceUtils.getLastingDeviceCode
 import com.example.c001apk.util.TokenDeviceUtils.getTokenV3
@@ -53,6 +56,49 @@ class ParamsPreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.O
     @SuppressLint("SetTextI18n", "InflateParams")
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.params, null)
+
+        // ---- 机型检测 ----
+        findPreference<SwitchPreferenceCompat>("reportRealDevice")?.apply {
+            isChecked = PrefManager.reportRealDevice
+            setOnPreferenceChangeListener { _, newValue ->
+                val on = newValue as Boolean
+                PrefManager.reportRealDevice = on
+                // 立刻重建设备串，不必等下一次请求；关掉则回落到官方认可的那一组
+                if (on) applyRealDeviceFingerprint() else applyDefaultFingerprint()
+                updateRealDeviceSummary()
+                Snackbar.make(
+                    requireView(),
+                    if (on) "已按本机机型上报（需酷安收录该机型，否则帖子下方不显示）"
+                    else "已回落到默认机型",
+                    Snackbar.LENGTH_LONG
+                ).show()
+                true
+            }
+        }
+
+        findPreference<Preference>("realDeviceInfo")?.apply {
+            setOnPreferenceClickListener {
+                val d = detectRealDevice()
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.real_device_info)
+                    .setMessage(
+                        "厂商：${d.manufacturer}\n品牌：${d.brand}\n型号：${d.model}\n" +
+                            "版本：${d.buildNumber}\nAndroid：${d.androidVersion}" +
+                            "（API ${d.sdkInt}）"
+                    )
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.real_device_apply) { _, _ ->
+                        applyRealDeviceFingerprint(d)
+                        PrefManager.reportRealDevice = true
+                        updateRealDeviceSummary()
+                        Snackbar.make(requireView(), "设备串已按本机机型重建", Snackbar.LENGTH_SHORT)
+                            .show()
+                    }
+                    .show()
+                true
+            }
+        }
+        updateRealDeviceSummary()
 
         findPreference<Preference>("VERSION_NAME")?.apply {
             summary = PrefManager.VERSION_NAME
@@ -486,12 +532,27 @@ class ParamsPreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.O
 
         findPreference<Preference>("regenerate")?.setOnPreferenceClickListener {
             PrefManager.xAppDevice = getDeviceCode(true)
-            // 随机生成 = 显式自定义：置位后不再被自动还原（但很可能触发风控）
+            // 随机生成 = 显式自定义：置位后不再被自动还原
+            // （szlmId/MAC/尾字段仍是官方那一组，只随机机型；但随机机型未必被酷安收录）
             PrefManager.customFingerprint = true
-            Snackbar.make(requireView(), "已重新生成（自定义设备串可能触发风控）", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(
+                requireView(),
+                "已重新生成随机机型（酷安未收录的机型不会显示）",
+                Snackbar.LENGTH_LONG
+            ).show()
             true
         }
 
+    }
+
+    /** 「本机机型检测」条目摘要：本机型号 + 当前是否按它上报 */
+    private fun updateRealDeviceSummary() {
+        findPreference<SwitchPreferenceCompat>("reportRealDevice")?.isChecked =
+            PrefManager.reportRealDevice
+        findPreference<Preference>("realDeviceInfo")?.summary = detectRealDevice().let {
+            "${it.brand} ${it.model}（Android ${it.androidVersion}）" +
+                if (PrefManager.reportRealDevice) " · 上报中" else " · 未上报（用默认机型）"
+        }
     }
 
     private fun updateUserAgent() {
@@ -509,14 +570,27 @@ class ParamsPreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.O
             "VERSION_NAME" -> findPreference<Preference>(key)?.summary = PrefManager.VERSION_NAME
             "VERSION_CODE" -> findPreference<Preference>(key)?.summary = PrefManager.VERSION_CODE
             "API_VERSION" -> findPreference<Preference>(key)?.summary = PrefManager.API_VERSION
-            "MANUFACTURER" -> findPreference<Preference>(key)?.summary = PrefManager.MANUFACTURER
-            "BRAND" -> findPreference<Preference>(key)?.summary = PrefManager.BRAND
-            "MODEL" -> findPreference<Preference>(key)?.summary = PrefManager.MODEL
-            "BUILDNUMBER" -> findPreference<Preference>(key)?.summary = PrefManager.BUILDNUMBER
+            "MANUFACTURER" -> {
+                findPreference<Preference>(key)?.summary = PrefManager.MANUFACTURER
+                updateRealDeviceSummary()
+            }
+            "BRAND" -> {
+                findPreference<Preference>(key)?.summary = PrefManager.BRAND
+                updateRealDeviceSummary()
+            }
+            "MODEL" -> {
+                findPreference<Preference>(key)?.summary = PrefManager.MODEL
+                updateRealDeviceSummary()
+            }
+            "BUILDNUMBER" -> {
+                findPreference<Preference>(key)?.summary = PrefManager.BUILDNUMBER
+                updateRealDeviceSummary()
+            }
             "SDK_INT" -> findPreference<Preference>(key)?.summary = PrefManager.SDK_INT
             "ANDROID_VERSION" -> findPreference<Preference>(key)?.summary = PrefManager.ANDROID_VERSION
             "USER_AGENT" -> findPreference<Preference>(key)?.summary = PrefManager.USER_AGENT
             "xAppDevice" -> findPreference<Preference>(key)?.summary = PrefManager.xAppDevice
+            "reportRealDevice" -> updateRealDeviceSummary()
         }
     }
 }

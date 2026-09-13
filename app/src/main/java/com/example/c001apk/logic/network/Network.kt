@@ -14,7 +14,6 @@ object Network {
     private val apiServiceNoRedirect =
         ApiServiceCreator.create<ApiService>(ServiceType.API_SERVICE, false)
     private val api2Service = ApiServiceCreator.create<ApiService>(ServiceType.API2_SERVICE)
-    private val accountService = ApiServiceCreator.create<ApiService>(ServiceType.ACCOUNT_SERVICE)
 
     suspend fun getHomeFeed(
         page: Int,
@@ -101,14 +100,6 @@ object Network {
 
     suspend fun checkLoginInfo() = apiService.checkLoginInfo().response()
 
-    suspend fun preGetLoginParam() = accountService.preGetLoginParam().response()
-
-    suspend fun getLoginParam() = accountService.getLoginParam().response()
-
-    suspend fun tryLogin(data: HashMap<String, String?>) = accountService.tryLogin(data).response()
-
-    suspend fun getCaptcha(url: String) = accountService.getCaptcha(url).response()
-
     suspend fun getValidateCaptcha(url: String) = apiService.getValidateCaptcha(url).response()
 
     suspend fun postReply(data: HashMap<String, String>, id: String, type: String) =
@@ -124,11 +115,6 @@ object Network {
 
     suspend fun getDyhDetail(dyhId: String, type: String, page: Int, lastItem: String?) =
         apiService.getDyhDetail(dyhId, type, page, lastItem).await()
-
-    suspend fun getSmsLoginParam(type: String) = accountService.getSmsLoginParam(type).response()
-
-    suspend fun getSmsToken(type: String, data: HashMap<String, String?>) =
-        accountService.getSmsToken(type, data).response()
 
     suspend fun getMessage(url: String, page: Int, lastItem: String?) =
         apiService.getMessage(url, page, lastItem).await()

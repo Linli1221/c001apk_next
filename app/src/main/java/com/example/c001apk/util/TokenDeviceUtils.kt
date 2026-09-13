@@ -24,6 +24,68 @@ object TokenDeviceUtils {
         }.uppercase()
     }
 
+    /** 本机真实机型；[deviceCode] 即上报给服务器的设备串 */
+    data class RealDevice(
+        val manufacturer: String,
+        val brand: String,
+        val model: String,
+        val buildNumber: String,
+        val androidVersion: String,
+        val sdkInt: String,
+        val deviceCode: String,
+    )
+
+    /** 读系统属性得到本机机型（机型检测的入口） */
+    fun detectRealDevice(): RealDevice {
+        val manufacturer = sanitize(android.os.Build.MANUFACTURER, Constants.DEFAULT_MANUFACTURER)
+        val brand = sanitize(android.os.Build.BRAND, Constants.DEFAULT_BRAND)
+        val model = sanitize(android.os.Build.MODEL, Constants.DEFAULT_MODEL)
+        val buildNumber = sanitize(android.os.Build.DISPLAY, Constants.DEFAULT_BUILDNUMBER)
+        val androidVersion = sanitize(
+            android.os.Build.VERSION.RELEASE, Constants.DEFAULT_ANDROID_VERSION
+        )
+        val sdkInt = android.os.Build.VERSION.SDK_INT.toString()
+        return RealDevice(
+            manufacturer = manufacturer,
+            brand = brand,
+            model = model,
+            buildNumber = buildNumber,
+            androidVersion = androidVersion,
+            sdkInt = sdkInt,
+            deviceCode = buildDeviceCode(manufacturer, brand, model, buildNumber),
+        )
+    }
+
+    /** 字段里不能出现分隔符 `;`，空值回落到默认值 */
+    private fun sanitize(value: String?, fallback: String): String =
+        value?.trim()?.replace(";", "")?.takeIf { it.isNotEmpty() } ?: fallback
+
+    /**
+     * 用给定的机型字段重建设备串：**szlmId、MAC、尾部 64hex 一律沿用官方串**
+     * （只替换厂商/品牌/型号/版本号这四个字段）。
+     *
+     * 为什么只换这四个字段：实测（`_rev/test_device_model.py`）保留官方 szlmId/尾字段、
+     * 只改机型时，16.4.0（2607021）在 feed/detail、main/indexV8、feed/createFeed 全部正常；
+     * 而早期「随机 szlmId + 随机 MAC + null 尾字段」的整串新造会被风控要求验证码
+     * （`err_request_captcha_v2`）。服务端正是按这里的品牌/型号认机型，
+     * 帖子/回复下方的 `device_title`（「来自 xxx」）就是它的映射结果。
+     */
+    fun buildDeviceCode(
+        manufacturer: String,
+        brand: String,
+        model: String,
+        buildNumber: String,
+        base: String = Constants.DEFAULT_DEVICE_CODE,
+    ): String {
+        val parts = DeviceCode.decode(base).split(";").toMutableList()
+        if (parts.size < 8) return base
+        parts[4] = " $manufacturer"
+        parts[5] = " $brand"
+        parts[6] = " $model"
+        parts[7] = " $buildNumber"
+        return DeviceCode.encode(parts.joinToString(";"))
+    }
+
     fun getDeviceCode(regenerate: Boolean): String {
         if (regenerate) {
             PrefManager.apply {
@@ -37,13 +99,13 @@ object TokenDeviceUtils {
                     "Dalvik/2.1.0 (Linux; U; Android $ANDROID_VERSION; ${MODEL} ${BUILDNUMBER}) (#Build; ${BRAND}; ${MODEL}; ${BUILDNUMBER}; $ANDROID_VERSION) +CoolMarket/${VERSION_NAME}-${VERSION_CODE}-${Constants.MODE}"
             }
         }
-        val szlmId = if (PrefManager.SZLMID == "") randHexString(16) else PrefManager.SZLMID
-        val mac = Utils.randomMacAddress()
-        val manuFactor = PrefManager.MANUFACTURER
-        val brand = PrefManager.BRAND
-        val model = PrefManager.MODEL
-        val buildNumber = PrefManager.BUILDNUMBER
-        return DeviceCode.encode("$szlmId; ; ; $mac; $manuFactor; $brand; $model; $buildNumber; null")
+        // 随机也只随「机型字段」，szlmId/MAC/尾字段仍是官方那一组，否则会被风控拦
+        return buildDeviceCode(
+            PrefManager.MANUFACTURER,
+            PrefManager.BRAND,
+            PrefManager.MODEL,
+            PrefManager.BUILDNUMBER
+        )
     }
 
     fun String.getTokenV2(): String {
@@ -136,22 +198,26 @@ object TokenDeviceUtils {
     /**
      * 返回可用于请求的设备指纹。
      *
-     * 这里**不再随机生成**：随机伪造的 device 会被酷安风控要求人机验证
-     * （`err_request_captcha_v2`「当前访问需要验证码」），详情页等接口直接加载失败。
-     * 只有在本地指纹版本落后时，才重置成官方认可的一组（见 `Constants.DEFAULT_*`）；
-     * 之后用户仍可在「设置 - 参数」里手动覆盖，不会被再次重置。
+     * 规则（2026-09-13 起，「上报真实机型」默认开启）：
+     *  1. 用户在「设置 - 参数」里显式改过 → 完全按他的来，不再干预；
+     *  2. 否则按 [PrefManager.reportRealDevice] 决定上报本机机型还是官方那一组，
+     *     只要本地值和服务端期望值不一致就自动重建（系统升级、换机都能自己跟上）。
+     *
+     * 两种取值都**只换机型字段**，szlmId/MAC/尾字段始终是官方串里的值；整串新造
+     * （随机 szlmId + 随机 MAC + null 尾字段）会被风控要求人机验证
+     * （`err_request_captcha_v2`），详情页等接口直接加载失败。
      */
     fun getLastingDeviceCode(): String {
         // 用户显式指定过自定义设备串 → 完全按他的来，不再干预
         if (PrefManager.customFingerprint) return PrefManager.xAppDevice
-        if (PrefManager.DEVICE_FINGERPRINT_VERSION != FINGERPRINT_VERSION) {
+        if (PrefManager.reportRealDevice) {
+            // 上报真实机型：帖子/回复下方显示「来自 <本机机型>」（服务端按品牌+型号映射）
+            val device = detectRealDevice()
+            if (PrefManager.xAppDevice != device.deviceCode) applyRealDeviceFingerprint(device)
+        } else if (PrefManager.DEVICE_FINGERPRINT_VERSION != FINGERPRINT_VERSION ||
+            PrefManager.xAppDevice != Constants.DEFAULT_DEVICE_CODE
+        ) {
             applyDefaultFingerprint()
-        } else if (PrefManager.xAppDevice != Constants.DEFAULT_DEVICE_CODE) {
-            // 指纹版本已是最新、但设备串仍不是官方那一组 —— 说明被「设置 - 参数」页
-            // （改机型/品牌/系统信息、改 SZLMID 等都会走 getDeviceCode）改坏了：
-            // 这种串带随机 MAC / 新 szlmId，服务端一律要求验证码（err_request_captcha_v2）。
-            // 只还原设备串本身，不动 MODEL/UA 等仅用于展示的字段。
-            PrefManager.xAppDevice = Constants.DEFAULT_DEVICE_CODE
         }
         return PrefManager.xAppDevice
     }
@@ -172,16 +238,40 @@ object TokenDeviceUtils {
         }
     }
 
+    /** 机型检测结果落到设备串 + 展示字段（device 与 UA 必须配套，缺一不可） */
+    fun applyRealDeviceFingerprint(device: RealDevice = detectRealDevice()) {
+        PrefManager.apply {
+            customFingerprint = false
+            xAppDevice = device.deviceCode
+            MANUFACTURER = device.manufacturer
+            BRAND = device.brand
+            MODEL = device.model
+            BUILDNUMBER = device.buildNumber
+            SDK_INT = device.sdkInt
+            ANDROID_VERSION = device.androidVersion
+            USER_AGENT = userAgentOf(
+                device.brand, device.model, device.buildNumber, device.androidVersion
+            )
+            DEVICE_FINGERPRINT_VERSION = FINGERPRINT_VERSION
+        }
+    }
+
     /** 与 [Constants.DEFAULT_DEVICE_CODE] 配套的 UA；版本号跟随当前客户端设置，保持头之间自洽 */
-    fun defaultUserAgent(): String =
-        "Dalvik/2.1.0 (Linux; U; Android ${Constants.DEFAULT_ANDROID_VERSION}; " +
-            "${Constants.DEFAULT_MODEL} ${Constants.DEFAULT_BUILDNUMBER}) " +
-            "(#Build; ${Constants.DEFAULT_BRAND}; ${Constants.DEFAULT_MODEL}; " +
-            "${Constants.DEFAULT_BUILDNUMBER}; ${Constants.DEFAULT_ANDROID_VERSION}) " +
+    fun defaultUserAgent(): String = userAgentOf(
+        Constants.DEFAULT_BRAND,
+        Constants.DEFAULT_MODEL,
+        Constants.DEFAULT_BUILDNUMBER,
+        Constants.DEFAULT_ANDROID_VERSION
+    )
+
+    /** 按给定机型字段拼 UA；版本号跟随当前客户端设置，保证与 X-App-Device 自洽 */
+    fun userAgentOf(brand: String, model: String, buildNumber: String, android: String): String =
+        "Dalvik/2.1.0 (Linux; U; Android $android; $model $buildNumber) " +
+            "(#Build; $brand; $model; $buildNumber; $android) " +
             "+CoolMarket/${PrefManager.VERSION_NAME}-${PrefManager.VERSION_CODE}-${Constants.MODE}"
 
     /** 设备指纹版本号；改动默认指纹时 +1，老安装会在下次请求时自动升级 */
-    private const val FINGERPRINT_VERSION = 1
+    private const val FINGERPRINT_VERSION = 2
 
     fun getLastingInstallTime(context: Context): String {
         val sp = context.getSharedPreferences(context.packageName, Context.MODE_PRIVATE)

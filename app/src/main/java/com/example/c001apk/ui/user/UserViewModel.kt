@@ -169,15 +169,18 @@ class UserViewModel @AssistedInject constructor(
         }
     }
 
+    // 拉黑 / 解除拉黑：BlackListRepo 内部同步云端（addTo / removeFromBlackList）并写本地库
     fun saveUid(uid: String) {
         viewModelScope.launch(Dispatchers.IO) {
             blackListRepo.saveUid(uid)
+            blockState.postValue(Event(blackListRepo.checkUid(uid)))
         }
     }
 
     fun deleteUid(uid: String) {
         viewModelScope.launch(Dispatchers.IO) {
             blackListRepo.deleteUid(uid)
+            blockState.postValue(Event(blackListRepo.checkUid(uid)))
         }
     }
 
@@ -186,9 +189,11 @@ class UserViewModel @AssistedInject constructor(
         checkFollow()
     }
 
+    // 菜单状态以云端为准（getLimitAction），失败再回落本地镜像
     private fun checkUid(uid: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            blockState.postValue(Event(blackListRepo.checkUid(uid)))
+            val cloud = blackListRepo.isBlockedOnCloud(uid)
+            blockState.postValue(Event(cloud ?: blackListRepo.checkUid(uid)))
         }
     }
 

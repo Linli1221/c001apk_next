@@ -26,6 +26,9 @@ abstract class BaseAppViewModel(
     val footerState = MutableLiveData<FooterState>()
     val toastText = MutableLiveData<Event<String?>>()
 
+    // 需要弹出「修改可见性」选择框的动态 id
+    val publishStatusEvent = MutableLiveData<Event<String>>()
+
     open fun showCollection(id: String, title: String) {}
 
     inner class ItemClickListener : ItemListener {
@@ -97,6 +100,92 @@ abstract class BaseAppViewModel(
             val url = if (entityType == "feed") "/v6/feed/deleteFeed"
             else "/v6/feed/deleteReply"
             onDeleteFeed(url, id, position)
+        }
+
+        override fun onChangePublishStatus(id: String, position: Int) {
+            publishStatusEvent.postValue(Event(id))
+        }
+
+        override fun onChangeStickTop(id: String, isStickTop: Boolean, position: Int) {
+            onPostStickTop(id, isStickTop)
+        }
+    }
+
+    // 取列表里该动态当前的可见性（1 = 仅自己可见，0 = 公开，null = 列表没带这个字段）
+    fun publishStatusOf(id: String): Int? =
+        dataList.value?.firstOrNull { it.id == id }?.publishStatus
+
+    // 修改动态可见性：publishStatus 1 = 仅自己可见，0 = 公开
+    fun onPostPublishStatus(id: String, publishStatus: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val data = HashMap<String, String?>()
+            data["id"] = id
+            data["publish_status"] = publishStatus.toString()
+            networkRepo.postPublishStatus(data)
+                .collect { result ->
+                    val response = result.getOrNull()
+                    if (response != null) {
+                        if (response.data == "设置成功") {
+                            dataList.value?.let { list ->
+                                dataList.postValue(
+                                    list.map {
+                                        if (it.id == id) it.copy(publishStatus = publishStatus)
+                                        else it
+                                    }
+                                )
+                            }
+                            toastText.postValue(
+                                Event(if (publishStatus == 1) "已设为仅自己可见" else "已设为公开")
+                            )
+                        } else if (!response.message.isNullOrEmpty()) {
+                            response.message.let {
+                                toastText.postValue(Event(it))
+                            }
+                        }
+                    } else {
+                        result.exceptionOrNull()?.printStackTrace()
+                    }
+                }
+        }
+    }
+
+    // 个人主页置顶 / 取消置顶：isStickTop = 该条当前是否已置顶
+    // nodeType=member + nodeId=自己的 uid，只能操作自己的动态
+    fun onPostStickTop(id: String, isStickTop: Boolean) {
+        // 菜单项本来就只在「自己的动态」上出现，没登录时 uid 为空不会命中
+        if (!PrefManager.isLogin || PrefManager.uid.isEmpty()) return
+        val myUid = PrefManager.uid
+        viewModelScope.launch(Dispatchers.IO) {
+            val result =
+                if (isStickTop) networkRepo.cancelTopFromNode("member", myUid, id)
+                else networkRepo.addTopToNode("member", myUid, id)
+            result.collect { r ->
+                val response = r.getOrNull()
+                if (response != null) {
+                    if (!response.message.isNullOrEmpty()) {
+                        toastText.postValue(Event(response.message))
+                    } else {
+                        // 本地先切换小标记并让置顶项排到最前，和主页的服务端顺序一致
+                        dataList.value?.let { list ->
+                            val updated = list.map {
+                                if (it.id == id) it.copy(isStickTop = if (isStickTop) 0 else 1)
+                                else it
+                            }
+                            val target = updated.firstOrNull { it.id == id }
+                            dataList.postValue(
+                                if (!isStickTop && target != null)
+                                    listOf(target) + updated.filter { it.id != id }
+                                else updated
+                            )
+                        }
+                        toastText.postValue(
+                            Event(response.data ?: if (isStickTop) "已取消置顶" else "置顶成功")
+                        )
+                    }
+                } else {
+                    r.exceptionOrNull()?.printStackTrace()
+                }
+            }
         }
     }
 

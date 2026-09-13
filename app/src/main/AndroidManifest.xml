@@ -434,10 +434,10 @@
             android:name=".ui.follow.FFFListActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.login.LoginActivity"
+            android:name=".ui.login.WebLoginActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.login.WebLoginActivity"
+            android:name=".ui.settings.SpamShieldActivity"
             android:exported="false" />
         <activity
             android:name=".ui.app.AppActivity"

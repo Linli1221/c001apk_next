@@ -217,6 +217,27 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("spamWord")?.setOnPreferenceClickListener {
+            IntentUtil.startActivity<SpamShieldActivity>(requireContext()) {
+                putExtra("type", "word")
+            }
+            true
+        }
+
+        findPreference<Preference>("spamUser")?.setOnPreferenceClickListener {
+            IntentUtil.startActivity<SpamShieldActivity>(requireContext()) {
+                putExtra("type", "user")
+            }
+            true
+        }
+
+        findPreference<Preference>("spamNode")?.setOnPreferenceClickListener {
+            IntentUtil.startActivity<SpamShieldActivity>(requireContext()) {
+                putExtra("type", "node")
+            }
+            true
+        }
+
         findPreference<Preference>("fontScale")?.setOnPreferenceClickListener {
             val view = LayoutInflater.from(requireContext())
                 .inflate(R.layout.item_font_scale, null, false)

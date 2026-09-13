@@ -106,11 +106,18 @@ interface ItemListener {
     }
 
     fun onViewTopic(view: View, type: String?, title: String?, url: String?, id: String?) {
-        IntentUtil.startActivity<TopicActivity>(view.context) {
-            putExtra("type", type)
-            putExtra("title", title)
-            putExtra("url", url)
-            putExtra("id", id)
+        if (type == "topic" || type == "product" || url.isNullOrEmpty()) {
+            IntentUtil.startActivity<TopicActivity>(view.context) {
+                putExtra("type", type)
+                putExtra("title", title)
+                putExtra("url", url)
+                putExtra("id", id)
+            }
+        } else {
+            // 头条横向菜单（iconMiniScrollCard）除本机机型外的条目 entityType 都是 recentHistory，
+            // 而 TopicActivity 只认 topic / product，遇到别的 type 会一直显示加载中（不发起任何请求）。
+            // 这里按 url 走通用跳转：/u/ 用户、/t/ 话题、/product/ 机型、/apk/ 应用。
+            openLink(view.context, url, title)
         }
     }
 
@@ -175,4 +182,10 @@ interface ItemListener {
     fun onBlockUser(id: String, uid: String, position: Int) {}
 
     fun onDeleteClicked(entityType: String, id: String, position: Int) {}
+
+    // 修改动态可见性（1 = 仅自己可见，0 = 公开）
+    fun onChangePublishStatus(id: String, position: Int) {}
+
+    // 个人主页置顶 / 取消置顶。isStickTop = 该条当前是否已置顶（true 则执行取消置顶）
+    fun onChangeStickTop(id: String, isStickTop: Boolean, position: Int) {}
 }

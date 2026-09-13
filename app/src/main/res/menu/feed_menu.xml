@@ -35,6 +35,13 @@
         android:showAsAction="never"
         android:title="@string/copyLink" />
 
+    <!-- 默认隐藏，仅在自己的动态详情页由 FeedFragment 打开 -->
+    <item
+        android:id="@+id/publishStatus"
+        android:showAsAction="never"
+        android:title="@string/change_publish_status"
+        android:visible="false" />
+
     <item
         android:id="@+id/block"
         android:showAsAction="never"

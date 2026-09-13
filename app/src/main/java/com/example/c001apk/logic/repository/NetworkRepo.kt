@@ -1,6 +1,5 @@
 package com.example.c001apk.logic.repository
 
-import com.example.c001apk.di.AccountService
 import com.example.c001apk.di.Api1Service
 import com.example.c001apk.di.Api1ServiceNoRedirect
 import com.example.c001apk.di.Api2Service
@@ -26,8 +25,6 @@ class NetworkRepo @Inject constructor(
     private val apiServiceNoRedirect: ApiService,
     @Api2Service
     private val api2Service: ApiService,
-    @AccountService
-    private val accountService: ApiService,
 ) {
 
     suspend fun getHomeFeed(
@@ -99,6 +96,22 @@ class NetworkRepo @Inject constructor(
         Result.success(apiService.getUserSpace(uid).await())
     }
 
+    suspend fun getBlackList(page: Int) = fire {
+        Result.success(apiService.getBlackList(page).await())
+    }
+
+    suspend fun addToBlackList(uid: String) = fire {
+        Result.success(apiService.addToBlackList(uid).await())
+    }
+
+    suspend fun removeFromBlackList(uid: String) = fire {
+        Result.success(apiService.removeFromBlackList(uid).await())
+    }
+
+    suspend fun getLimitAction(uid: String) = fire {
+        Result.success(apiService.getLimitAction(uid).await())
+    }
+
     suspend fun getUserFeed(uid: String, page: Int, lastItem: String?) = fire {
         Result.success(apiService.getUserFeed(uid, page, lastItem).await())
     }
@@ -139,30 +152,64 @@ class NetworkRepo @Inject constructor(
         Result.success(apiService.checkLoginInfo().response())
     }
 
-    suspend fun preGetLoginParam() = fire {
-        Result.success(accountService.preGetLoginParam().response())
+    // ===== 其他屏蔽项（关键字 / 用户 / 节点）=====
+    suspend fun getSpamWordList() = fire {
+        Result.success(apiService.getSpamWordList().await())
     }
 
-    suspend fun getLoginParam() = fire {
-        Result.success(accountService.getLoginParam().response())
+    suspend fun updateConfig(key: String, value: String) = fire {
+        Result.success(apiService.updateConfig(key, value).await())
     }
 
-    suspend fun tryLogin(data: HashMap<String, String?>) = fire {
-        Result.success(accountService.tryLogin(data).response())
+    // ===== 收藏夹（多收藏夹）=====
+    suspend fun getCollectionList(
+        uid: String,
+        id: String,
+        type: String,
+        showDefault: Int,
+        page: Int
+    ) = fire {
+        Result.success(apiService.getCollectionList(uid, id, type, showDefault, page).await())
     }
 
-    suspend fun getCaptcha(url: String) = fire {
-        Result.success(accountService.getCaptcha(url).response())
+    /** 收藏：id=收藏夹 id；取消收藏：cancelId=收藏夹 id（见 HAR 实测） */
+    suspend fun addToCollection(
+        id: String,
+        cancelId: String,
+        targetId: String,
+        type: String
+    ) = fire {
+        Result.success(apiService.addToCollection(id, cancelId, targetId, type).await())
     }
 
-    /** 短信登录第一步：取 /auth/login?type=mobile 页面里的 requestHash */
-    suspend fun getSmsLoginParam() = fire {
-        Result.success(accountService.getSmsLoginParam().response())
+    suspend fun createCollection(
+        isOpen: String,
+        pic: String,
+        description: String,
+        title: String,
+        sourceId: String
+    ) = fire {
+        Result.success(apiService.createCollection(isOpen, pic, description, title, sourceId).await())
     }
 
-    /** 短信登录第二步：请求下发短信验证码 */
-    suspend fun getSmsToken(data: HashMap<String, String?>) = fire {
-        Result.success(accountService.getSmsToken(data = data).response())
+    suspend fun updateCollection(
+        id: String,
+        title: String,
+        description: String,
+        pic: String,
+        isOpen: Int
+    ) = fire {
+        Result.success(apiService.updateCollection(id, title, description, pic, isOpen).await())
+    }
+
+    suspend fun uploadCollectionImage(fileMd5: String, file: MultipartBody.Part) = fire {
+        Result.success(
+            apiService.uploadCollectionImage("picFile", "feed_image", fileMd5, file).await()
+        )
+    }
+
+    suspend fun getCollectionCheckCount() = fire {
+        Result.success(apiService.getCollectionCheckCount().await())
     }
 
     suspend fun getValidateCaptcha(url: String) = fire {
@@ -239,6 +286,19 @@ class NetworkRepo @Inject constructor(
 
     suspend fun postDelete(url: String, id: String) = fire {
         Result.success(apiService.postDelete(url, id).await())
+    }
+
+    suspend fun postPublishStatus(data: HashMap<String, String?>) = fire {
+        Result.success(apiService.postPublishStatus(data).await())
+    }
+
+    // 个人主页置顶 / 取消置顶（只能操作自己的动态，nodeId 传自己的 uid）
+    suspend fun addTopToNode(nodeType: String, nodeId: String, feedId: String) = fire {
+        Result.success(apiService.addTopToNode(nodeType, nodeId, feedId).await())
+    }
+
+    suspend fun cancelTopFromNode(nodeType: String, nodeId: String, feedId: String) = fire {
+        Result.success(apiService.cancelTopFromNode(nodeType, nodeId, feedId).await())
     }
 
     suspend fun postFollow(data: HashMap<String, String>) = fire {

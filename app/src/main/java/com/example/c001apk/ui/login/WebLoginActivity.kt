@@ -22,6 +22,8 @@ import androidx.webkit.WebViewFeature
 import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivityWebViewBinding
 import com.example.c001apk.ui.base.BaseActivity
+import com.example.c001apk.ui.main.MainActivity
+import com.example.c001apk.util.ActivityCollector
 import com.example.c001apk.util.PrefManager
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import java.net.URLDecoder
@@ -31,7 +33,7 @@ import java.net.URLEncoder
  * 网页登录：用 WebView 打开酷安官方登录页，登录成功后把 cookie 中的
  * uid / username / token 写进 PrefManager。
  *
- * 与 [LoginActivity] 的表单登录落地方式完全一致（见 AddCookiesInterceptor：
+ * 与原来的表单登录落地方式完全一致（见 AddCookiesInterceptor：
  * 登录态请求靠 uid / username / token 这三个 cookie），因此不必自己复刻官方登录表单：
  * 短信验证码、图形验证码、二次验证、第三方登录等步骤都由官方页面负责，
  * 也就不会再出现「验证码发出去了却没有输入框」的问题。
@@ -186,6 +188,8 @@ class WebLoginActivity : BaseActivity<ActivityWebViewBinding>() {
 
         Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show()
         setResult(Activity.RESULT_OK)
+        // 登录态变化后重建主界面（与原来表单登录的收尾逻辑一致）
+        ActivityCollector.recreateActivity(MainActivity::class.java.name)
         finish()
     }
 

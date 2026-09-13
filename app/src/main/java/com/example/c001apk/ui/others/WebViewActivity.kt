@@ -46,12 +46,22 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
     private val link: String? by lazy { intent.getStringExtra("url") }
     private var webView: WebView? = null
 
+    companion object {
+        // 每个进程只允许设置一次 WebView 数据目录后缀
+        private var dataDirSuffixSet = false
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setSupportActionBar(binding.toolBar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        if (SDK_INT >= 28 && !dataDirSuffixSet) {
+            dataDirSuffixSet = true
+            runCatching { WebView.setDataDirectorySuffix("webview") }
+        }
 
         runCatching {
             webView = WebView(this).apply {

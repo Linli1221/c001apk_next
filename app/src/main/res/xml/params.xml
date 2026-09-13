@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- 机型检测：默认开，按本机 Build.* 重建设备串，帖子/回复下方显示本机机型 -->
+    <SwitchPreferenceCompat
+        android:key="reportRealDevice"
+        android:title="@string/report_real_device" />
+    <Preference
+        android:key="realDeviceInfo"
+        android:title="@string/real_device_info" />
+
     <Preference
         android:key="VERSION_NAME"
         android:title="VERSION_NAME" />

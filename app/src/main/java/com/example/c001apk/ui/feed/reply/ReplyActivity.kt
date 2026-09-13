@@ -687,8 +687,11 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
                     viewModel.replyAndFeedData["id"] = ""
                     viewModel.replyAndFeedData["message"] = binding.editText.text.toString()
                     viewModel.replyAndFeedData["type"] = "feed"
-                    viewModel.replyAndFeedData["status"] =
-                        if (binding.checkBox.isChecked) "-1" else "1"
+                    // 酷安 16.2.2 起「仅自己可见」改为 publish_status：1=仅自己可见，0=公开。
+                    // 旧的 status=-1 已被服务端废弃（返回 -116 请升级新版本酷安）。
+                    viewModel.replyAndFeedData["status"] = "1"
+                    viewModel.replyAndFeedData["publish_status"] =
+                        if (binding.checkBox.isChecked) "1" else "0"
 
                     targetType?.let {
                         if (it == "apk")

@@ -34,7 +34,6 @@ import com.example.c001apk.adapter.HeaderAdapter
 import com.example.c001apk.adapter.ItemListener
 import com.example.c001apk.constant.Constants.SZLM_ID
 import com.example.c001apk.databinding.FragmentFeedBinding
-import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.model.TotalReplyResponse
 import com.example.c001apk.ui.base.BaseFragment
 import com.example.c001apk.ui.feed.reply.ReplyActivity
@@ -47,6 +46,7 @@ import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.dp
 import com.example.c001apk.util.makeToast
+import com.example.c001apk.util.showPublishStatusDialog
 import com.example.c001apk.view.StaggerItemDecoration
 import com.example.c001apk.view.StickyItemDecorator
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
@@ -243,6 +243,9 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>() {
 
         viewModel.feedReplyData.observe(viewLifecycleOwner) {
             viewModel.listSize = it.size
+            // 数据加载后才知道作者，只有自己的动态才能改可见性
+            binding.toolBar.menu.findItem(R.id.publishStatus)?.isVisible =
+                PrefManager.isLogin && PrefManager.uid == viewModel.feedUid
             feedReplyAdapter.submitList(it)
             if (viewModel.isViewReply) {
                 viewModel.isViewReply = false
@@ -362,12 +365,6 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>() {
             menu.findItem(R.id.report).isVisible = PrefManager.isLogin
             menu.findItem(R.id.showQuestion).isVisible = viewModel.feedType == "answer"
 
-            val favorite = menu.findItem(R.id.favorite)
-            lifecycleScope.launch(Dispatchers.Main) {
-                val isFavorite = viewModel.isFavorite(viewModel.id)
-                favorite.title = if (isFavorite) "取消收藏"
-                else "收藏"
-            }
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     R.id.showQuestion -> {
@@ -410,6 +407,15 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>() {
                         )
                     }
 
+                    R.id.publishStatus -> {
+                        showPublishStatusDialog(
+                            requireContext(),
+                            viewModel.feedDataList?.firstOrNull { it.id == viewModel.id }?.publishStatus
+                        ) { publishStatus ->
+                            viewModel.onPostPublishStatus(viewModel.id, publishStatus)
+                        }
+                    }
+
                     R.id.report -> {
                         IntentUtil.startActivity<WebViewActivity>(requireContext()) {
                             putExtra(
@@ -420,40 +426,10 @@ class FeedFragment : BaseFragment<FragmentFeedBinding>() {
                     }
 
                     R.id.favorite -> {
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            val isFavorite = favorite.title == "取消收藏"
-                            if (isFavorite) {
-                                viewModel.delete(viewModel.id)
-                                favorite.title = "收藏"
-                                requireContext().makeToast("已取消收藏")
-                            } else {
-                                try {
-                                    val fav = FeedEntity(
-                                        viewModel.id,
-                                        viewModel.feedUid.toString(),
-                                        viewModel.funame.toString(),
-                                        viewModel.avatar.toString(),
-                                        viewModel.device.toString(),
-                                        if (!viewModel.articleList.isNullOrEmpty())
-                                            viewModel.articleMsg.toString()
-                                        else {
-                                            with(viewModel.feedDataList?.getOrNull(0)?.message.toString()) {
-                                                if (this.length > 150) this.substring(0, 150)
-                                                else this
-                                            }
-                                        }, // 还未加载完会空指针
-                                        if (!viewModel.articleList.isNullOrEmpty()) viewModel.articleDateLine.toString()
-                                        else viewModel.feedDataList?.getOrNull(0)?.dateline.toString()
-                                    )
-                                    viewModel.insert(fav)
-                                    favorite.title = "取消收藏"
-                                    requireContext().makeToast("已收藏")
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    requireContext().makeToast("请稍后再试")
-                                }
-                            }
-                        }
+                        // 服务端多收藏夹：选择 / 取消收藏 / 新建 / 长按编辑
+                        CollectionPickBottomSheet().apply {
+                            arguments = Bundle().apply { putString("feedId", viewModel.id) }
+                        }.show(childFragmentManager, "collectionPick")
                     }
 
                 }

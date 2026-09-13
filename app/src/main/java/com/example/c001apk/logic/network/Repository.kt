@@ -116,22 +116,6 @@ object Repository {
         Result.success(Network.checkLoginInfo())
     }
 
-    suspend fun preGetLoginParam() = fire {
-        Result.success(Network.preGetLoginParam())
-    }
-
-    suspend fun getLoginParam() = fire {
-        Result.success(Network.getLoginParam())
-    }
-
-    suspend fun tryLogin(data: HashMap<String, String?>) = fire {
-        Result.success(Network.tryLogin(data))
-    }
-
-    suspend fun getCaptcha(url: String) = fire {
-        Result.success(Network.getCaptcha(url))
-    }
-
     suspend fun getValidateCaptcha(url: String) = fire {
         Result.success(Network.getValidateCaptcha(url))
     }
@@ -148,14 +132,6 @@ object Repository {
 
     suspend fun getDyhDetail(dyhId: String, type: String, page: Int, lastItem: String?) = fire {
         Result.success(Network.getDyhDetail(dyhId, type, page, lastItem))
-    }
-
-    suspend fun getSmsToken(type: String, data: HashMap<String, String?>) = fire(Dispatchers.IO) {
-        Result.success(Network.getSmsToken(type, data))
-    }
-
-    suspend fun getSmsLoginParam(type: String) = fire(Dispatchers.IO) {
-        Result.success(Network.getSmsLoginParam(type))
     }
 
     suspend fun getMessage(url: String, page: Int, lastItem: String?) = fire {
