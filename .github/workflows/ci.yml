@@ -91,15 +91,16 @@ jobs:
           name: ${{ steps.buildDebug.outputs.debugName }}
           path: "app/build/outputs/apk/debug/*.apk"
 
-      # 失败时把 Gradle 的报错原文转成 annotation，
+      # 失败时把 Gradle 日志尾部转成 annotation，
       # 这样在 Actions 页面和失败通知邮件里就能直接看到原因，不用再翻完整日志
       - name: Report Gradle failure
         if: failure()
         run: |
+          echo "::error::REPORT-STEP | pwd=$(pwd) | logs=$(ls -1 gradle-*.log 2>/dev/null | tr '\n' ' ')"
           for f in gradle-release.log gradle-debug.log; do
             if [ -f "$f" ]; then
-              echo "::error::--- 以下为 $f 的报错原文 ---"
-              awk '/^FAILURE: Build failed|^What went wrong/{p=1} p' "$f" | head -10 \
-                | while IFS= read -r line; do echo "::error::${line}"; done
+              echo "::error::logs found: $f ($(wc -c < "$f") bytes)"
+              tail -25 "$f" | while IFS= read -r line; do echo "::error::$line"; done
+              break
             fi
           done
