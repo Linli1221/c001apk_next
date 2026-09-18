@@ -3,6 +3,7 @@ package com.example.c001apk.ui.login
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.res.Configuration
+import android.net.http.SslError
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Handler
@@ -11,7 +12,6 @@ import android.view.KeyEvent
 import android.view.MenuItem
 import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
-import android.webkit.SslError
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView

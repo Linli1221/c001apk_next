@@ -7,6 +7,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import com.example.c001apk.ui.others.BugHandlerActivity
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.SslErrorPrompter
 import com.example.c001apk.util.TokenDeviceUtils
 import dagger.hilt.android.HiltAndroidApp
 import net.mikaelzero.mojito.Mojito

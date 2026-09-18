@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
+import android.net.http.SslError
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Environment
@@ -20,7 +21,6 @@ import android.webkit.CookieManager
 import android.webkit.URLUtil
 import android.webkit.WebChromeClient
 import android.webkit.SslErrorHandler
-import android.webkit.SslError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
