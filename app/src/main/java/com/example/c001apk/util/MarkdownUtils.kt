@@ -6,6 +6,7 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.core.CorePlugin
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.ext.tables.TableTheme
 import io.noties.markwon.image.glide.GlideImagesPlugin
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -222,9 +223,17 @@ object MarkdownUtils {
         Markwon.builder(context)
             .usePlugin(CorePlugin.create())
             .usePlugin(StrikethroughPlugin.create())
-            .usePlugin(TablePlugin.create(context))
+            .usePlugin(TablePlugin.create(tableTheme(context)))
             .usePlugin(GlideImagesPlugin.create(context))
             .build()
+
+    /** 默认 cellPadding 偏小，单元格文字容易贴边，这里放宽一点 */
+    private fun tableTheme(context: Context): TableTheme {
+        val padding = (context.resources.displayMetrics.density * 8F).toInt()
+        return TableTheme.buildWithDefaults(context)
+            .tableCellPadding(padding)
+            .build()
+    }
 
     /**
      * 解析 md 文本为 Spanned。

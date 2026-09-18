@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Color
 import android.text.Selection
 import android.text.Spannable
+import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.method.Touch
 import android.text.style.ClickableSpan
@@ -13,6 +14,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.widget.TextView
 import com.example.c001apk.util.SpannableStringBuilderUtil
+import io.noties.markwon.ext.tables.TableRowSpan
 import rikka.material.widget.FakeFontWeightMaterialTextView
 
 //https://stackoverflow.com/questions/8558732
@@ -112,6 +114,37 @@ class LinkTextView : FakeFontWeightMaterialTextView {
                 null
             )
         super.setText(spText, type)
+        scheduleTableRows(spText)
+    }
+
+    /**
+     * Markwon 的 markdown 表格行高要靠「绘制一次后再重新测量一次」才能收敛，
+     * 原生由 `Markwon.setText` 内部的 TableRowsScheduler 负责；
+     * 我们不走 Markwon.setText（正文统一由 SpannableStringBuilderUtil 渲染），
+     * 所以要自己把 Invalidator 绑上，否则首轮行高偏小、单元格文字会溢出格子。
+     */
+    private fun scheduleTableRows(text: Spanned) {
+        val rows = text.getSpans(0, text.length, TableRowSpan::class.java)
+        if (rows.isEmpty() || isInEditMode) return
+        val invalidator = object : TableRowSpan.Invalidator {
+            private val runnable = Runnable {
+                val current = this@LinkTextView.text
+                if (current is Spanned &&
+                    current.getSpans(0, current.length, TableRowSpan::class.java).isNotEmpty()
+                ) setRawText(current)
+            }
+
+            override fun invalidate() {
+                removeCallbacks(runnable)
+                post(runnable)
+            }
+        }
+        rows.forEach { it.invalidator(invalidator) }
+    }
+
+    /** 绕过本类的正文渲染，直接把已有 Spanned 交给父类重新排版（避免重复解析 markdown） */
+    private fun setRawText(t: CharSequence) {
+        super.setText(t, BufferType.SPANNABLE)
     }
 
 }

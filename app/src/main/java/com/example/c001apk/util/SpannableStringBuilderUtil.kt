@@ -31,12 +31,14 @@ object SpannableStringBuilderUtil {
         imgList: List<String>?,
         showMoreReply: (() -> Unit)? = null
     ): SpannableStringBuilder {
+        // 代码块复制按钮的占位符可能在文本被二次渲染时残留，先剔除
+        val src = text.replace(PLACEHOLDER, "")
         val mess: Spanned =
-            if (MarkdownUtils.isMarkdown(text))
-                MarkdownUtils.parse(mContext, text)
+            if (MarkdownUtils.isMarkdown(src))
+                MarkdownUtils.parse(mContext, src)
             else
                 Html.fromHtml(
-                    text.replace("\n", "<br/>"),
+                    src.replace("\n", "<br/>"),
                     Html.FROM_HTML_MODE_COMPACT
                 )
         val builder = SpannableStringBuilder(mess)
