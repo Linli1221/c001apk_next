@@ -177,9 +177,9 @@
     <string name="settings_verify_ssl">校验 SSL 证书</string>
     <string name="settings_verify_ssl_summary">在系统证书校验的基础上，要求证书链的信任锚必须落在内置的 Mozilla CA 库（121 个可信机构）中：抓包工具证书、厂商私有根证书一律拒绝。关闭后改为纯系统校验（仍不信任用户安装的证书）。修改后需重启应用生效</string>
     <string name="ssl_error_title">网络环境存在安全风险</string>
-    <string name="ssl_error_message">SSL 证书校验失败，当前网络可能被监听或篡改（例如处于抓包或中间人攻击环境）。\n\n建议检查所连接的 Wi-Fi 和代理设置，切换到可信网络后重试。</string>
+    <string name="ssl_error_message">SSL 证书校验失败，当前网络可能被监听或篡改（例如处于抓包或中间人攻击环境）。\n\n建议检查所连接的 Wi-Fi 和代理设置，切换到可信网络后重试。\n\n「关闭SSL证书校验（不推荐）」：这可能使你处于危险的网络环境，修改需重启应用后生效。</string>
     <string name="ssl_error_confirm">确定</string>
-    <string name="ssl_error_disable">关闭SSL证书校验（不推荐，这可能使你处于危险的网络环境，修改重启应用后生效）</string>
+    <string name="ssl_error_disable">关闭SSL证书校验（不推荐）</string>
     <string name="ssl_error_disabled_toast">已关闭 SSL 证书校验，重启应用后生效</string>
     <string name="followSystemAccent">系统主题色</string>
     <string name="themeColor">主题颜色</string>
