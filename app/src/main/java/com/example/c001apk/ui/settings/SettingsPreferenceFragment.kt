@@ -73,6 +73,18 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         setDivider(resources.getDrawable(R.drawable.divider, requireContext().theme))
     }
 
+    /**
+     * 一级菜单点进去是二级 PreferenceScreen（由 PreferenceFragmentCompat 自动压栈）。
+     * 这里在每次回到本页时，把当前这一层的标题同步到工具栏；
+     * 根页没有 android:title，回退成「设置」。
+     */
+    override fun onResume() {
+        super.onResume()
+        val title = preferenceScreen?.title?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.tab_setting)
+        (activity as? SettingsActivity)?.supportActionBar?.title = title
+    }
+
     class SettingsPreferenceDataStore : PreferenceDataStore() {
         override fun getString(key: String?, defValue: String?): String {
             return when (key) {
@@ -155,9 +167,12 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
+        // 「关于」现在是二级页（下面挂着「检查应用更新」和「关于本应用」），
+        // 不能再挂点击监听，否则会覆盖掉嵌套 PreferenceScreen 的自动导航。
         findPreference<Preference>("about")?.summary =
             "${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})"
-        findPreference<Preference>("about")?.setOnPreferenceClickListener {
+
+        findPreference<Preference>("aboutPage")?.setOnPreferenceClickListener {
             IntentUtil.startActivity<AboutActivity>(requireContext()) {}
             true
         }

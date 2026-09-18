@@ -19,7 +19,7 @@
             android:orientation="vertical">
 
             <LinearLayout
-                android:id="@+id/localFavLayout"
+                android:id="@+id/equipmentLayout"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -38,14 +38,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:src="@drawable/ic_archive"
+                    android:src="@drawable/ic_device"
                     android:tint="?attr/colorPrimary" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="@string/local_favorite" />
+                    android:text="@string/myDevice" />
 
             </LinearLayout>
 
@@ -54,10 +54,10 @@
                 android:layout_width="1px"
                 android:layout_height="20dp"
                 android:background="?attr/actionBarDivider"
-                app:layout_constraintBottom_toBottomOf="@id/localFavLayout"
+                app:layout_constraintBottom_toBottomOf="@id/equipmentLayout"
                 app:layout_constraintEnd_toStartOf="@id/historyLayout"
-                app:layout_constraintStart_toEndOf="@id/localFavLayout"
-                app:layout_constraintTop_toTopOf="@id/localFavLayout" />
+                app:layout_constraintStart_toEndOf="@id/equipmentLayout"
+                app:layout_constraintTop_toTopOf="@id/equipmentLayout" />
 
             <LinearLayout
                 android:id="@+id/historyLayout"
@@ -145,7 +145,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/line3"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/localFavLayout">
+                app:layout_constraintTop_toBottomOf="@id/equipmentLayout">
 
                 <ImageView
                     android:layout_width="match_parent"

@@ -45,6 +45,12 @@ import kotlin.system.exitProcess
 class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
 
     private val link: String? by lazy { intent.getStringExtra("url") }
+
+    /**
+     * 可选的「编辑」目标地址。传入后工具栏右上角出现一个编辑按钮，
+     * 点击即在当前 WebView 里加载该地址（例：我的装备页 → 编辑装备页）。
+     */
+    private val editUrl: String? by lazy { intent.getStringExtra("editUrl") }
     private var webView: WebView? = null
 
     companion object {
@@ -276,7 +282,10 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
                         binding.toolBar.title = title
                     }
                 }
-                loadUrl(url, mutableMapOf("X-Requested-With" to "com.coolapk.market"))
+                // 注意：这里**不能**带 X-Requested-With: com.coolapk.market。
+                // 酷安 H5（m.coolapk.com）用它判定 ajax 请求，带上后整页会返回 JSON 片段
+                // （实测 myDevice / editProductOwner / report 等页面都是如此），WebView 只能显示原始 JSON。
+                loadUrl(url)
             }
         }
     }
@@ -324,12 +333,19 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.webview_menu, menu)
+        // 只有显式传了 editUrl 的页面（如「我的装备」）才显示右上角编辑按钮
+        menu?.findItem(R.id.editDevice)?.isVisible = editUrl != null
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> finish()
+
+            R.id.editDevice -> editUrl?.let { url ->
+                applyCoolapkCookies(url)
+                webView?.loadUrl(url)
+            }
 
             R.id.refresh -> webView?.reload()
 

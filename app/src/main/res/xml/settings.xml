@@ -1,24 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 2026-09-18 重构：设置项重新分组为 5 个一级菜单 -->
+    <!--
+        2026-09-18 二次修正：一级菜单只保留 5 个「入口」，
+        点进去才是具体开关（嵌套 PreferenceScreen 由 PreferenceFragmentCompat 自动压栈，
+        返回键逐层退回，SettingsActivity 的 onBackPressedDispatcher 已处理）。
+        顺序：外观 / 推荐流相关 / 隐私 / 高级 / 其他
+    -->
 
-    <PreferenceCategory android:title="@string/settings_advanced">
-        <Preference
-            android:icon="@drawable/ic_phone"
-            android:key="szlmId"
-            android:title="@string/szlmId" />
-        <Preference
-            android:icon="@drawable/ic_dev_mode"
-            android:key="params"
-            android:title="@string/params" />
-        <Preference
-            android:icon="@drawable/ic_image"
-            android:key="imageQuality"
-            android:title="@string/image_quality" />
-    </PreferenceCategory>
+    <PreferenceScreen
+        android:icon="@drawable/outline_palette_24"
+        android:key="appearance"
+        android:title="@string/settings_appearance">
 
-    <PreferenceCategory android:title="@string/settings_appearance">
         <rikka.material.preference.MaterialSwitchPreference
             android:defaultValue="true"
             android:disableDependentsState="true"
@@ -56,16 +50,14 @@
             android:icon="@drawable/ic_emoji"
             android:key="showEmoji"
             android:title="@string/show_emoji" />
-    </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/settings_privacy">
-        <Preference
-            android:icon="@drawable/ic_block"
-            android:key="userBlackList"
-            android:title="@string/user_black_list" />
-    </PreferenceCategory>
+    </PreferenceScreen>
 
-    <PreferenceCategory android:title="@string/settings_recommendation">
+    <PreferenceScreen
+        android:icon="@drawable/ic_feed"
+        android:key="recommendation"
+        android:title="@string/settings_recommendation">
+
         <Preference
             android:icon="@drawable/ic_block"
             android:key="topicBlackList"
@@ -102,22 +94,70 @@
             android:icon="@drawable/ic_history"
             android:key="isRecordHistory"
             android:title="@string/record_history" />
-        <rikka.material.preference.MaterialSwitchPreference
-            android:defaultValue="true"
-            android:icon="@drawable/outline_system_update_24"
-            android:key="isCheckUpdate"
-            android:title="@string/check_apps_update" />
-    </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/settings_other">
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:icon="@drawable/ic_block"
+        android:key="privacy"
+        android:title="@string/settings_privacy">
+
         <Preference
+            android:icon="@drawable/ic_block"
+            android:key="userBlackList"
+            android:title="@string/user_black_list" />
+
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:icon="@drawable/ic_dev_mode"
+        android:key="advanced"
+        android:title="@string/settings_advanced">
+
+        <Preference
+            android:icon="@drawable/ic_phone"
+            android:key="szlmId"
+            android:title="@string/szlmId" />
+        <Preference
+            android:icon="@drawable/ic_dev_mode"
+            android:key="params"
+            android:title="@string/params" />
+        <Preference
+            android:icon="@drawable/ic_image"
+            android:key="imageQuality"
+            android:title="@string/image_quality" />
+
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        android:icon="@drawable/ic_more"
+        android:key="other"
+        android:title="@string/settings_other">
+
+        <PreferenceScreen
             android:icon="@drawable/ic_logo"
             android:key="about"
-            android:title="@string/about" />
+            android:title="@string/about">
+
+            <!-- 「检查应用更新」从推荐流相关挪进关于 -->
+            <rikka.material.preference.MaterialSwitchPreference
+                android:defaultValue="true"
+                android:icon="@drawable/outline_system_update_24"
+                android:key="isCheckUpdate"
+                android:title="@string/check_apps_update" />
+
+            <Preference
+                android:icon="@drawable/ic_logo"
+                android:key="aboutPage"
+                android:title="@string/settings_about_app" />
+
+        </PreferenceScreen>
+
         <Preference
             android:icon="@drawable/ic_clean"
             android:key="clearCache"
             android:title="@string/clear_cache" />
-    </PreferenceCategory>
+
+    </PreferenceScreen>
 
 </PreferenceScreen>

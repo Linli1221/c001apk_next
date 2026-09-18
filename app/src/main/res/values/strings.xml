@@ -140,7 +140,6 @@
     <string name="stick_top">置顶</string>
     <string name="unstick_top">取消置顶</string>
     <string name="unsupported_card">暂不支持的内容卡片：%1$s</string>
-    <string name="local_favorite">本地收藏</string>
     <string name="about_developer">开发者</string>
     <string name="backup">导出</string>
     <string name="restore">导入</string>
@@ -166,22 +165,14 @@
     <string name="check_apps_update">检查应用更新</string>
     <string name="check_user_info">查看用户资料</string>
 
-    <!-- 2026-09-18 重构：底栏重排 + 我的页面九宫格 + 设置分组 -->
-    <string name="mine_collection">本地收藏</string>
-    <string name="mine_history">浏览历史</string>
-    <string name="mine_frequently">我的常去</string>
-    <string name="mine_like">我的赞</string>
-    <string name="mine_reply">我的回复</string>
-    <string name="mine_equipment">我的装备</string>
+    <!-- 2026-09-18 重构：底栏重排 + 设置分组（一级菜单 + 二级详情页） -->
     <string name="settings_icon_desc">设置</string>
     <string name="settings_advanced">高级</string>
     <string name="settings_appearance">外观</string>
     <string name="settings_privacy">隐私</string>
     <string name="settings_recommendation">推荐流相关</string>
     <string name="settings_other">其他</string>
+    <string name="settings_about_app">关于本应用</string>
     <string name="followSystemAccent">系统主题色</string>
     <string name="themeColor">主题颜色</string>
-    <string name="equipment_title">我的装备</string>
-    <string name="equipment_view">查看我的设备</string>
-    <string name="equipment_edit">修改设备信息</string>
 </resources>

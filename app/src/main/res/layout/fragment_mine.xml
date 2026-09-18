@@ -135,17 +135,11 @@
 
             </com.google.android.material.appbar.MaterialToolbar>
 
-            <!-- 2026-09-18 重构：我的页面九宫格快捷入口（运行时填充 6 项） -->
-            <GridLayout
-                android:id="@+id/mineGrid"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:columnCount="3"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:visibility="@{isLogin ? View.VISIBLE : View.GONE}"
-                android:background="?attr/colorSurface" />
-
+            <!--
+                2026-09-18 二次修正：这里曾经额外塞了一个「九宫格」GridLayout，
+                与下方 RecyclerView 里原有的 item_message_mine 卡片重复，导致「我的」页出现两套入口。
+                现在统一只保留原有卡片（MessageSecondAdapter + item_message_mine.xml）。
+            -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1px"

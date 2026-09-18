@@ -6,32 +6,24 @@ import androidx.lifecycle.viewModelScope
 import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-@HiltViewModel(assistedFactory = HistoryViewModel.Factory::class)
-class HistoryViewModel @AssistedInject constructor(
-    @Assisted val type: String,
+/**
+ * 浏览历史。
+ *
+ * 2026-09-18：本地收藏功能已移除（改用云端收藏 CollectionActivity），
+ * 这里只剩「浏览历史」一种数据源，顺带把 assisted type 参数也一起去掉了。
+ */
+@HiltViewModel
+class HistoryViewModel @Inject constructor(
     private val blackListRepo: BlackListRepo,
     private val historyRepo: HistoryFavoriteRepo,
 ) : ViewModel() {
 
-    @AssistedFactory
-    interface Factory {
-        fun create(type: String): HistoryViewModel
-    }
-
-    val browseLiveData: LiveData<List<FeedEntity>> =
-        if (type == "browse") {
-            historyRepo.loadAllHistoryListLive()
-        } else {
-            historyRepo.loadAllFavoriteListLive()
-        }
-
+    val browseLiveData: LiveData<List<FeedEntity>> = historyRepo.loadAllHistoryListLive()
 
     fun saveUid(uid: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -41,21 +33,13 @@ class HistoryViewModel @AssistedInject constructor(
 
     fun deleteAll() {
         viewModelScope.launch(Dispatchers.IO) {
-            when (type) {
-                "browse" -> historyRepo.deleteAllHistory()
-                "favorite" -> historyRepo.deleteAllFavorite()
-                else -> {}
-            }
+            historyRepo.deleteAllHistory()
         }
     }
 
     fun delete(fid: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            when (type) {
-                "browse" -> historyRepo.deleteHistory(fid)
-                "favorite" -> historyRepo.deleteFavorite(fid)
-                else -> {}
-            }
+            historyRepo.deleteHistory(fid)
         }
     }
 

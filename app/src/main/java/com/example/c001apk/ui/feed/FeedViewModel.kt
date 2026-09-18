@@ -7,7 +7,6 @@ import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_END
 import com.example.c001apk.constant.Constants.LOADING_FAILED
 import com.example.c001apk.logic.model.FeedArticleContentBean
-import com.example.c001apk.logic.model.FeedEntity
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
 import com.example.c001apk.logic.repository.BlackListRepo
@@ -338,24 +337,6 @@ class FeedViewModel @AssistedInject constructor(
     fun saveUid(uid: String) {
         viewModelScope.launch(Dispatchers.IO) {
             blackListRepo.saveUid(uid)
-        }
-    }
-
-    suspend fun isFavorite(fid: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            historyRepo.checkFavorite(fid)
-        }
-    }
-
-    suspend fun delete(fid: String) {
-        withContext(Dispatchers.IO) {
-            historyRepo.deleteFavorite(fid)
-        }
-    }
-
-    suspend fun insert(fav: FeedEntity) {
-        withContext(Dispatchers.IO) {
-            historyRepo.insertFavorite(fav)
         }
     }
 

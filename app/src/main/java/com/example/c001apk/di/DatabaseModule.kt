@@ -9,7 +9,6 @@ import com.example.c001apk.logic.dao.HomeMenuDao
 import com.example.c001apk.logic.dao.RecentAtUserDao
 import com.example.c001apk.logic.dao.StringEntityDao
 import com.example.c001apk.logic.database.BrowseHistoryDatabase
-import com.example.c001apk.logic.database.FeedFavoriteDatabase
 import com.example.c001apk.logic.database.HomeMenuDatabase
 import com.example.c001apk.logic.database.RecentAtUserDatabase
 import com.example.c001apk.logic.database.RecentEmojiDatabase
@@ -44,10 +43,6 @@ annotation class RecentEmoji
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class BrowseHistory
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class FeedFavorite
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -141,24 +136,6 @@ object DatabaseModule {
         ).build()
     }
 
-    @FeedFavorite
-    @Singleton
-    @Provides
-    fun provideFeedFavoriteDao(feedFavoriteDatabase: FeedFavoriteDatabase): HistoryFavoriteDao {
-        return feedFavoriteDatabase.feedFavoriteDao()
-    }
-
-    @Singleton
-    @Provides
-    fun provideFeedFavoriteDatabase(@ApplicationContext context: Context): FeedFavoriteDatabase {
-        return Room.databaseBuilder(
-            context.applicationContext,
-            FeedFavoriteDatabase::class.java, "feed_favorite.db"
-        )
-            .addMigrations(FeedFavoriteDatabase_MIGRATION_1_2)
-            .build()
-    }
-
     @Singleton
     @Provides
     fun provideHomeMenuDao(homeMenuDatabase: HomeMenuDatabase): HomeMenuDao {
@@ -196,14 +173,6 @@ object DatabaseModule {
             .build()
     }
 
-}
-
-object FeedFavoriteDatabase_MIGRATION_1_2 : Migration(1, 2) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("CREATE TABLE FeedFavorite_new (uid text not null, uname TEXT not null, feedId TEXT not null, avatar TEXT not null, id INTEGER not null, message TEXT not null, device TEXT not null, pubDate TEXT not null, PRIMARY KEY(id))")
-        db.execSQL("DROP TABLE FeedFavorite")
-        db.execSQL("ALTER TABLE FeedFavorite_new RENAME TO FeedFavorite")
-    }
 }
 
 object HomeMenuDatabase_MIGRATION_1_2 : Migration(1, 2) {

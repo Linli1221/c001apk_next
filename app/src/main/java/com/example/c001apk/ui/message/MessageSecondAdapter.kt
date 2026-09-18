@@ -10,6 +10,7 @@ import com.example.c001apk.databinding.ItemMessageMineBinding
 import com.example.c001apk.ui.collection.CollectionActivity
 import com.example.c001apk.ui.follow.FFFListActivity
 import com.example.c001apk.ui.history.HistoryActivity
+import com.example.c001apk.ui.others.WebViewActivity
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
 
@@ -21,7 +22,7 @@ class MessageSecondAdapter : RecyclerView.Adapter<MessageSecondAdapter.SecondVie
 
         init {
             binding.apply {
-                localFavLayout.setOnClickListener(this@SecondViewHolder)
+                equipmentLayout.setOnClickListener(this@SecondViewHolder)
                 historyLayout.setOnClickListener(this@SecondViewHolder)
                 if (PrefManager.isLogin) {
                     freqLayout.setOnClickListener(this@SecondViewHolder)
@@ -38,9 +39,16 @@ class MessageSecondAdapter : RecyclerView.Adapter<MessageSecondAdapter.SecondVie
 
         override fun onClick(view: View?) {
             when (view?.id) {
-                R.id.localFavLayout ->
-                    IntentUtil.startActivity<HistoryActivity>(itemView.context) {
-                        putExtra("type", "favorite")
+                // 我的装备：直接进入装备页；「修改/编辑装备」按钮放在该页右上角
+                R.id.equipmentLayout ->
+                    if (PrefManager.isLogin) {
+                        IntentUtil.startActivity<WebViewActivity>(itemView.context) {
+                            putExtra("url", "https://m.coolapk.com/myDevice/${PrefManager.uid}")
+                            putExtra(
+                                "editUrl",
+                                "https://m.coolapk.com/mp/do?c=product&m=editProductOwner&from=home"
+                            )
+                        }
                     }
 
                 R.id.historyLayout ->

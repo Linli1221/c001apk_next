@@ -2,6 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- 退出登录紧挨着设置图标（设置保持在最右） -->
+    <item
+        android:id="@+id/logout"
+        android:icon="@drawable/ic_logout"
+        android:showAsAction="always"
+        android:title="@string/logout" />
+
     <item
         android:id="@+id/settings"
         android:icon="@drawable/ic_setting_outline"

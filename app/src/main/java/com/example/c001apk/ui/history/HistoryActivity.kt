@@ -21,18 +21,11 @@ import com.example.c001apk.view.LinearItemDecoration
 import com.example.c001apk.view.StaggerItemDecoration
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.lifecycle.withCreationCallback
 
 @AndroidEntryPoint
 class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
 
-    private val viewModel by viewModels<HistoryViewModel>(
-        extrasProducer = {
-            defaultViewModelCreationExtras.withCreationCallback<HistoryViewModel.Factory> { factory ->
-                factory.create(type = intent.getStringExtra("type") ?: "browse")
-            }
-        }
-    )
+    private val viewModel by viewModels<HistoryViewModel>()
     private lateinit var mAdapter: HistoryAdapter
     private lateinit var mLayoutManager: LinearLayoutManager
     private lateinit var sLayoutManager: StaggeredGridLayoutManager
@@ -41,12 +34,8 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding.toolBar.title =
-            when (viewModel.type) {
-                "browse" -> "浏览历史"
-                "favorite" -> "本地收藏"
-                else -> throw IllegalArgumentException("error type: ${viewModel.type}")
-            }
+        // 本地收藏已移除，本页只剩浏览历史
+        binding.toolBar.title = getString(R.string.history)
 
         initBar()
         initView()
@@ -75,8 +64,7 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
 
             R.id.clearAll -> {
                 MaterialAlertDialogBuilder(this).apply {
-                    if (viewModel.type == "browse") setTitle("确定清除全部浏览历史？")
-                    else setTitle("确定清除全部收藏？")
+                    setTitle("确定清除全部浏览历史？")
                     setNegativeButton(android.R.string.cancel, null)
                     setPositiveButton(android.R.string.ok) { _, _ ->
                         viewModel.deleteAll()

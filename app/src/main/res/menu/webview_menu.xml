@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- 仅当调用方传入 editUrl 时才可见（如「我的装备」→「编辑装备」） -->
+    <item
+        android:id="@+id/editDevice"
+        android:title="@string/editDevice"
+        android:showAsAction="always" />
+
     <item
         android:id="@+id/refresh"
         android:title="@string/refresh"
