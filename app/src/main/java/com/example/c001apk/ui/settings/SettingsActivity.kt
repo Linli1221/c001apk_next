@@ -2,6 +2,7 @@ package com.example.c001apk.ui.settings
 
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
+import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivitySettingsBinding
 import com.example.c001apk.ui.base.BaseActivity
 
