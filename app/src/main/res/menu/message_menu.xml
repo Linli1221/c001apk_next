@@ -3,21 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <item
-        android:id="@+id/myDevice"
-        android:icon="@drawable/ic_device"
-        android:title="@string/myDevice"
-        tools:ignore="AlwaysShowAction" />
-
-    <item
-        android:id="@+id/editDevice"
-        android:title="@string/editDevice"
-        tools:ignore="AlwaysShowAction" />
-
-    <item
-        android:id="@+id/logout"
-        android:icon="@drawable/ic_logout"
+        android:id="@+id/settings"
+        android:icon="@drawable/ic_setting_outline"
         android:showAsAction="always"
-        android:title="@string/logout"
-        tools:ignore="AlwaysShowAction" />
+        android:title="@string/settings_icon_desc" />
 
 </menu>

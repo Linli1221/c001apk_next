@@ -6,13 +6,8 @@
         android:title="@string/tab_home" />
 
     <item
-        android:id="@+id/navigation_message"
+        android:id="@+id/navigation_mine"
         android:icon="@drawable/ic_message_selector"
-        android:title="@string/tab_message" />
-
-    <item
-        android:id="@+id/navigation_setting"
-        android:icon="@drawable/ic_setting_selector"
-        android:title="@string/tab_setting" />
+        android:title="@string/tab_mine" />
 
 </menu>

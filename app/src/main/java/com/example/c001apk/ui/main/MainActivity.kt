@@ -14,8 +14,8 @@ import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivityMainBinding
 import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.ui.home.HomeFragment
-import com.example.c001apk.ui.message.MessageFragment
-import com.example.c001apk.ui.settings.SettingsFragment
+import com.example.c001apk.ui.message.MineFragment
+import com.example.c001apk.ui.settings.SettingsActivity
 import com.example.c001apk.util.ActivityCollector
 import com.example.c001apk.util.CookieUtil
 import com.example.c001apk.util.PrefManager
@@ -52,14 +52,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
         }
 
         binding.viewPager.apply {
-            offscreenPageLimit = 2
+            offscreenPageLimit = 1
             adapter = object : FragmentStateAdapter(this@MainActivity) {
-                override fun getItemCount() = 3
+                override fun getItemCount() = 2
                 override fun createFragment(position: Int): Fragment {
                     return when (position) {
                         0 -> HomeFragment()
-                        1 -> MessageFragment()
-                        else -> SettingsFragment()
+                        else -> MineFragment()
                     }
                 }
             }
@@ -70,7 +69,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
                     when (position) {
                         0 -> onBackPressedCallback.isEnabled = false
                         1 -> onBackPressedCallback.isEnabled = true
-                        2 -> onBackPressedCallback.isEnabled = true
                     }
                 }
             })
@@ -92,17 +90,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
                             binding.viewPager.setCurrentItem(0, true)
                     }
 
-                    R.id.navigation_message -> {
+                    R.id.navigation_mine -> {
                         binding.viewPager.setCurrentItem(1, true)
                         if (CookieUtil.badge != 0) {
-                            navView.removeBadge(R.id.navigation_message)
+                            navView.removeBadge(R.id.navigation_mine)
                         }
                     }
-
-                    R.id.navigation_setting -> {
-                        binding.viewPager.setCurrentItem(2, true)
-                    }
-
                 }
                 true
             }
@@ -128,7 +121,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
     }
 
     private fun setBadge() {
-        val badge = navView.getOrCreateBadge(R.id.navigation_message)
+        val badge = navView.getOrCreateBadge(R.id.navigation_mine)
         badge.number = CookieUtil.badge
         badge.backgroundColor =
             MaterialColors.getColor(

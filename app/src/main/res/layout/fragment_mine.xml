@@ -35,7 +35,8 @@
                 android:layout_height="wrap_content"
                 android:background="@null"
                 app:contentInsetStart="0dp"
-                app:layout_collapseMode="pin">
+                app:layout_collapseMode="pin"
+                app:title="@string/tab_mine">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
@@ -133,6 +134,17 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
             </com.google.android.material.appbar.MaterialToolbar>
+
+            <!-- 2026-09-18 重构：我的页面九宫格快捷入口（运行时填充 6 项） -->
+            <GridLayout
+                android:id="@+id/mineGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:visibility="@{isLogin ? View.VISIBLE : View.GONE}"
+                android:background="?attr/colorSurface" />
 
             <View
                 android:layout_width="match_parent"

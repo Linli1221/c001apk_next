@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory android:title="@string/app_name">
+    <!-- 2026-09-18 重构：设置项重新分组为 5 个一级菜单 -->
+
+    <PreferenceCategory android:title="@string/settings_advanced">
         <Preference
             android:icon="@drawable/ic_phone"
             android:key="szlmId"
@@ -10,9 +12,13 @@
             android:icon="@drawable/ic_dev_mode"
             android:key="params"
             android:title="@string/params" />
+        <Preference
+            android:icon="@drawable/ic_image"
+            android:key="imageQuality"
+            android:title="@string/image_quality" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/settings_theme">
+    <PreferenceCategory android:title="@string/settings_appearance">
         <rikka.material.preference.MaterialSwitchPreference
             android:defaultValue="true"
             android:disableDependentsState="true"
@@ -41,13 +47,25 @@
             android:key="blackDarkTheme"
             android:summary="@string/settings_pure_black_dark_theme_summary"
             android:title="@string/settings_pure_black_dark_theme" />
+        <Preference
+            android:icon="@drawable/ic_text_fields"
+            android:key="fontScale"
+            android:title="@string/font_scale" />
+        <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_emoji"
+            android:key="showEmoji"
+            android:title="@string/show_emoji" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/display">
+    <PreferenceCategory android:title="@string/settings_privacy">
         <Preference
             android:icon="@drawable/ic_block"
             android:key="userBlackList"
             android:title="@string/user_black_list" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/settings_recommendation">
         <Preference
             android:icon="@drawable/ic_block"
             android:key="topicBlackList"
@@ -64,14 +82,6 @@
             android:icon="@drawable/ic_block"
             android:key="spamNode"
             android:title="@string/spam_shield_node" />
-        <Preference
-            android:icon="@drawable/ic_text_fields"
-            android:key="fontScale"
-            android:title="@string/font_scale" />
-        <Preference
-            android:icon="@drawable/ic_image"
-            android:key="imageQuality"
-            android:title="@string/image_quality" />
         <rikka.material.preference.MaterialSwitchPreference
             android:defaultValue="true"
             android:icon="@drawable/ic_filter"
@@ -94,17 +104,12 @@
             android:title="@string/record_history" />
         <rikka.material.preference.MaterialSwitchPreference
             android:defaultValue="true"
-            android:icon="@drawable/ic_emoji"
-            android:key="showEmoji"
-            android:title="@string/show_emoji" />
-        <rikka.material.preference.MaterialSwitchPreference
-            android:defaultValue="true"
             android:icon="@drawable/outline_system_update_24"
             android:key="isCheckUpdate"
             android:title="@string/check_apps_update" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="@string/others">
+    <PreferenceCategory android:title="@string/settings_other">
         <Preference
             android:icon="@drawable/ic_logo"
             android:key="about"
