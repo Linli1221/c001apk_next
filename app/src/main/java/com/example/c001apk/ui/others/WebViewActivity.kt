@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Environment
+import android.graphics.Bitmap
 import android.util.Log
 import android.view.KeyEvent
 import android.view.Menu
@@ -128,14 +129,10 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
                 }
             }
             CookieManager.getInstance().apply {
-                setAcceptThirdPartyCookies(webView, false)
-                removeAllCookies { }
-                setCookie("m.coolapk.com", "DID=${PrefManager.SZLMID}")
-                setCookie("m.coolapk.com", "forward=https://www.coolapk.com")
-                setCookie("m.coolapk.com", "displayVersion=v14")
-                setCookie("m.coolapk.com", "uid=${PrefManager.uid}")
-                setCookie("m.coolapk.com", "username=${PrefManager.username}")
-                setCookie("m.coolapk.com", "token=${PrefManager.token}")
+                setAcceptCookie(true)
+                setAcceptThirdPartyCookies(webView, true)
+                // 跨子域（m/www/api 等）注入登录态 cookie；具体逻辑见 applyCoolapkCookies
+                applyCoolapkCookies(url)
             }
             it.apply {
                 setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
@@ -188,6 +185,18 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
                     }
                 }
                 webViewClient = object : WebViewClient() {
+                    /**
+                     * WebView 内部每次开始加载新页面时触发。
+                     * 当目标 host 是 coolapk 任意子域时，重新注入登录态 cookie，
+                     * 覆盖从 m.coolapk.com 跳转到 www / api 等子域时丢失登录态的情况。
+                     */
+                    override fun onPageStarted(
+                        view: WebView?, url: String?, favicon: Bitmap?
+                    ) {
+                        super.onPageStarted(view, url, favicon)
+                        if (url != null) applyCoolapkCookies(url)
+                    }
+
                     override fun shouldOverrideUrlLoading(
                         webView: WebView?, request: WebResourceRequest?
                     ): Boolean {
@@ -268,6 +277,46 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
                     }
                 }
                 loadUrl(url, mutableMapOf("X-Requested-With" to "com.coolapk.market"))
+            }
+        }
+    }
+
+    /**
+     * 判断 url 是否命中 coolapk 主域（含所有子域）。
+     * 用于决定是否需要注入登录态 cookie。
+     */
+    private fun isCoolapkHost(url: String): Boolean {
+        val host = runCatching { Uri.parse(url).host?.lowercase() }.getOrNull() ?: return false
+        return host == "coolapk.com" || host.endsWith(".coolapk.com")
+    }
+
+    /**
+     * 把登录态 cookie 写入 WebView 的 CookieManager。
+     * - 当目标 host 是 coolapk 子域时生效；
+     * - 同时写到当前 host 与 .coolapk.com 域，使 cookie 在所有子域之间共享，
+     *   解决从 m.coolapk.com 跳到 www / api 等子域后显示未登录的问题。
+     */
+    private fun applyCoolapkCookies(url: String) {
+        if (!isCoolapkHost(url)) return
+        val cookieManager = CookieManager.getInstance()
+        val host = Uri.parse(url).host?.lowercase() ?: return
+        val cookies = listOf(
+            "DID=${PrefManager.SZLMID}",
+            "forward=https://www.coolapk.com",
+            "displayVersion=v14",
+            "uid=${PrefManager.uid}",
+            "username=${PrefManager.username}",
+            "token=${PrefManager.token}",
+        )
+        cookies.forEach { value ->
+            // 写到当前 host，确保该子域请求能立刻带上 cookie
+            cookieManager.setCookie(url, "$value; path=/")
+            // 再以 .coolapk.com 域写一份，覆盖之后跳转到其它子域的场景
+            if (host != "m.coolapk.com") {
+                cookieManager.setCookie(
+                    "https://m.coolapk.com/",
+                    "$value; domain=.coolapk.com; path=/"
+                )
             }
         }
     }
