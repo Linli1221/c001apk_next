@@ -5,7 +5,7 @@ import android.text.Spanned
 import com.google.android.material.color.MaterialColors
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
-import io.noties.markwon.MarkwonTheme
+import io.noties.markwon.core.MarkwonTheme
 import io.noties.markwon.core.CorePlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.image.glide.GlideImagesPlugin
