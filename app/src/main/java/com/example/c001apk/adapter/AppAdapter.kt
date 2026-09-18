@@ -3,6 +3,8 @@ package com.example.c001apk.adapter
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
@@ -18,9 +20,13 @@ import com.example.c001apk.databinding.ItemHomeFeedRefreshCardBinding
 import com.example.c001apk.databinding.ItemHomeIconLinkGridCardBinding
 import com.example.c001apk.databinding.ItemHomeIconMiniScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeImageCarouselCardBinding
+import com.example.c001apk.databinding.ItemHomeImageTextGridCardBinding
 import com.example.c001apk.databinding.ItemHomeImageSquareScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeImageTextScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeUnsupportedBinding
+import com.example.c001apk.databinding.ItemProductConfigListBinding
+import com.example.c001apk.databinding.ItemProductListCardBinding
+import com.example.c001apk.databinding.ItemProductSelectRowBinding
 import com.example.c001apk.databinding.ItemRecentHistoryBinding
 import com.example.c001apk.databinding.ItemSearchApkBinding
 import com.example.c001apk.databinding.ItemSearchTopicBinding
@@ -405,6 +411,136 @@ class AppAdapter(
         }
     }
 
+    // 产品页「参数」tab：版本配置（各存储版本价位，点「参数」进官方 H5 规格页）
+    class ProductConfigListViewHolder(
+        val binding: ItemProductConfigListBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+
+        @SuppressLint("SetTextI18n")
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.title.text = data.title
+            binding.subTitle.isVisible = !data.subTitle.isNullOrEmpty()
+            binding.subTitle.text = data.subTitle ?: ""
+            // 卡片自身 url 是「配置对比」H5
+            binding.subTitle.setOnClickListener {
+                listener.onOpenLink(it, data.url, data.title)
+            }
+
+            binding.rowsLayout.removeAllViews()
+            val context = binding.root.context
+            data.configRows?.forEach { row ->
+                val rowLayout = LinearLayout(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, 6.dp, 0, 6.dp)
+                }
+                val title = android.widget.TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    textSize = 14f
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    text = row.title
+                }
+                val price = android.widget.TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    textSize = 14f
+                    setTextColor(
+                        MaterialColors.getColor(context, com.google.android.material.R.attr.colorPrimary, 0)
+                    )
+                    text = row.price?.let { "¥$it" }.orEmpty()
+                }
+                val params = android.widget.TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { marginStart = 12.dp }
+                    setBackgroundResource(R.drawable.shape_outline_btn)
+                    setPadding(12.dp, 3.dp, 12.dp, 3.dp)
+                    textSize = 12f
+                    text = "参数"
+                    setOnClickListener {
+                        listener.onOpenLink(it, row.url, row.title)
+                    }
+                }
+                rowLayout.addView(title)
+                rowLayout.addView(price)
+                rowLayout.addView(params)
+                binding.rowsLayout.addView(rowLayout)
+            }
+        }
+    }
+
+    // 产品页「参数」tab：同价位 / 同SoC / 同系列机型（横向列表）
+    class ProductListCardViewHolder(
+        val binding: ItemProductListCardBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.title.text = data.title
+            // 卡片 url 是「同价位对比」之类的机型列表页
+            binding.header.setOnClickListener {
+                listener.onOpenLink(it, data.url, data.title)
+            }
+            binding.recyclerView.apply {
+                isNestedScrollingEnabled = false
+                layoutManager = LinearLayoutManager(context).also {
+                    it.orientation = LinearLayoutManager.HORIZONTAL
+                }
+                adapter = ProductSelectAdapter(listener).also {
+                    it.submitList(data.entities.orEmpty())
+                }
+                if (itemDecorationCount == 0)
+                    addItemDecoration(LinearItemDecoration1(5.dp))
+            }
+        }
+    }
+
+    // 活动/众测图文卡片
+    class ImageTextGridCardViewHolder(
+        val binding: ItemHomeImageTextGridCardBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.setVariable(BR.data, data)
+            binding.setVariable(BR.listener, listener)
+        }
+    }
+
+    // 产品列表页（同价位/同SoC/同系列对比）的条目：product/productSelect
+    class ProductSelectRowViewHolder(
+        val binding: ItemProductSelectRowBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.setVariable(BR.data, data)
+            binding.setVariable(BR.listener, listener)
+            binding.score.text = listOfNotNull(
+                data.starAverageScore?.let { "${it}分" },
+                data.starTotalCount?.let { "${it}人评分" }
+            ).joinToString(" · ")
+            binding.ratingSpecs.text = data.productRatingSpecs
+                ?.entries?.joinToString(" ") { "${it.key}${it.value}" }
+                .orEmpty()
+            binding.specs.text = data.productSpecs?.joinToString(" | ").orEmpty()
+            binding.price.text = listOfNotNull(
+                data.priceMin?.let { "¥$it" },
+                data.configName
+            ).joinToString("\n")
+        }
+    }
+
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
@@ -534,6 +670,42 @@ class AppAdapter(
                 )
             }
 
+            15 -> {
+                ProductConfigListViewHolder(
+                    ItemProductConfigListBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
+            16 -> {
+                ProductListCardViewHolder(
+                    ItemProductListCardBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
+            17 -> {
+                ImageTextGridCardViewHolder(
+                    ItemHomeImageTextGridCardBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
+            18 -> {
+                ProductSelectRowViewHolder(
+                    ItemProductSelectRowBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
             else -> {
                 UnsupportedViewHolder(
                     ItemHomeUnsupportedBinding.inflate(
@@ -617,6 +789,18 @@ class AppAdapter(
 
                     "imageSquareScrollCard" -> 13
 
+                    // 产品页「参数」tab：版本配置
+                    "productConfigList" -> 15
+
+                    // 产品页「参数」tab：同价位 / 同SoC / 同系列（实体是 product 才走原生模板）
+                    "listCard" ->
+                        if (currentList[position].entities?.firstOrNull()?.entityType == "product")
+                            16
+                        else 14
+
+                    // 活动/众测图文卡片
+                    "imageTextGridCard" -> 17
+
                     // 未支持的卡片模板交给占位 ViewHolder，避免整页空白/崩溃
                     else -> 14
                 }
@@ -631,7 +815,11 @@ class AppAdapter(
             "user" -> 6
 
             "topic" -> 7
-            "product" -> 7
+            "product" ->
+                // 产品列表页（同价位等对比页）的条目是 productSelect 模板
+                if (currentList[position].entityTemplate == "productSelect")
+                    18
+                else 7
 
             "apk" -> 8
 

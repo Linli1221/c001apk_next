@@ -40,7 +40,6 @@ class TopicViewModel @AssistedInject constructor(
     }
 
     var subtitle: String? = null
-    var productTitle = "最近回复"
 
     var isAInit: Boolean = true
     var postFollowData: HashMap<String, String>? = null
@@ -48,8 +47,11 @@ class TopicViewModel @AssistedInject constructor(
     var tabSelected: Int? = null
     var topicList: ArrayList<TopicBean>? = null
 
-    // 产品页「参数」标签加载的官方 H5 规格页（原生接口只有未支持的 productConfigList/listCard 卡片）
-    var paramsUrl: String? = null
+    // 产品页「参数」tab：product/detail 下发的各版本配置（价位 + H5 参数页链接）
+    var configRows: List<HomeFeedResponse.ConfigRow>? = null
+
+    // 产品页发表点评（type=rating）用的评分子项（续航/影像/性能/屏幕/外观质感/性价比）
+    var ratingItemInfo: List<HomeFeedResponse.RatingItem>? = null
 
     val blockState = MutableLiveData<Event<Boolean>>()
     val followState = MutableLiveData<Event<Boolean>>()
@@ -93,9 +95,9 @@ class TopicViewModel @AssistedInject constructor(
                         } else if (data.data != null) {
                             isFollow = data.data.userAction?.follow == 1
                             subtitle = data.data.intro
-                            // 产品页各版本配置，url 是官方 H5 参数页
-                            paramsUrl = data.data.configRows
-                                ?.firstOrNull { !it.url.isNullOrEmpty() }?.url
+                            // 「参数」tab 原生渲染需要的版本配置 + 评分子项
+                            configRows = data.data.configRows
+                            ratingItemInfo = data.data.ratingItemInfo
                             getTopicList(data.data.tabList, data.data.selectedTab.toString())
                             checkFollow()
                             activityState.postValue(LoadingState.LoadingDone)

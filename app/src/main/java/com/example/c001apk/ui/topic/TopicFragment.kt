@@ -2,7 +2,6 @@ package com.example.c001apk.ui.topic
 
 import android.app.ActivityOptions
 import android.content.Intent
-import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
@@ -13,8 +12,6 @@ import com.example.c001apk.R
 import com.example.c001apk.ui.base.BasePagerFragment
 import com.example.c001apk.ui.feed.reply.ReplyActivity
 import com.example.c001apk.ui.home.IOnTabClickListener
-import com.example.c001apk.ui.search.IOnSearchMenuClickContainer
-import com.example.c001apk.ui.search.IOnSearchMenuClickListener
 import com.example.c001apk.ui.search.SearchActivity
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
@@ -22,17 +19,16 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.GRAVITY_CENTER
 import com.google.android.material.tabs.TabLayout.MODE_SCROLLABLE
+import com.google.gson.Gson
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
+class TopicFragment : BasePagerFragment() {
 
     private val viewModel by viewModels<TopicViewModel>(ownerProducer = { requireActivity() })
     override var tabController: IOnTabClickListener? = null
     private lateinit var subscribe: MenuItem
-    private lateinit var order: MenuItem
     private var menuBlock: MenuItem? = null
-    override var controller: IOnSearchMenuClickListener? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -45,22 +41,39 @@ class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
     override fun initFab() {
         super.initFab()
         fab.setOnClickListener {
-            val intent = Intent(requireContext(), ReplyActivity::class.java)
-            intent.putExtra("type", "createFeed")
-            intent.putExtra(
-                "targetType",
-                if (viewModel.type == "topic") "tag" else "product_phone"
-            )
-            intent.putExtra("targetId", viewModel.id)
-            if (viewModel.type == "topic")
-                intent.putExtra("title", viewModel.title)
-            val animationBundle = ActivityOptions.makeCustomAnimation(
-                context,
-                R.anim.anim_bottom_sheet_slide_up,
-                R.anim.anim_bottom_sheet_slide_down
-            ).toBundle()
-            requireContext().startActivity(intent, animationBundle)
+            // 机型页可以发动态，也可以发表点评（type=rating）
+            if (viewModel.type == "product" && !viewModel.ratingItemInfo.isNullOrEmpty()) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("发布")
+                    .setItems(arrayOf("发布动态", "发表点评")) { _, which ->
+                        startReply(if (which == 0) "createFeed" else "rating")
+                    }
+                    .show()
+            } else
+                startReply("createFeed")
         }
+    }
+
+    private fun startReply(type: String) {
+        val intent = Intent(requireContext(), ReplyActivity::class.java)
+        intent.putExtra("type", type)
+        intent.putExtra(
+            "targetType",
+            if (viewModel.type == "topic") "tag" else "product_phone"
+        )
+        intent.putExtra("targetId", viewModel.id)
+        if (viewModel.type == "topic")
+            intent.putExtra("title", viewModel.title)
+        if (type == "rating") {
+            intent.putExtra("ratingTarget", viewModel.title)
+            intent.putExtra("ratingItems", Gson().toJson(viewModel.ratingItemInfo))
+        }
+        val animationBundle = ActivityOptions.makeCustomAnimation(
+            context,
+            R.anim.anim_bottom_sheet_slide_up,
+            R.anim.anim_bottom_sheet_slide_down
+        ).toBundle()
+        requireContext().startActivity(intent, animationBundle)
     }
 
     override fun onTabReselectedExtra() {
@@ -97,22 +110,17 @@ class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
         }
     }
 
-    override fun iOnTabSelected(tab: TabLayout.Tab?) {
-        order.isVisible = tab?.position == tabList.indexOf("讨论")
-    }
-
     override fun getFragment(position: Int): Fragment {
         val bean = viewModel.topicList?.getOrNull(position)
-        val paramsUrl = viewModel.paramsUrl
-        // 「参数」标签官方就是一张 H5 规格页（原生接口只下发了未支持的 productConfigList/listCard 卡片）
-        if (SDK_INT >= 28 && (bean?.pageName == "main" || bean?.title == "参数")
-            && paramsUrl != null && paramsUrl.isNotEmpty()
-        ) {
-            return ParamsWebFragment.newInstance(paramsUrl)
-        }
+        // 「参数」tab 走原生 dataList（productConfigList / listCard），
+        // 版本配置行来自 product/detail 的 configRows，随 Fragment 传入
+        val isParamsTab = bean?.pageName == "main" || bean?.title == "参数"
         return TopicContentFragment.newInstance(
             bean?.url.orEmpty(),
             bean?.title.orEmpty(),
+            if (isParamsTab && viewModel.type == "product")
+                ArrayList(viewModel.configRows.orEmpty())
+            else null,
         )
     }
 
@@ -138,18 +146,6 @@ class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
 
             inflateMenu(R.menu.topic_product_menu)
 
-            order = menu.findItem(R.id.order)
-            order.isVisible = viewModel.type == "product"
-                    && binding.viewPager.currentItem == tabList.indexOf("讨论")
-            menu.findItem(
-                when (viewModel.productTitle) {
-                    "最近回复" -> R.id.topicLatestReply
-                    "热度排序" -> R.id.topicHot
-                    "最新发布" -> R.id.topicLatestPublish
-                    else -> throw IllegalArgumentException("type error")
-                }
-            )?.isChecked = true
-
             menuBlock = menu.findItem(R.id.block)
             subscribe = menu.findItem(R.id.subscribe)
             subscribe.isVisible = PrefManager.isLogin
@@ -174,21 +170,6 @@ class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
                                 putExtra("title", viewModel.title)
                             }
                         }
-                    }
-
-                    R.id.topicLatestReply -> {
-                        viewModel.productTitle = "最近回复"
-                        controller?.onSearch("title", "最近回复", viewModel.id)
-                    }
-
-                    R.id.topicHot -> {
-                        viewModel.productTitle = "热度排序"
-                        controller?.onSearch("title", "热度排序", viewModel.id)
-                    }
-
-                    R.id.topicLatestPublish -> {
-                        viewModel.productTitle = "最新发布"
-                        controller?.onSearch("title", "最新发布", viewModel.id)
                     }
 
                     R.id.block -> {
@@ -246,14 +227,6 @@ class TopicFragment : BasePagerFragment(), IOnSearchMenuClickContainer {
                     }
 
                 }
-                menu.findItem(
-                    when (viewModel.productTitle) {
-                        "最近回复" -> R.id.topicLatestReply
-                        "热度排序" -> R.id.topicHot
-                        "最新发布" -> R.id.topicLatestPublish
-                        else -> throw IllegalArgumentException("type error")
-                    }
-                )?.isChecked = true
                 return@setOnMenuItemClickListener true
             }
         }

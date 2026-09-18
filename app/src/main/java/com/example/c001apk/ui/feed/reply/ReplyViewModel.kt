@@ -69,7 +69,7 @@ class ReplyViewModel @Inject constructor(
                         if (response.data != null) {
                             toastText.postValue(Event(response.data))
                             if (response.data == "验证通过") {
-                                if (type == "createFeed")
+                                if (type == "createFeed" || type == "rating")
                                     onPostCreateFeed()
                                 else
                                     onPostReply()

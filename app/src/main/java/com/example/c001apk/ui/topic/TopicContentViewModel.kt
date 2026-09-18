@@ -8,6 +8,7 @@ import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_EMPTY
 import com.example.c001apk.constant.Constants.LOADING_END
 import com.example.c001apk.constant.Constants.LOADING_FAILED
+import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.repository.BlackListRepo
 import com.example.c001apk.logic.repository.HistoryFavoriteRepo
 import com.example.c001apk.logic.repository.NetworkRepo
@@ -26,6 +27,13 @@ class TopicContentViewModel @AssistedInject constructor(
     historyRepo: HistoryFavoriteRepo,
     networkRepo: NetworkRepo
 ) : BaseAppViewModel(blackListRepo, historyRepo, networkRepo) {
+
+    // 产品页「参数」tab：由 Fragment 从 product/detail 的 configRows 传入，
+    // 合并进 dataList 下发的 productConfigList 卡片（服务端下发的这张卡片 entities 恒为空）
+    var configRows: List<HomeFeedResponse.ConfigRow>? = null
+
+    // 讨论 tab 当前三段式排序（默认/最新/热度），Fragment 重建时恢复选中态
+    var currentSort: String = "默认"
 
     @AssistedFactory
     interface Factory {
@@ -67,18 +75,30 @@ class TopicContentViewModel @AssistedInject constructor(
                                 footerState.postValue(FooterState.LoadingError(data.message))
                             return@collect
                         } else if (!data.data.isNullOrEmpty()) {
-                            lastItem = data.data.last().id
+                            lastItem = data.data.lastOrNull()?.id
                             if (isRefreshing)
                                 dataListList.clear()
                             if (isRefreshing || isLoadMore) {
                                 data.data.forEach {
-                                    if (it.entityType in listOf("feed", "topic", "product", "user"))
+                                    // 「card」类型也要放行：产品页「参数」tab 的
+                                    // productConfigList/listCard 都是 card，过滤掉会整页空白
+                                    if (it.entityType in listOf(
+                                            "feed", "topic", "product", "user", "card"
+                                        )
+                                    )
                                         if (!blackListRepo.checkUid(it.userInfo?.uid.toString())
                                             && !blackListRepo.checkTopic(
                                                 it.tags + it.ttitle + it.relationRows?.getOrNull(0)?.title
                                             )
                                         )
-                                            dataListList.add(it)
+                                            dataListList.add(
+                                                // 参数 tab：把本地 configRows 合并进版本配置卡片
+                                                if (it.entityTemplate == "productConfigList"
+                                                    && it.configRows == null
+                                                )
+                                                    it.copy(configRows = configRows)
+                                                else it
+                                            )
                                 }
                             }
                             page++
@@ -110,6 +130,5 @@ class TopicContentViewModel @AssistedInject constructor(
                 }
         }
     }
-
 
 }

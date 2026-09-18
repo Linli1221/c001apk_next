@@ -21,6 +21,7 @@ import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
@@ -41,6 +42,7 @@ import com.example.c001apk.BuildConfig
 import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivityReplyBinding
 import com.example.c001apk.databinding.ItemCaptchaBinding
+import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.OSSUploadPrepareModel
 import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.ui.feed.reply.attopic.AtTopicActivity
@@ -60,6 +62,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.elevation.SurfaceColors
 import com.google.android.material.textfield.TextInputEditText
+import com.google.gson.Gson
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -116,6 +119,16 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
     private var dialog: AlertDialog? = null
     private lateinit var atTopicResultLauncher: ActivityResultLauncher<Intent>
     private var isFromAt = false
+
+    // 发表点评（type=rating）：product/detail 下发的评分子项
+    private val ratingItems by lazy {
+        intent.getStringExtra("ratingItems")?.let {
+            runCatching {
+                Gson().fromJson(it, Array<HomeFeedResponse.RatingItem>::class.java).toList()
+            }.getOrNull()
+        }
+    }
+    private val subRatingBars = ArrayList<RatingBar>()
 
     init {
         for (i in 0..3) {
@@ -325,7 +338,7 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
                         iOnSuccess = { index ->
                             Log.i("OSSUpload", "uploadSuccess")
                             if (index == uriList.lastIndex) {
-                                if (type == "createFeed")
+                                if (type == "createFeed" || type == "rating")
                                     viewModel.onPostCreateFeed()
                                 else
                                     viewModel.onPostReply()
@@ -369,7 +382,7 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
             event.getContentIfNotHandledOrReturnNull()?.let {
                 closeDialog()
                 val intent = Intent()
-                if (type == "createFeed") {
+                if (type == "createFeed" || type == "rating") {
                     Toast.makeText(this, "发布成功", Toast.LENGTH_SHORT).show()
                 } else {
                     intent.putExtra("response_data", viewModel.responseData)
@@ -438,6 +451,71 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
         binding.publish.isClickable = false
         title?.let {
             binding.editText.editableText.append("#${title}# ")
+        }
+        if (type == "rating") {
+            // 机型点评：评分面板占住主区域，输入框只写正文
+            binding.title.text = "发表点评"
+            binding.ratingTarget.text = intent.getStringExtra("ratingTarget").orEmpty()
+            binding.checkBox.isVisible = false
+            binding.out.layoutParams =
+                (binding.out.layoutParams as LinearLayout.LayoutParams).apply {
+                    height = 30.dp
+                    weight = 0f
+                }
+            binding.ratingLayout.isVisible = true
+            initRatingItems()
+        }
+    }
+
+    private fun initRatingItems() {
+        binding.ratingItems.removeAllViews()
+        subRatingBars.clear()
+        ratingItems?.forEach { item ->
+            val row = LinearLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                orientation = LinearLayout.VERTICAL
+            }
+            row.addView(
+                TextView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    textSize = 14f
+                    text = item.name
+                }
+            )
+            val bar = RatingBar(this, null, android.R.attr.ratingBarStyleSmall).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                numStars = 5
+                stepSize = 1f
+                isIndicator = false
+            }
+            val desc = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                textSize = 12f
+                setTextColor(getColor(android.R.color.darker_gray))
+            }
+            bar.setOnRatingBarChangeListener { _, rating, fromUser ->
+                if (fromUser)
+                    desc.text = item.starDesc
+                        ?.getOrNull(rating.toInt() - 1)
+                        ?.let { "${item.name}：$it" }
+                        .orEmpty()
+            }
+            row.addView(bar)
+            row.addView(desc)
+            subRatingBars.add(bar)
+            binding.ratingItems.addView(row)
         }
     }
 
@@ -702,6 +780,31 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
                         viewModel.replyAndFeedData["targetId"] = it
                     }
 
+                    if (uriList.isNotEmpty()) {
+                        viewModel.onPostOSSUploadPrepare(imageList)
+                    } else {
+                        viewModel.onPostCreateFeed()
+                    }
+                } else if (type == "rating") {
+                    // 机型点评：rating_score_1 为 0~10 的总体分，
+                    // v4_score_item_1..n 为各子项 0~5 分（顺序按 rating_item_info 下发）
+                    viewModel.replyAndFeedData.apply {
+                        put("id", "")
+                        put("message", binding.editText.text.toString())
+                        put("type", "rating")
+                        put("status", "1")
+                        put("publish_status", "0")
+                        targetType?.let { put("targetType", it) }
+                        targetId?.let { put("targetId", it) }
+                        put("rating_score_1", binding.ratingOverall.rating.toInt().toString())
+                        subRatingBars.forEachIndexed { index, bar ->
+                            put("v4_score_item_${index + 1}", bar.rating.toInt().toString())
+                        }
+                        put("comment_good", binding.goodText.text.toString())
+                        put("comment_general", "")
+                        put("comment_bad", binding.badText.text.toString())
+                        put("buy_status", if (binding.buyStatus.isChecked) "1" else "0")
+                    }
                     if (uriList.isNotEmpty()) {
                         viewModel.onPostOSSUploadPrepare(imageList)
                     } else {

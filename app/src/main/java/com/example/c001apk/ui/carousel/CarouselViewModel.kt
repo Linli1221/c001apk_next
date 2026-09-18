@@ -77,9 +77,10 @@ class CarouselViewModel @AssistedInject constructor(
                                 }
                             } else {
                                 tmpList = ArrayList()
-                                lastItem = response.data.last().id
+                                lastItem = response.data.lastOrNull()?.id
                                 response.data.forEach {
-                                    if (it.entityType in listOf("feed", "topic", "product", "user"))
+                                    // 「card」类型也要放行：活动页的轮播/图文卡片都是 card
+                                    if (it.entityType in listOf("feed", "topic", "product", "user", "card"))
                                         if (!blackListRepo.checkUid(it.userInfo?.uid.toString())
                                             && !blackListRepo.checkTopic(
                                                 it.tags + it.ttitle + it.relationRows?.getOrNull(0)?.title
@@ -131,12 +132,13 @@ class CarouselViewModel @AssistedInject constructor(
                                 footerState.postValue(FooterState.LoadingError(data.message))
                             return@collect
                         } else if (!data.data.isNullOrEmpty()) {
-                            lastItem = data.data.last().id
+                            lastItem = data.data.lastOrNull()?.id
                             if (isRefreshing)
                                 topicDataList.clear()
                             if (isRefreshing || isLoadMore) {
                                 data.data.forEach {
-                                    if (it.entityType in listOf("feed", "topic", "product", "user"))
+                                    // 「card」类型也要放行：活动页的轮播/图文卡片都是 card
+                                    if (it.entityType in listOf("feed", "topic", "product", "user", "card"))
                                         if (!blackListRepo.checkUid(it.userInfo?.uid.toString())
                                             && !blackListRepo.checkTopic(
                                                 it.tags + it.ttitle + it.relationRows?.getOrNull(0)?.title

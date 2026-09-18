@@ -127,7 +127,19 @@ data class HomeFeedResponse(
         // 所以不能靠它判断「当前登录用户之外」的置顶状态。
         @SerializedName("isStickTop") val isStickTop: Int? = null,
         // 产品页（/v6/product/detail）返回的各版本配置，url 指向官方 H5 参数页
-        val configRows: List<ConfigRow>? = null
+        val configRows: List<ConfigRow>? = null,
+        // 产品页（/v6/product/detail）返回的评分子项（续航/影像/性能/屏幕/外观质感/性价比），
+        // 发表点评（type=rating）时随 v4_score_item_1..6 提交
+        @SerializedName("rating_item_info") val ratingItemInfo: List<RatingItem>? = null,
+
+        // 产品列表页（/product/productList，同价位/同SoC/同系列对比）的条目字段
+        @SerializedName("price_min") val priceMin: String? = null,
+        @SerializedName("price_max") val priceMax: String? = null,
+        @SerializedName("star_average_score") val starAverageScore: String? = null,
+        @SerializedName("star_total_count") val starTotalCount: String? = null,
+        @SerializedName("config_name") val configName: String? = null,
+        val productSpecs: List<String>? = null,
+        val productRatingSpecs: Map<String, String>? = null,
     ) : Parcelable
 
     @Parcelize
@@ -136,6 +148,15 @@ data class HomeFeedResponse(
         val title: String?,
         val price: Int?,
         val url: String?,
+    ) : Parcelable
+
+    @Parcelize
+    data class RatingItem(
+        val id: String?,
+        val name: String?,
+        // 5 档文案（很差/较差/一般/不错/很好），按 1..5 星对应
+        @SerializedName("star_desc") val starDesc: List<String>? = null,
+        @SerializedName("average_score") val averageScore: String? = null,
     ) : Parcelable
 
     @Parcelize
@@ -272,7 +293,16 @@ data class HomeFeedResponse(
         val entityType: String?,
         @SerializedName("alias_title") val aliasTitle: String?,
         val userInfo: UserInfo,
-        @SerializedName("target_type_title") val targetTypeTitle: String? = null
+        @SerializedName("target_type_title") val targetTypeTitle: String? = null,
+        // ---- 产品页「参数」tab 里 listCard（同价位/同SoC/同系列）的 product 实体字段 ----
+        @SerializedName("price_min") val priceMin: String? = null,
+        @SerializedName("price_max") val priceMax: String? = null,
+        @SerializedName("star_average_score") val starAverageScore: String? = null,
+        @SerializedName("star_total_count") val starTotalCount: String? = null,
+        @SerializedName("config_name") val configName: String? = null,
+        val productSpecs: List<String>? = null,
+        val productRatingSpecs: Map<String, String>? = null,
+        val description: String? = null
     ) : Parcelable
 
 }

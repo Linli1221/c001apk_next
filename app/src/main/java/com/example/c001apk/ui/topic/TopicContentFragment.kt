@@ -3,17 +3,17 @@ package com.example.c001apk.ui.topic
 import android.os.Bundle
 import android.widget.Toast
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.ConcatAdapter
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.adapter.LoadingState
+import com.example.c001apk.adapter.ProductSortHeaderAdapter
+import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.ui.base.BaseAppFragment
-import com.example.c001apk.ui.search.IOnSearchMenuClickContainer
-import com.example.c001apk.ui.search.IOnSearchMenuClickListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class TopicContentFragment : BaseAppFragment<TopicContentViewModel>(),
-    IOnSearchMenuClickListener {
+class TopicContentFragment : BaseAppFragment<TopicContentViewModel>() {
 
     @Inject
     lateinit var viewModelAssistedFactory: TopicContentViewModel.Factory
@@ -27,11 +27,16 @@ class TopicContentFragment : BaseAppFragment<TopicContentViewModel>(),
 
     companion object {
         @JvmStatic
-        fun newInstance(url: String, title: String) =
+        fun newInstance(
+            url: String,
+            title: String,
+            configRows: ArrayList<HomeFeedResponse.ConfigRow>? = null,
+        ) =
             TopicContentFragment().apply {
                 arguments = Bundle().apply {
                     putString("url", url)
                     putString("title", title)
+                    putParcelableArrayList("configRows", configRows)
                 }
             }
     }
@@ -46,33 +51,40 @@ class TopicContentFragment : BaseAppFragment<TopicContentViewModel>(),
         }
     }
 
-    override fun onSearch(type: String, value: String, id: String?) {
-        viewModel.title = value
-        when (value) {
-            "最近回复" -> viewModel.url =
-                "/page?url=/product/feedList?type=feed&id=$id&ignoreEntityById=1"
+    override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // 产品页「参数」tab：接收 product/detail 下发的版本配置列表
+        viewModel.configRows = arguments?.getParcelableArrayList("configRows")
+    }
 
-            "热度排序" -> viewModel.url =
-                "/page?url=/product/feedList?type=feed&id=$id&listType=rank_score"
+    override fun initAdapter() {
+        super.initAdapter()
+        // 产品讨论 tab：顶部内嵌「默认/最新/热度」三段式排序（对齐官方 UI）
+        if (viewModel.url.contains("product/feedList") && viewModel.url.contains("type=feed")) {
+            val sortAdapter = ProductSortHeaderAdapter(viewModel.currentSort) { label ->
+                onSortChanged(label)
+            }
+            mAdapter = ConcatAdapter(sortAdapter, mAdapter)
+        }
+    }
 
-            "最新发布" -> viewModel.url =
-                "/page?url=/product/feedList?type=feed&id=$id&ignoreEntityById=1&listType=dateline_desc"
+    private fun onSortChanged(label: String) {
+        val id = Regex("id=(\\d+)").find(viewModel.url)?.groupValues?.get(1) ?: return
+        viewModel.currentSort = label
+        viewModel.title = label
+        viewModel.url = when (label) {
+            "最新" ->
+                "/page?url=/product/feedList?cacheExpires=60&type=feed&ignoreEntityById=1&listType=dateline_desc&id=$id"
+
+            "热度" ->
+                "/page?url=/product/feedList?cacheExpires=60&type=feed&listType=rank_score&id=$id"
+
+            else ->
+                "/page?url=/product/feedList?cacheExpires=60&type=feed&ignoreEntityById=1&id=$id"
         }
         viewModel.dataList.value = emptyList()
         viewModel.footerState.value = FooterState.LoadingDone
         viewModel.loadingState.value = LoadingState.Loading
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (viewModel.title == "讨论")
-            (parentFragment as? IOnSearchMenuClickContainer)?.controller = this
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (viewModel.title == "讨论")
-            (parentFragment as? IOnSearchMenuClickContainer)?.controller = null
     }
 
 }

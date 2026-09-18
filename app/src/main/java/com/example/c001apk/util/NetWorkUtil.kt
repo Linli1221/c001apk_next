@@ -110,6 +110,23 @@ object NetWorkUtil {
                 putExtra("title", title)
                 putExtra("id", replace.substring(9))
             }
+        } else if (replace.startsWith("/event/") || replace.contains("./event/")) {
+            // 众测/活动详情是官方 H5（www.coolapk.com/event/<id>）。
+            // 注意 openLink 会把域名里的 coolapk.com 删掉（www./event/、api./event/）
+            IntentUtil.startActivity<WebViewActivity>(context) {
+                putExtra(
+                    "url",
+                    "https://www.coolapk.com/event/" + replace.substring(replace.indexOf("/event/") + 7)
+                )
+            }
+        } else if (replace.startsWith("/activity/") || replace.contains("./activity/")) {
+            // 活动 H5 落地页（m.coolapk.com/activity/<name>）
+            IntentUtil.startActivity<WebViewActivity>(context) {
+                putExtra(
+                    "url",
+                    "https://m.coolapk.com/activity/" + replace.substring(replace.indexOf("/activity/") + 10)
+                )
+            }
         } else if (replace.startsWith("#/page?url=") || replace.startsWith("/page?url=")) {
             IntentUtil.startActivity<CarouselActivity>(context) {
                 putExtra("url", replace.replace("#/page?url=", "").replace("/page?url=", ""))
