@@ -8,6 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.SslErrorHandler
+import android.webkit.SslError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -19,6 +21,7 @@ import androidx.webkit.WebViewFeature
 import com.example.c001apk.databinding.FragmentParamsWebBinding
 import com.example.c001apk.util.NetWorkUtil.openLink
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.SslErrorPrompter
 
 /**
  * 产品页「参数」标签。
@@ -83,6 +86,16 @@ class ParamsWebFragment : Fragment() {
         }
 
         binding.webView.webViewClient = object : WebViewClient() {
+            /** SSL 证书校验不过（如抓包/中间人）：阻止加载并弹风险警告 */
+            override fun onReceivedSslError(
+                view: WebView?, handler: SslErrorHandler?, error: SslError?
+            ) {
+                SslErrorPrompter.onSslFailure(
+                    error?.let { java.security.cert.CertificateException(it.toString()) }
+                )
+                handler?.cancel()
+            }
+
             override fun shouldOverrideUrlLoading(
                 view: WebView,
                 request: WebResourceRequest

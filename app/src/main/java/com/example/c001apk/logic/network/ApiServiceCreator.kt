@@ -2,6 +2,7 @@ package com.example.c001apk.logic.network
 
 import com.example.c001apk.BuildConfig
 import com.example.c001apk.util.AddCookiesInterceptor
+import com.example.c001apk.util.SslErrorInterceptor
 import com.example.c001apk.util.SslVerify
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -21,6 +22,7 @@ object ApiServiceCreator {
     private fun getClient(serviceType: ServiceType, followRedirects: Boolean): OkHttpClient =
         OkHttpClient.Builder()
             .addInterceptor(AddCookiesInterceptor)
+            .addInterceptor(SslErrorInterceptor)
             .addInterceptor(
                 HttpLoggingInterceptor().setLevel
                     (

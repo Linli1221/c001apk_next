@@ -22,6 +22,9 @@ class MyApplication : Application() {
 
         context = applicationContext
 
+        // SSL 校验失败 → 风险环境警告弹窗（跟踪前台 Activity）
+        SslErrorPrompter.install(this)
+
         AppCompatDelegate.setDefaultNightMode(PrefManager.darkTheme)
 
         // 兜底：数字联盟 ID 为空时本地生成一个随机 ID 并保存

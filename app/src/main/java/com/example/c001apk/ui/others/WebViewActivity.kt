@@ -19,6 +19,8 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.URLUtil
 import android.webkit.WebChromeClient
+import android.webkit.SslErrorHandler
+import android.webkit.SslError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -33,6 +35,7 @@ import com.example.c001apk.databinding.ActivityWebViewBinding
 import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.util.ClipboardUtil.copyText
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.SslErrorPrompter
 import com.example.c001apk.util.http2https
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -201,6 +204,16 @@ class WebViewActivity : BaseActivity<ActivityWebViewBinding>() {
                     ) {
                         super.onPageStarted(view, url, favicon)
                         if (url != null) applyCoolapkCookies(url)
+                    }
+
+                    /** SSL 证书校验不过（如抓包/中间人）：阻止加载并弹风险警告 */
+                    override fun onReceivedSslError(
+                        view: WebView?, handler: SslErrorHandler?, error: SslError?
+                    ) {
+                        SslErrorPrompter.onSslFailure(error?.let {
+                            java.security.cert.CertificateException(it.toString())
+                        })
+                        handler?.cancel()
                     }
 
                     override fun shouldOverrideUrlLoading(

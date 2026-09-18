@@ -10,6 +10,8 @@ import android.os.Looper
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.webkit.CookieManager
+import android.webkit.SslErrorHandler
+import android.webkit.SslError
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -25,6 +27,7 @@ import com.example.c001apk.ui.base.BaseActivity
 import com.example.c001apk.ui.main.MainActivity
 import com.example.c001apk.util.ActivityCollector
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.SslErrorPrompter
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -132,6 +135,16 @@ class WebLoginActivity : BaseActivity<ActivityWebViewBinding>() {
         }
 
         view.webViewClient = object : WebViewClient() {
+            /** SSL 证书校验不过（如抓包/中间人）：阻止加载并弹风险警告 */
+            override fun onReceivedSslError(
+                view: WebView?, handler: SslErrorHandler?, error: SslError?
+            ) {
+                SslErrorPrompter.onSslFailure(
+                    error?.let { java.security.cert.CertificateException(it.toString()) }
+                )
+                handler?.cancel()
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 checkLoginCookie()
