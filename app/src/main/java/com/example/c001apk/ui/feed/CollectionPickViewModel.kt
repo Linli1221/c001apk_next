@@ -202,10 +202,10 @@ class CollectionPickViewModel @Inject constructor(
      * 上传封面图，成功返回图片 URL，失败返回 null。
      *
      * 服务端按「文件名扩展名 / part 的 Content-Type」校验类型（curl 实测）：
-     * - `image/jpeg` + 无扩展名文件名 → 成功
-     * - `image/*` + 无扩展名文件名 → 103「请选择正确的文件类型」
-     * - `image/*` + `xxx.jpg` → 成功
-     * 所以 type 必须具体、文件名必须带扩展名，不能再用 `image/*` + md5 当文件名。
+     * - image/jpeg + 无扩展名文件名 → 成功
+     * - 通配类型（image 加斜杠星号）+ 无扩展名文件名 → 103「请选择正确的文件类型」
+     * - 通配类型 + xxx.jpg → 成功
+     * 所以 type 必须具体、文件名必须带扩展名，不能再用通配类型 + md5 当文件名。
      */
     private suspend fun upload(uri: Uri?, resolver: ContentResolver?): String? {
         if (uri == null || resolver == null) return null
