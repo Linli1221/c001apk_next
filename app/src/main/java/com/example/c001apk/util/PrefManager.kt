@@ -196,6 +196,17 @@ object PrefManager {
         get() = pref.getBoolean("isCheckUpdateBeta", false)
         set(value) = pref.edit().putBoolean("isCheckUpdateBeta", value).apply()
 
+    /**
+     * SSL 证书校验（默认开）。
+     *
+     * 开启时不信任系统 CA，只认 api.coolapk.com / api2.coolapk.com 证书链里的固定公钥
+     * （见 [SslVerify]），可挡住用户自己装的根证书做中间人；
+     * 关闭则回落成系统默认校验。
+     */
+    var isVerifySsl: Boolean
+        get() = pref.getBoolean("verifySsl", true)
+        set(value) = pref.edit().putBoolean("verifySsl", value).apply()
+
     /** 其他屏蔽项（关键字/用户/节点）的服务端配置缓存，离线也能先过滤 */
     var spamConfig: String
         get() = pref.getString("spamConfig", "")!!

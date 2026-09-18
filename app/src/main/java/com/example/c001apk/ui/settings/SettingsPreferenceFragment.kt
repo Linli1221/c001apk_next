@@ -133,6 +133,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 "isIconMiniCard" -> PrefManager.isIconMiniCard
                 "isOpenLinkOutside" -> PrefManager.isOpenLinkOutside
                 "isColorFilter" -> PrefManager.isColorFilter
+                "verifySsl" -> PrefManager.isVerifySsl
                 else -> throw IllegalArgumentException("Invalid key: $key")
             }
         }
@@ -147,6 +148,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 "isIconMiniCard" -> PrefManager.isIconMiniCard = value
                 "isOpenLinkOutside" -> PrefManager.isOpenLinkOutside = value
                 "isColorFilter" -> PrefManager.isColorFilter = value
+                "verifySsl" -> PrefManager.isVerifySsl = value
                 else -> throw IllegalArgumentException("Invalid key: $key")
             }
         }
@@ -186,14 +188,13 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        // 「关于」现在是二级页（下面挂着「检查应用更新」和「关于本应用」），
-        // 不能再挂点击监听，否则会覆盖掉嵌套 PreferenceScreen 的自动导航。
-        findPreference<Preference>("about")?.summary =
-            "${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})"
-
-        findPreference<Preference>("aboutPage")?.setOnPreferenceClickListener {
-            IntentUtil.startActivity<AboutActivity>(requireContext()) {}
-            true
+        // 「关于」已提到一级，点击直接打开关于页（不再有中间的二级目录）
+        findPreference<Preference>("about")?.apply {
+            summary = "${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})"
+            setOnPreferenceClickListener {
+                IntentUtil.startActivity<AboutActivity>(requireContext()) {}
+                true
+            }
         }
 
 

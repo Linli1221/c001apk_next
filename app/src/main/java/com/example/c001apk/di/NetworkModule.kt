@@ -3,6 +3,7 @@ package com.example.c001apk.di
 import com.example.c001apk.BuildConfig
 import com.example.c001apk.logic.network.ApiService
 import com.example.c001apk.util.AddCookiesInterceptor
+import com.example.c001apk.util.SslVerify
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -100,6 +101,7 @@ object NetworkModule {
                 )
             )
             .followRedirects(true)
+            .let { SslVerify.apply(it) }
             .build()
     }
 
@@ -116,6 +118,7 @@ object NetworkModule {
                 )
             )
             .followRedirects(false)
+            .let { SslVerify.apply(it) }
             .build()
     }
 

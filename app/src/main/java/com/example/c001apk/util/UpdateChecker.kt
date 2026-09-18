@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -42,6 +43,16 @@ object UpdateChecker {
     private const val REPO = "kongwufang/c001apk_next"
     const val STABLE_URL = "https://cdn.jsdelivr.net/gh/$REPO@update/stable.json"
     const val BETA_URL = "https://cdn.jsdelivr.net/gh/$REPO@update/beta.json"
+
+    /**
+     * 关于页「组织」按钮配置（update 分支 org.json），随时可下发/改名/换链接：
+     *
+     *   {"buttons": [{"name": "官方群组", "url": "https://..."}]}
+     * 也兼容 {"name": "...", "url": "..."} 和裸数组 [{"name": "...", "url": "..."}]
+     *
+     * 点击后强制跳外部浏览器打开。
+     */
+    const val ORG_URL = "https://cdn.jsdelivr.net/gh/$REPO@update/org.json"
 
     /** 每个进程只做一次启动时自动检查（Activity 重建不会重复弹窗） */
     var checkedThisSession = false
@@ -91,6 +102,38 @@ object UpdateChecker {
             lines = lines,
         ).takeIf { it.versionCode > 0 && it.lines.isNotEmpty() }
     }.getOrNull()
+
+    data class OrgLink(val name: String, val url: String)
+
+    /** 拉取关于页「组织」按钮配置；失败返回空表（不显示按钮） */
+    suspend fun fetchOrgLinks(): List<OrgLink> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = client.newCall(Request.Builder().url(ORG_URL).build())
+                .execute().use { resp ->
+                    if (!resp.isSuccessful) return@use null
+                    resp.body?.string()
+                } ?: return@runCatching emptyList()
+            parseOrgLinks(body)
+        }.getOrDefault(emptyList())
+    }
+
+    fun parseOrgLinks(json: String): List<OrgLink> = runCatching {
+        val text = json.trim()
+        val arr = if (text.startsWith("[")) {
+            JSONArray(text)
+        } else {
+            val obj = JSONObject(text)
+            obj.optJSONArray("buttons") ?: obj.optJSONArray("groups")
+            ?: return@runCatching listOfNotNull(parseOrgLink(obj))
+        }
+        (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let { parseOrgLink(it) } }
+    }.getOrDefault(emptyList())
+
+    private fun parseOrgLink(o: JSONObject): OrgLink? {
+        val url = o.optString("url")
+        if (url.isBlank()) return null
+        return OrgLink(o.optString("name").ifBlank { "加入群组" }, url)
+    }
 
     /** 下载一定在外部浏览器打开 */
     fun openExternal(context: Context, url: String) {

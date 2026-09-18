@@ -95,6 +95,23 @@ class AboutActivity : AbsAboutActivity() {
             ) { checkUpdateNow(UpdateChecker.CHANNEL_BETA) }
         )
 
+        // 「组织」按钮：显示名称和链接都由 update 分支的 org.json 下发，
+        // 拉到之后插在更新按钮下面（点不动就只有下载线路那两个，不影响页面）
+        val orgInsertIndex = items.size
+        lifecycleScope.launch {
+            val links = UpdateChecker.fetchOrgLinks()
+            if (links.isEmpty()) return@launch
+            links.forEachIndexed { index, link ->
+                items.add(
+                    orgInsertIndex + index,
+                    UpdateActionItem(link.name, R.drawable.ic_chat) {
+                        UpdateChecker.openExternal(this@AboutActivity, link.url)
+                    }
+                )
+            }
+            adapter.notifyDataSetChanged()
+        }
+
         items.add(Category(getString(R.string.feedback)))
         items.add(Card("GitHub\nhttps://github.com/kongwufang/c001apk_next"))
 

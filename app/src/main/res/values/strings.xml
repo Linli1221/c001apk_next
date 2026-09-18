@@ -176,7 +176,8 @@
     <string name="settings_privacy">隐私</string>
     <string name="settings_recommendation">推荐流相关</string>
     <string name="settings_other">其他</string>
-    <string name="settings_about_app">关于本应用</string>
+    <string name="settings_verify_ssl">校验 SSL 证书</string>
+    <string name="settings_verify_ssl_summary">不信任系统 CA，只校验服务器证书链的固定公钥（关闭后改用系统校验）</string>
     <string name="followSystemAccent">系统主题色</string>
     <string name="themeColor">主题颜色</string>
 </resources>

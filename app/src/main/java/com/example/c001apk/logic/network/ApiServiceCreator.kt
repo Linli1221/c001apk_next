@@ -2,6 +2,7 @@ package com.example.c001apk.logic.network
 
 import com.example.c001apk.BuildConfig
 import com.example.c001apk.util.AddCookiesInterceptor
+import com.example.c001apk.util.SslVerify
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -28,6 +29,7 @@ object ApiServiceCreator {
                 )
             )
             .followRedirects(followRedirects)
+            .let { SslVerify.apply(it) }
             .build()
 
 
