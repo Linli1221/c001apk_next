@@ -137,6 +137,41 @@ class CollectionPickViewModel @Inject constructor(
         }
     }
 
+    /** 收藏夹详情（编辑前取最新数据），成功后通过 [detail] 通知 */
+    val detail = MutableLiveData<CollectionData>()
+    val deleted = MutableLiveData<Event<Boolean>>()
+
+    fun loadDetail(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val d = runCatching {
+                networkRepo.getCollectionDetail(id).firstOrNull()?.getOrNull()?.data
+            }.getOrNull()
+            if (d != null) detail.postValue(d)
+            else toastText.postValue(Event("加载收藏夹信息失败"))
+        }
+    }
+
+    /** 清除收藏夹内无效内容（服务端异步执行，约 5 分钟后生效） */
+    fun clearUnUse(colId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val r = runCatching {
+                networkRepo.removeUnUseCollectionItem(colId).firstOrNull()
+            }.getOrNull()
+            toastText.postValue(Event(r?.getOrNull()?.data ?: "操作失败"))
+        }
+    }
+
+    fun delete(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val r = runCatching {
+                networkRepo.deleteCollection(id).firstOrNull()
+            }.getOrNull()
+            val ok = r?.isSuccess == true
+            toastText.postValue(Event(r?.getOrNull()?.data ?: if (ok) "删除成功" else "删除失败"))
+            if (ok) deleted.postValue(Event(true))
+        }
+    }
+
     private suspend fun upload(uri: Uri?, resolver: ContentResolver?): String? {
         if (uri == null || resolver == null) return null
         val bytes = runCatching {

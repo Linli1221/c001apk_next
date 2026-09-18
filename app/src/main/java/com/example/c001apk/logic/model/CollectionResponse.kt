@@ -29,6 +29,12 @@ data class CollectionUploadResponse(
     val message: String?
 )
 
+/** 返回纯文本提示的接口，如 `POST /v6/collection/delete`（「删除成功」）、`removeUnUseItem`（「开始清除…」） */
+data class StringDataResponse(
+    val data: String?,
+    val message: String?
+)
+
 data class CollectionData(
     val id: String?,
     val uid: String?,

@@ -12,6 +12,7 @@ import com.example.c001apk.logic.model.CollectionUploadResponse
 import com.example.c001apk.logic.model.CreateFeedResponse
 import com.example.c001apk.logic.model.SpamConfigResponse
 import com.example.c001apk.logic.model.FeedContentResponse
+import com.example.c001apk.logic.model.HitHistoryListResponse
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.LikeFeedResponse
 import com.example.c001apk.logic.model.LikeReplyResponse
@@ -20,6 +21,7 @@ import com.example.c001apk.logic.model.LoadUrlResponse
 import com.example.c001apk.logic.model.MessageResponse
 import com.example.c001apk.logic.model.OSSUploadPrepareResponse
 import com.example.c001apk.logic.model.PostReplyResponse
+import com.example.c001apk.logic.model.StringDataResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
 import com.example.c001apk.logic.model.UserProfileResponse
 import okhttp3.MultipartBody
@@ -245,6 +247,36 @@ interface ApiService {
 
     @GET("/v6/collection/checkCount")
     fun getCollectionCheckCount(): Call<CollectionCheckCountResponse>
+
+    /** 收藏夹详情（编辑前取最新数据） */
+    @GET("/v6/collection/detail")
+    fun getCollectionDetail(
+        @Query("id") id: String,
+    ): Call<CollectionDetailResponse>
+
+    /** 清除收藏夹内无效内容（服务端异步执行） */
+    @FormUrlEncoded
+    @POST("/v6/collection/removeUnUseItem")
+    fun removeUnUseCollectionItem(
+        @Field("colId") colId: String,
+    ): Call<StringDataResponse>
+
+    /** 删除收藏夹 */
+    @FormUrlEncoded
+    @POST("/v6/collection/delete")
+    fun deleteCollection(
+        @Field("id") id: String,
+    ): Call<StringDataResponse>
+
+    // ===== 云端浏览历史 =====
+
+    /** 酷安云端浏览历史（打开详情接口时服务端自动记录，无需显式上报） */
+    @GET("/v6/user/hitHistoryList")
+    fun getHitHistoryList(
+        @Query("page") page: Int,
+        @Query("firstItem") firstItem: String?,
+        @Query("lastItem") lastItem: String?,
+    ): Call<HitHistoryListResponse>
 
     @POST("v6/feed/reply")
     @FormUrlEncoded

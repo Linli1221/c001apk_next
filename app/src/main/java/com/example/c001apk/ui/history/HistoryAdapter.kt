@@ -2,96 +2,59 @@ package com.example.c001apk.ui.history
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.c001apk.BR
-import com.example.c001apk.R
-import com.example.c001apk.adapter.ItemListener
-import com.example.c001apk.adapter.PopClickListener
-import com.example.c001apk.databinding.ItemHistoryFeedBinding
-import com.example.c001apk.logic.model.FeedEntity
-import com.example.c001apk.util.PrefManager
+import com.example.c001apk.databinding.ItemHistoryCloudBinding
+import com.example.c001apk.logic.model.HitHistoryData
+import com.example.c001apk.util.DateUtils
+import com.example.c001apk.util.ImageUtil
 
-
+/** 云端浏览历史条目：logo + 标题 + 描述 + 类型/时间 */
 class HistoryAdapter(
-    private val listener: ItemListener
-) :
-    ListAdapter<FeedEntity, HistoryAdapter.HistoryViewHolder>(HistoryDiffCallback()) {
+    private val onClick: (HitHistoryData) -> Unit,
+) : ListAdapter<HitHistoryData, HistoryAdapter.ViewHolder>(DiffCallback) {
 
-    class HistoryViewHolder(val binding: ItemHistoryFeedBinding, val listener: ItemListener) :
-        RecyclerView.ViewHolder(binding.root) {
-        var id: String = ""
-        var uid: String = ""
+    class ViewHolder(val binding: ItemHistoryCloudBinding) : RecyclerView.ViewHolder(binding.root)
 
-        init {
-            binding.expand.setOnClickListener {
-                PopupMenu(it.context, it).apply {
-                    menuInflater.inflate(R.menu.feed_reply_menu, menu).apply {
-                        menu.findItem(R.id.copy)?.isVisible = false
-                        menu.findItem(R.id.show)?.isVisible = false
-                        menu.findItem(R.id.report)?.isVisible = PrefManager.isLogin
-                    }
-                    setOnMenuItemClickListener(
-                        PopClickListener(
-                            listener,
-                            it.context,
-                            "feed",
-                            id,
-                            uid,
-                            bindingAdapterPosition
-                        )
-                    )
-                    show()
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+        ViewHolder(
+            ItemHistoryCloudBinding.inflate(
+                LayoutInflater.from(parent.context), parent, false
+            )
+        )
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val item = getItem(position)
+        with(holder.binding) {
+            title.text = item.title.orEmpty()
+            desc.text = item.description.orEmpty()
+            desc.isVisible = !item.description.isNullOrEmpty()
+            info.text = buildString {
+                if (!item.typeName.isNullOrEmpty()) append(item.typeName)
+                item.dateline?.let {
+                    if (isNotEmpty()) append(" · ")
+                    append(DateUtils.fromToday(it))
                 }
             }
-        }
-
-        fun bind(data: FeedEntity) {
-            id = data.fid
-            uid = data.uid
-
-            binding.setVariable(BR.id, id)
-            binding.setVariable(BR.uid, uid)
-            binding.setVariable(BR.listener, listener)
-            binding.setVariable(BR.username, data.uname)
-            binding.setVariable(BR.avatarUrl, data.avatar)
-            binding.setVariable(BR.deviceTitle, data.device)
-            binding.setVariable(BR.dateline, data.pubDate.toLong())
-            binding.setVariable(BR.messageContent, data.message)
-            binding.executePendingBindings()
+            if (item.logo.isNullOrEmpty()) {
+                logo.isVisible = false
+            } else {
+                logo.isVisible = true
+                ImageUtil.showIMG(logo, item.logo)
+            }
+            root.setOnClickListener { onClick(item) }
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HistoryViewHolder {
-        return HistoryViewHolder(
-            ItemHistoryFeedBinding.inflate(
-                LayoutInflater.from(parent.context),
-                parent,
-                false
-            ), listener
-        )
-    }
+    companion object {
+        private val DiffCallback = object : DiffUtil.ItemCallback<HitHistoryData>() {
+            override fun areItemsTheSame(oldItem: HitHistoryData, newItem: HitHistoryData) =
+                oldItem.id == newItem.id
 
-
-    override fun onBindViewHolder(holder: HistoryViewHolder, position: Int) {
-        holder.bind(currentList[position])
-    }
-}
-
-class HistoryDiffCallback : DiffUtil.ItemCallback<FeedEntity>() {
-    override fun areItemsTheSame(
-        oldItem: FeedEntity,
-        newItem: FeedEntity
-    ): Boolean {
-        return oldItem.fid == newItem.fid
-    }
-
-    override fun areContentsTheSame(
-        oldItem: FeedEntity,
-        newItem: FeedEntity
-    ): Boolean {
-        return oldItem.fid == newItem.fid
+            override fun areContentsTheSame(oldItem: HitHistoryData, newItem: HitHistoryData) =
+                oldItem == newItem
+        }
     }
 }

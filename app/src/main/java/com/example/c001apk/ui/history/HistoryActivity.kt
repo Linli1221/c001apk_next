@@ -2,26 +2,31 @@ package com.example.c001apk.ui.history
 
 import android.content.res.Configuration
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
 import androidx.activity.viewModels
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.c001apk.R
 import com.example.c001apk.adapter.HeaderAdapter
-import com.example.c001apk.adapter.ItemListener
 import com.example.c001apk.databinding.ActivityHistoryBinding
+import com.example.c001apk.logic.model.HitHistoryData
 import com.example.c001apk.ui.base.BaseActivity
-import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.NetWorkUtil
 import com.example.c001apk.util.dp
+import com.example.c001apk.util.makeToast
 import com.example.c001apk.view.LinearItemDecoration
 import com.example.c001apk.view.StaggerItemDecoration
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * 浏览历史（酷安云端）。
+ *
+ * 2026-09-19：数据源由本地 Room 换成 `GET /v6/user/hitHistoryList`，
+ * 浏览记录随打开详情自动进入云端历史，与官方 App 互通。
+ */
 @AndroidEntryPoint
 class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
 
@@ -29,58 +34,47 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
     private lateinit var mAdapter: HistoryAdapter
     private lateinit var mLayoutManager: LinearLayoutManager
     private lateinit var sLayoutManager: StaggeredGridLayoutManager
-    private val isPortrait by lazy { resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT }
+    private val isPortrait by lazy {
+        resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 本地收藏已移除，本页只剩浏览历史
         binding.toolBar.title = getString(R.string.history)
 
-        initBar()
-        initView()
-
-        viewModel.browseLiveData.observe(this) { list ->
-            mAdapter.submitList(list)
-            binding.indicator.parent.isIndeterminate = false
-            binding.indicator.parent.isVisible = false
-        }
-
-    }
-
-    private fun initBar() {
         setSupportActionBar(binding.toolBar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-    }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.history_menu, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
+        initView()
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            android.R.id.home -> finish()
-
-            R.id.clearAll -> {
-                MaterialAlertDialogBuilder(this).apply {
-                    setTitle("确定清除全部浏览历史？")
-                    setNegativeButton(android.R.string.cancel, null)
-                    setPositiveButton(android.R.string.ok) { _, _ ->
-                        viewModel.deleteAll()
-                    }
-                    show()
-                }
-            }
+        viewModel.historyList.observe(this) { list ->
+            mAdapter.submitList(list)
         }
-        return super.onOptionsItemSelected(item)
+        viewModel.initialLoading.observe(this) { show ->
+            binding.indicator.parent.isIndeterminate = show
+            binding.indicator.parent.isVisible = show
+            if (!show) binding.swipeRefresh.isRefreshing = false
+        }
+        viewModel.toastText.observe(this) { event ->
+            event?.getContentIfNotHandledOrReturnNull()?.let { makeToast(it) }
+        }
+
+        viewModel.refresh()
     }
 
     private fun initView() {
-        binding.indicator.parent.isIndeterminate = true
-        binding.indicator.parent.isVisible = true
-
-        mAdapter = HistoryAdapter(ItemClickListener())
+        mAdapter = HistoryAdapter { item -> onItemClick(item) }
+        binding.swipeRefresh.apply {
+            setColorSchemeColors(
+                MaterialColors.getColor(
+                    this@HistoryActivity,
+                    com.google.android.material.R.attr.colorPrimary,
+                    0
+                )
+            )
+            setOnRefreshListener { viewModel.refresh() }
+        }
         binding.recyclerView.apply {
             adapter = ConcatAdapter(HeaderAdapter(), mAdapter)
             layoutManager =
@@ -98,49 +92,26 @@ class HistoryActivity : BaseActivity<ActivityHistoryBinding>() {
                 else
                     addItemDecoration(StaggerItemDecoration(10.dp))
             }
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    super.onScrollStateChanged(recyclerView, newState)
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        val last = if (isPortrait)
+                            mLayoutManager.findLastVisibleItemPosition()
+                        else
+                            sLayoutManager.findLastVisibleItemPositions(null).max()
+                        if (last + 1 == adapter?.itemCount)
+                            viewModel.loadMore()
+                    }
+                }
+            })
         }
     }
 
-    inner class ItemClickListener : ItemListener {
-        override fun onViewFeed(
-            view: View,
-            id: String?,
-            uid: String?,
-            username: String?,
-            userAvatar: String?,
-            deviceTitle: String?,
-            message: String?,
-            dateline: String?,
-            rid: Any?,
-            isViewReply: Any?
-        ) {
-            super.onViewFeed(
-                view,
-                id,
-                uid,
-                username,
-                userAvatar,
-                deviceTitle,
-                message,
-                dateline,
-                rid,
-                isViewReply
-            )
-            if (!uid.isNullOrEmpty() && PrefManager.isRecordHistory)
-                viewModel.saveHistory(
-                    id.toString(), uid.toString(), username.toString(), userAvatar.toString(),
-                    deviceTitle.toString(), message.toString(), dateline.toString()
-                )
-        }
-
-        override fun onBlockUser(id: String, uid: String, position: Int) {
-            viewModel.saveUid(uid)
-            onDeleteClicked("", id, position)
-        }
-
-        override fun onDeleteClicked(entityType: String, id: String, position: Int) {
-            viewModel.delete(id)
-        }
+    private fun onItemClick(item: HitHistoryData) {
+        val url = item.url.orEmpty()
+        if (url.isNotEmpty())
+            NetWorkUtil.openLink(this, url, item.title)
     }
 
 }

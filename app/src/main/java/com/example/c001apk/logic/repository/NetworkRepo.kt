@@ -205,6 +205,22 @@ class NetworkRepo @Inject constructor(
         Result.success(apiService.getCollectionCheckCount().await())
     }
 
+    suspend fun getCollectionDetail(id: String) = fire {
+        Result.success(apiService.getCollectionDetail(id).await())
+    }
+
+    suspend fun removeUnUseCollectionItem(colId: String) = fire {
+        Result.success(apiService.removeUnUseCollectionItem(colId).await())
+    }
+
+    suspend fun deleteCollection(id: String) = fire {
+        Result.success(apiService.deleteCollection(id).await())
+    }
+
+    suspend fun getHitHistoryList(page: Int, firstItem: String?, lastItem: String?) = fire {
+        Result.success(apiService.getHitHistoryList(page, firstItem, lastItem).await())
+    }
+
     suspend fun getValidateCaptcha(url: String) = fire {
         Result.success(apiService.getValidateCaptcha(url).response())
     }

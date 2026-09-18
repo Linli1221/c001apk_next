@@ -7,10 +7,12 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.text.Html
+import android.text.Layout
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
+import android.text.style.AlignmentSpan
 import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
 import android.text.style.URLSpan
@@ -88,8 +90,8 @@ object SpannableStringBuilderUtil {
     // ---------------- 代码块复制按钮 ----------------
 
     /**
-     * 在每个 markdown 代码块首行行首插入一个「复制」按钮，
-     * 点击即把该代码块内容写入剪贴板。
+     * 在每个 markdown 代码块内部最前插入一行「复制」按钮（右对齐），
+     * 按钮显示在代码块背景内的右上角，点击把代码内容写入剪贴板。
      */
     private fun addCodeCopyButtons(
         context: Context,
@@ -105,10 +107,13 @@ object SpannableStringBuilderUtil {
             .sortedByDescending { it.first } // 从后往前插入，避免下标偏移
             .forEach { (start, end) ->
                 val code = builder.subSequence(start, end).toString().trim('\n')
-                builder.insert(start, PLACEHOLDER)
+                // 跳过代码块前导换行，把按钮行放进 CodeBlockSpan 内部（背景内）
+                var bodyStart = start
+                while (bodyStart < end && builder[bodyStart] == '\n') bodyStart++
+                builder.insert(bodyStart, PLACEHOLDER + "\n")
                 builder.setSpan(
                     CopyCodeButtonSpan(),
-                    start, start + 1,
+                    bodyStart, bodyStart + 1,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
                 builder.setSpan(
@@ -124,7 +129,13 @@ object SpannableStringBuilderUtil {
                             // 保持原样式，不做任何装饰
                         }
                     },
-                    start, start + 1,
+                    bodyStart, bodyStart + 1,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                // 按钮行整行右对齐 → 显示在右上角
+                builder.setSpan(
+                    AlignmentSpan.Standard(Layout.Alignment.ALIGN_RIGHT),
+                    bodyStart, bodyStart + 2,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
