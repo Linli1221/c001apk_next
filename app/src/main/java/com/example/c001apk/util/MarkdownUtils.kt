@@ -2,10 +2,7 @@ package com.example.c001apk.util
 
 import android.content.Context
 import android.text.Spanned
-import com.google.android.material.color.MaterialColors
-import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
-import io.noties.markwon.core.MarkwonTheme
 import io.noties.markwon.core.CorePlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.image.glide.GlideImagesPlugin
@@ -122,14 +119,6 @@ object MarkdownUtils {
             .usePlugin(CorePlugin.create())
             .usePlugin(TablePlugin.create(context))
             .usePlugin(GlideImagesPlugin.create(context))
-            .usePlugin(object : AbstractMarkwonPlugin() {
-                override fun configureTheme(builder: MarkwonTheme.Builder) {
-                    // 标题颜色跟随正文颜色，避免暗色主题下黑字
-                    builder.headingColor(
-                        MaterialColors.getColor(context, android.R.attr.textColorPrimary, 0)
-                    )
-                }
-            })
             .build()
 
     /**
