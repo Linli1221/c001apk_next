@@ -128,10 +128,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
     /** 启动时的自更新检查：正式版优先，有正式版更新就不再弹 Beta 的 */
     private fun checkSelfUpdate() {
         lifecycleScope.launch {
-            val alive get() = !isFinishing && !isDestroyed
+            fun alive() = !isFinishing && !isDestroyed
             if (PrefManager.isCheckUpdateStable) {
                 UpdateChecker.fetch(UpdateChecker.STABLE_URL)?.let {
-                    if (it.isNewer && alive) {
+                    if (it.isNewer && alive()) {
                         UpdateChecker.showUpdateDialog(this@MainActivity, it, UpdateChecker.CHANNEL_STABLE)
                         return@launch
                     }
@@ -139,7 +139,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
             }
             if (PrefManager.isCheckUpdateBeta) {
                 UpdateChecker.fetch(UpdateChecker.BETA_URL)?.let {
-                    if (it.isNewer && alive)
+                    if (it.isNewer && alive())
                         UpdateChecker.showUpdateDialog(this@MainActivity, it, UpdateChecker.CHANNEL_BETA)
                 }
             }
