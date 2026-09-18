@@ -89,13 +89,6 @@ object Repository {
         Result.success(appResponse.headers()["Location"])
     }
 
-    suspend fun getAppsUpdate(pkgs: String) = fire {
-        val multipartBody =
-            MultipartBody.Part.createFormData("pkgs", pkgs)
-        val appResponse = Network.getAppsUpdate(multipartBody)
-        Result.success(appResponse.data)
-    }
-
     suspend fun getProfile(uid: String) = fire {
         Result.success(Network.getProfile(uid))
     }

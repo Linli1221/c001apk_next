@@ -21,7 +21,6 @@ import com.example.c001apk.logic.model.MessageResponse
 import com.example.c001apk.logic.model.OSSUploadPrepareResponse
 import com.example.c001apk.logic.model.PostReplyResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
-import com.example.c001apk.logic.model.UpdateCheckResponse
 import com.example.c001apk.logic.model.UserProfileResponse
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
@@ -134,12 +133,6 @@ interface ApiService {
         @Query("aid") aid: String,
         @Query("vc") vc: String,
     ): Call<Any>
-
-    @Multipart
-    @POST("/v6/apk/checkUpdate?coolmarket_beta=0")
-    fun getAppsUpdate(
-        @Part pkgs: MultipartBody.Part
-    ): Call<UpdateCheckResponse>
 
     @GET("/v6/topic/newTagDetail")
     fun getTopicLayout(

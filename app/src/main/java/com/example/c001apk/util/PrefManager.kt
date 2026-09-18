@@ -182,10 +182,6 @@ object PrefManager {
         get() = pref.getBoolean("isColorFilter", true)
         set(value) = pref.edit().putBoolean("isColorFilter", value).apply()
 
-    var isCheckUpdate: Boolean
-        get() = pref.getBoolean("isCheckUpdate", true)
-        set(value) = pref.edit().putBoolean("isCheckUpdate", value).apply()
-
     /** 启动时检查本应用正式版更新（升级信息走 jsdelivr 镜像，默认开） */
     var isCheckUpdateStable: Boolean
         get() = pref.getBoolean("isCheckUpdateStable", true)

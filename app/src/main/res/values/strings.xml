@@ -156,13 +156,11 @@
     <string name="report_real_device">上报真实机型</string>
     <string name="real_device_info">本机机型检测</string>
     <string name="real_device_apply">按本机机型重建设备串</string>
-    <string name="update">更新</string>
     <string name="show_question">查看提问</string>
     <string name="type_rating">点评</string>
     <string name="type_question">提问</string>
     <string name="type_answer">回答</string>
     <string name="type_vote">投票</string>
-    <string name="check_apps_update">检查应用更新</string>
     <string name="check_user_info">查看用户资料</string>
     <string name="check_stable_update">检查应用正式版更新</string>
     <string name="check_beta_update">检查应用 Beta 版更新</string>

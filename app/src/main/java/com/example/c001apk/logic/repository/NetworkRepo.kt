@@ -125,13 +125,6 @@ class NetworkRepo @Inject constructor(
         Result.success(appResponse.headers()["Location"])
     }
 
-    suspend fun getAppsUpdate(pkgs: String) = fire {
-        val multipartBody =
-            MultipartBody.Part.createFormData("pkgs", pkgs)
-        val appResponse = apiService.getAppsUpdate(multipartBody).await()
-        Result.success(appResponse.data)
-    }
-
     suspend fun getProfile(uid: String) = fire {
         Result.success(api2Service.getProfile(uid).await())
     }

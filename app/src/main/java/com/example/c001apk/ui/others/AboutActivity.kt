@@ -62,14 +62,7 @@ class AboutActivity : AbsAboutActivity() {
             )
         )
 
-        // 更新相关：三个开关 + 两个「立即检查」按钮，插在「开发者」和「反馈」中间
-        items.add(
-            UpdateSwitchItem(
-                getString(R.string.check_apps_update), R.drawable.ic_update,
-                get = { PrefManager.isCheckUpdate },
-                set = { PrefManager.isCheckUpdate = it }
-            )
-        )
+        // 更新相关：两个开关 + 两个「立即检查」按钮，插在「开发者」和「反馈」中间
         items.add(
             UpdateSwitchItem(
                 getString(R.string.check_stable_update), R.drawable.outline_system_update_24,

@@ -86,8 +86,6 @@ object Network {
     suspend fun getAppDownloadLink(pn: String, aid: String, vc: String) =
         apiServiceNoRedirect.getAppDownloadLink(pn, aid, vc).response()
 
-    suspend fun getAppsUpdate(pkgs: MultipartBody.Part) = apiService.getAppsUpdate(pkgs).await()
-
     suspend fun getProfile(uid: String) = api2Service.getProfile(uid).await()
 
     suspend fun getFollowList(url: String, uid: String, page: Int, lastItem: String?) =

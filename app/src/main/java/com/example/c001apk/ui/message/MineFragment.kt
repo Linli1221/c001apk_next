@@ -69,6 +69,8 @@ class MineFragment : BaseFragment<FragmentMineBinding>() {
 
     private fun initLogin() {
         binding.isLogin = isLogin
+        // 工具栏（含设置图标）不管登没登录都要显示，只有「退出登录」跟着登录状态走
+        initMenu()
         if (isLogin) {
             viewModel.messCountList.value = true
             if (viewModel.initLogin) {
@@ -76,7 +78,6 @@ class MineFragment : BaseFragment<FragmentMineBinding>() {
                 showProfile()
                 getData()
             }
-            initMenu()
         } else {
             binding.clickToLogin.setOnClickListener {
                 IntentUtil.startActivity<WebLoginActivity>(requireContext()) {}
@@ -278,6 +279,8 @@ class MineFragment : BaseFragment<FragmentMineBinding>() {
             // onResume 里也会走到这里，先清空避免菜单项被重复 inflate
             menu.clear()
             inflateMenu(R.menu.message_menu)
+            // 未登录也能进设置，只是没有「退出登录」可按
+            menu.findItem(R.id.logout)?.isVisible = isLogin
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     // 退出登录放在设置图标左边（工具栏最右侧仍是设置）
