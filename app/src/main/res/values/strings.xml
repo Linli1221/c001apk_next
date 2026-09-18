@@ -175,7 +175,7 @@
     <string name="settings_recommendation">推荐流相关</string>
     <string name="settings_other">其他</string>
     <string name="settings_verify_ssl">校验 SSL 证书</string>
-    <string name="settings_verify_ssl_summary">仅信任应用内置的 Mozilla CA 证书库（121 个可信机构）做完整证书链校验，系统或用户安装的证书（抓包工具）一律不信任。关闭后改用系统校验（仍不信任用户安装的证书）。修改后需重启应用生效</string>
+    <string name="settings_verify_ssl_summary">在系统证书校验的基础上，要求证书链的信任锚必须落在内置的 Mozilla CA 库（121 个可信机构）中：抓包工具证书、厂商私有根证书一律拒绝。关闭后改为纯系统校验（仍不信任用户安装的证书）。修改后需重启应用生效</string>
     <string name="ssl_error_title">网络环境存在安全风险</string>
     <string name="ssl_error_message">SSL 证书校验失败，当前网络可能被监听或篡改（例如处于抓包或中间人攻击环境）。\n\n建议检查所连接的 Wi-Fi 和代理设置，切换到可信网络后重试。</string>
     <string name="ssl_error_confirm">确定</string>
