@@ -35,7 +35,7 @@ object MarkdownUtils {
     private val orderedPattern = Pattern.compile("(?m)^\\d{1,3}\\.\\s+\\S")
     private val quotePattern = Pattern.compile("(?m)^>\\s?\\S")
     private val hrPattern = Pattern.compile("(?m)^ {0,3}(-{3,}|\\*{3,}|_{3,})\\s*$")
-    private val tableRowPattern = Pattern.compile("(?m)^\\|.+)\\|\\s*$")
+    private val tableRowPattern = Pattern.compile("(?m)^\\|.+\\|\\s*$")
 
     fun isMarkdown(text: String?): Boolean {
         if (text.isNullOrBlank() || text.length < 4) return false
