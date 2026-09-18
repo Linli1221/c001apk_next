@@ -187,6 +187,7 @@ dependencies {
     implementation(libs.jbcrypt)
     implementation(libs.jsoup)
     implementation(libs.markwon.core)
+    implementation(libs.markwon.ext.strikethrough)
     implementation(libs.markwon.ext.tables)
     implementation(libs.markwon.image.glide)
     testImplementation(libs.junit)
