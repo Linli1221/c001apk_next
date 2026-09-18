@@ -1,29 +1,157 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  网络安全配置（WebView 及所有走系统默认校验的网络栈都遵循本配置）。
+  网络安全配置（WebView / Glide / 所有走系统默认校验的网络栈都遵循本配置）。
 
-  1. 信任锚 = **仅系统 CA**。
-     - targetSdk >= 24 时，默认就不信任「用户手动安装的 CA」，
-       所以抓包工具证书（Charles / Fiddler / mitmproxy）对 WebView 同样无效。
-     - 这里**刻意不放内置的 Mozilla CA**：Android 的 Conscrypt 规定
-       「App 自己提供的信任锚不允许使用 SHA-1 签名」，而酷安全站
-       （api/www/m/account.coolapk.com）的证书链末端都带着
-       DigiCert Global Root CA（SHA-1 自签）这个历史遗留根，
-       一旦把内置 CA 也列为锚点，整条链会被 Conscrypt 拒绝、页面全打不开。
-       内置 Mozilla CA 库改由 OkHttp 层使用（见 util/SslVerify.kt）：
-       那里用「平台校验 + 锚点必须在 Mozilla 库中」的方式做更严格的限制。
+  1. 信任锚 = **仅应用内置的 Mozilla CA 库**
+     （res/raw/cacert_000.pem ~ cacert_121.pem，122 张 = Mozilla CA 全集
+     https://curl.se/ca/cacert.pem + 追加的 DigiCert Global Root CA 历史根）。
+
+     为什么不放 src="system"：
+     - root / Magisk 环境可以把抓包工具证书（Charles / Fiddler / mitmproxy）
+       装进**系统** CA 库，src="system" 时 WebView 依然会被中间人；
+     - 只信任随包内置的锚点后，无论证书装在用户区还是系统区，只要不在库里
+       就会被拒 → WebView 触发 onReceivedSslError → 弹「网络环境存在安全风险」。
+
+     关于 SHA-1 遗留根（DigiCert Global Root CA，coolapk 各站证书链末端）：
+     Conscrypt 的强度检查（ChainStrengthAnalyzer）只作用于 untrusted 段，
+     锚点库里的证书不做该检查 —— 只要 SHA-1 老根在锚点集合中（本配置已含），
+     整条链可正常通过，与系统库行为一致。
+
   2. cleartextTrafficPermitted="true"：保留 http 明文访问（与原 usesCleartextTraffic 行为一致）。
-  3. debug-overrides 显式覆盖：debug 构建默认会信任用户安装的 CA，这里关掉，避免调试期行为与正式版不一致。
+
+  3. 不配置 debug-overrides：debug / release 行为保持一致
+     （若配了 debug-overrides，debuggable 构建会信任用户安装的 CA，
+      调试期就能被中间人，测试结论不可信）。
+
+  注意：OkHttp 层（Retrofit / API 请求）不依赖本配置，由 util/SslVerify.kt
+  以「平台校验（AndroidCAStore）+ 锚点白名单」方式做同等强度校验；
+  本配置只负责 WebView、Glide 等系统默认网络栈。
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
-            <certificates src="system"/>
+            <certificates src="@raw/cacert_000" />
+            <certificates src="@raw/cacert_001" />
+            <certificates src="@raw/cacert_002" />
+            <certificates src="@raw/cacert_003" />
+            <certificates src="@raw/cacert_004" />
+            <certificates src="@raw/cacert_005" />
+            <certificates src="@raw/cacert_006" />
+            <certificates src="@raw/cacert_007" />
+            <certificates src="@raw/cacert_008" />
+            <certificates src="@raw/cacert_009" />
+            <certificates src="@raw/cacert_010" />
+            <certificates src="@raw/cacert_011" />
+            <certificates src="@raw/cacert_012" />
+            <certificates src="@raw/cacert_013" />
+            <certificates src="@raw/cacert_014" />
+            <certificates src="@raw/cacert_015" />
+            <certificates src="@raw/cacert_016" />
+            <certificates src="@raw/cacert_017" />
+            <certificates src="@raw/cacert_018" />
+            <certificates src="@raw/cacert_019" />
+            <certificates src="@raw/cacert_020" />
+            <certificates src="@raw/cacert_021" />
+            <certificates src="@raw/cacert_022" />
+            <certificates src="@raw/cacert_023" />
+            <certificates src="@raw/cacert_024" />
+            <certificates src="@raw/cacert_025" />
+            <certificates src="@raw/cacert_026" />
+            <certificates src="@raw/cacert_027" />
+            <certificates src="@raw/cacert_028" />
+            <certificates src="@raw/cacert_029" />
+            <certificates src="@raw/cacert_030" />
+            <certificates src="@raw/cacert_031" />
+            <certificates src="@raw/cacert_032" />
+            <certificates src="@raw/cacert_033" />
+            <certificates src="@raw/cacert_034" />
+            <certificates src="@raw/cacert_035" />
+            <certificates src="@raw/cacert_036" />
+            <certificates src="@raw/cacert_037" />
+            <certificates src="@raw/cacert_038" />
+            <certificates src="@raw/cacert_039" />
+            <certificates src="@raw/cacert_040" />
+            <certificates src="@raw/cacert_041" />
+            <certificates src="@raw/cacert_042" />
+            <certificates src="@raw/cacert_043" />
+            <certificates src="@raw/cacert_044" />
+            <certificates src="@raw/cacert_045" />
+            <certificates src="@raw/cacert_046" />
+            <certificates src="@raw/cacert_047" />
+            <certificates src="@raw/cacert_048" />
+            <certificates src="@raw/cacert_049" />
+            <certificates src="@raw/cacert_050" />
+            <certificates src="@raw/cacert_051" />
+            <certificates src="@raw/cacert_052" />
+            <certificates src="@raw/cacert_053" />
+            <certificates src="@raw/cacert_054" />
+            <certificates src="@raw/cacert_055" />
+            <certificates src="@raw/cacert_056" />
+            <certificates src="@raw/cacert_057" />
+            <certificates src="@raw/cacert_058" />
+            <certificates src="@raw/cacert_059" />
+            <certificates src="@raw/cacert_060" />
+            <certificates src="@raw/cacert_061" />
+            <certificates src="@raw/cacert_062" />
+            <certificates src="@raw/cacert_063" />
+            <certificates src="@raw/cacert_064" />
+            <certificates src="@raw/cacert_065" />
+            <certificates src="@raw/cacert_066" />
+            <certificates src="@raw/cacert_067" />
+            <certificates src="@raw/cacert_068" />
+            <certificates src="@raw/cacert_069" />
+            <certificates src="@raw/cacert_070" />
+            <certificates src="@raw/cacert_071" />
+            <certificates src="@raw/cacert_072" />
+            <certificates src="@raw/cacert_073" />
+            <certificates src="@raw/cacert_074" />
+            <certificates src="@raw/cacert_075" />
+            <certificates src="@raw/cacert_076" />
+            <certificates src="@raw/cacert_077" />
+            <certificates src="@raw/cacert_078" />
+            <certificates src="@raw/cacert_079" />
+            <certificates src="@raw/cacert_080" />
+            <certificates src="@raw/cacert_081" />
+            <certificates src="@raw/cacert_082" />
+            <certificates src="@raw/cacert_083" />
+            <certificates src="@raw/cacert_084" />
+            <certificates src="@raw/cacert_085" />
+            <certificates src="@raw/cacert_086" />
+            <certificates src="@raw/cacert_087" />
+            <certificates src="@raw/cacert_088" />
+            <certificates src="@raw/cacert_089" />
+            <certificates src="@raw/cacert_090" />
+            <certificates src="@raw/cacert_091" />
+            <certificates src="@raw/cacert_092" />
+            <certificates src="@raw/cacert_093" />
+            <certificates src="@raw/cacert_094" />
+            <certificates src="@raw/cacert_095" />
+            <certificates src="@raw/cacert_096" />
+            <certificates src="@raw/cacert_097" />
+            <certificates src="@raw/cacert_098" />
+            <certificates src="@raw/cacert_099" />
+            <certificates src="@raw/cacert_100" />
+            <certificates src="@raw/cacert_101" />
+            <certificates src="@raw/cacert_102" />
+            <certificates src="@raw/cacert_103" />
+            <certificates src="@raw/cacert_104" />
+            <certificates src="@raw/cacert_105" />
+            <certificates src="@raw/cacert_106" />
+            <certificates src="@raw/cacert_107" />
+            <certificates src="@raw/cacert_108" />
+            <certificates src="@raw/cacert_109" />
+            <certificates src="@raw/cacert_110" />
+            <certificates src="@raw/cacert_111" />
+            <certificates src="@raw/cacert_112" />
+            <certificates src="@raw/cacert_113" />
+            <certificates src="@raw/cacert_114" />
+            <certificates src="@raw/cacert_115" />
+            <certificates src="@raw/cacert_116" />
+            <certificates src="@raw/cacert_117" />
+            <certificates src="@raw/cacert_118" />
+            <certificates src="@raw/cacert_119" />
+            <certificates src="@raw/cacert_120" />
+            <certificates src="@raw/cacert_121" />
         </trust-anchors>
     </base-config>
-    <debug-overrides>
-        <trust-anchors>
-            <certificates src="system"/>
-        </trust-anchors>
-    </debug-overrides>
 </network-security-config>

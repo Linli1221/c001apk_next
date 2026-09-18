@@ -35,8 +35,9 @@ import javax.net.ssl.X509TrustManager
  * 另外：平台校验失败时（例如旧系统缺新根证书），回退到「只用内置 CA 做完整 PKIX 校验」，
  * 内置库齐全，所以老系统也不会掉链子。
  *
- * 关闭开关则回落到系统默认校验（配合 res/xml/network_security_config.xml，
- * 仍然不信任用户安装的 CA）。
+ * 关闭开关则回落到系统默认校验（OkHttp 层不再做白名单限制）。
+ * 注意：WebView / Glide 等系统默认网络栈走的是 res/xml/network_security_config.xml
+ * （信任锚 = 仅内置 Mozilla CA，不受本开关控制，修改 NSC 需重新构建安装）。
  *
  * 注意：开关修改后需**重启应用**才生效（OkHttpClient 是单例，构建时固化了 TrustManager）。
  */
@@ -80,10 +81,17 @@ object SslVerify {
         tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
     }
 
-    /** 系统默认 TrustManager（系统证书库） */
+    /**
+     * 平台 TrustManager（系统证书库 AndroidCAStore = 系统 + 用户安装的 CA）。
+     *
+     * 显式 init(AndroidCAStore) 而不是 init(null)：network_security_config.xml 已把
+     * NSC 信任锚改成「仅内置 Mozilla CA」（用于管住 WebView / Glide 等系统默认栈），
+     * 显式指定证书库可以保证这里的平台校验语义不受 NSC 改动影响、保持稳定。
+     */
     private val platformTrustManager: X509TrustManager by lazy {
+        val systemKeyStore = KeyStore.getInstance("AndroidCAStore").apply { load(null) }
         val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-        tmf.init(null as KeyStore?)
+        tmf.init(systemKeyStore)
         tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
     }
 
