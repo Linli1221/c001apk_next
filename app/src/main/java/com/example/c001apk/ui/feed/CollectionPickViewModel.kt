@@ -1,6 +1,8 @@
 package com.example.c001apk.ui.feed
 
 import android.content.ContentResolver
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -15,6 +17,7 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 import javax.inject.Inject
 
@@ -85,7 +88,8 @@ class CollectionPickViewModel @Inject constructor(
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             loading.postValue(true)
-            val pic = upload(coverUri, resolver).orEmpty()
+            val uploaded = upload(coverUri, resolver)
+            val pic = uploaded.orEmpty()
             val result = runCatching {
                 networkRepo.createCollection(
                     isOpen.toString(), pic, description, title, ""
@@ -98,7 +102,15 @@ class CollectionPickViewModel @Inject constructor(
                     networkRepo.addToCollection(newId, "", feedId, "feed").firstOrNull()
                 }
             }
-            toastText.postValue(Event(if (ok) "创建成功" else "创建失败"))
+            toastText.postValue(
+                Event(
+                    when {
+                        !ok -> "创建失败"
+                        coverUri != null && uploaded == null -> "创建成功，但封面上传失败"
+                        else -> "创建成功"
+                    }
+                )
+            )
             load(feedId)
             loading.postValue(false)
         }
@@ -117,12 +129,21 @@ class CollectionPickViewModel @Inject constructor(
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             loading.postValue(true)
-            val pic = upload(coverUri, resolver) ?: oldCover.orEmpty()
+            val uploaded = upload(coverUri, resolver)
+            val pic = uploaded ?: oldCover.orEmpty()
             val ok = runCatching {
                 networkRepo.updateCollection(id, title, description, pic, isOpen)
                     .firstOrNull()?.isSuccess == true
             }.getOrDefault(false)
-            toastText.postValue(Event(if (ok) "已保存" else "保存失败"))
+            toastText.postValue(
+                Event(
+                    when {
+                        !ok -> "保存失败"
+                        coverUri != null && uploaded == null -> "已保存，但封面上传失败"
+                        else -> "已保存"
+                    }
+                )
+            )
             load(feedId)
             loading.postValue(false)
         }
@@ -177,19 +198,63 @@ class CollectionPickViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 上传封面图，成功返回图片 URL，失败返回 null。
+     *
+     * 服务端按「文件名扩展名 / part 的 Content-Type」校验类型（curl 实测）：
+     * - `image/jpeg` + 无扩展名文件名 → 成功
+     * - `image/*` + 无扩展名文件名 → 103「请选择正确的文件类型」
+     * - `image/*` + `xxx.jpg` → 成功
+     * 所以 type 必须具体、文件名必须带扩展名，不能再用 `image/*` + md5 当文件名。
+     */
     private suspend fun upload(uri: Uri?, resolver: ContentResolver?): String? {
         if (uri == null || resolver == null) return null
-        val bytes = runCatching {
+        val srcBytes = runCatching {
             resolver.openInputStream(uri)?.use { it.readBytes() }
         }.getOrNull()
-        if (bytes == null || bytes.isEmpty()) return null
+        if (srcBytes == null || srcBytes.isEmpty()) return null
+
+        val (bytes, mime, ext) = when (runCatching { resolver.getType(uri) }.getOrNull()) {
+            "image/png" -> Triple(srcBytes, "image/png", "png")
+            "image/webp" -> Triple(srcBytes, "image/webp", "webp")
+            "image/gif" -> Triple(srcBytes, "image/gif", "gif")
+            "image/jpeg", "image/jpg" -> Triple(srcBytes, "image/jpeg", "jpg")
+            // HEIF/AVIF 等：服务端不认，解码重编码成 JPEG 再传
+            else -> compressToJpeg(resolver, uri) ?: return null
+        }
+
         val md5 = MessageDigest.getInstance("MD5").digest(bytes)
             .joinToString("") { "%02x".format(it) }
         val part = MultipartBody.Part.createFormData(
-            "picFile", md5, bytes.toRequestBody("image/*".toMediaTypeOrNull())
+            "picFile", "$md5.$ext", bytes.toRequestBody(mime.toMediaTypeOrNull())
         )
         return runCatching {
             networkRepo.uploadCollectionImage(md5, part).firstOrNull()?.getOrNull()?.data
         }.getOrNull()
+    }
+
+    /** 非白名单图片格式转 JPEG（最长边限制 2048，避免大图 OOM） */
+    private fun compressToJpeg(
+        resolver: ContentResolver,
+        uri: Uri
+    ): Triple<ByteArray, String, String>? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching {
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
+        val bitmap = runCatching {
+            resolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply {
+                    inSampleSize = sample
+                })
+            }
+        }.getOrNull() ?: return null
+        val out = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        bitmap.recycle()
+        return Triple(out.toByteArray(), "image/jpeg", "jpg")
     }
 }

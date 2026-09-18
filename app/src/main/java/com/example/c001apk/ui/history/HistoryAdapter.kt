@@ -10,6 +10,7 @@ import com.example.c001apk.databinding.ItemHistoryCloudBinding
 import com.example.c001apk.logic.model.HitHistoryData
 import com.example.c001apk.util.DateUtils
 import com.example.c001apk.util.ImageUtil
+import com.example.c001apk.util.Utils.richToString
 
 /** 云端浏览历史条目：logo + 标题 + 描述 + 类型/时间 */
 class HistoryAdapter(
@@ -28,9 +29,11 @@ class HistoryAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
         with(holder.binding) {
-            title.text = item.title.orEmpty()
-            desc.text = item.description.orEmpty()
-            desc.isVisible = !item.description.isNullOrEmpty()
+            // 服务端 title/description 带 HTML 标签（如 <a class="feed-link-tag">#话题#</a>），需转纯文本
+            title.text = item.title.orEmpty().richToString()
+            val descText = item.description.orEmpty().richToString().trim()
+            desc.text = descText
+            desc.isVisible = descText.isNotEmpty()
             info.text = buildString {
                 if (!item.typeName.isNullOrEmpty()) append(item.typeName)
                 item.dateline?.let {
