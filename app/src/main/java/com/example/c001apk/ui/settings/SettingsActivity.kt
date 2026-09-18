@@ -29,6 +29,11 @@ class SettingsActivity : BaseActivity<ActivitySettingsBinding>() {
     }
 
     private fun navUp(): Boolean {
+        // 先让设置页内部的二级页面出栈（外观/推荐流相关/隐私/高级/其他/关于），
+        // 已经在根页时才真正 finish
+        val fragment = supportFragmentManager.findFragmentById(R.id.settingsContainer)
+                as? SettingsPreferenceFragment
+        if (fragment != null && fragment.navigateUp()) return true
         val nav = supportFragmentManager
         if (nav.backStackEntryCount > 0) {
             nav.popBackStack()

@@ -7,7 +7,7 @@
 
     <item
         android:id="@+id/navigation_mine"
-        android:icon="@drawable/ic_message_selector"
+        android:icon="@drawable/ic_mine_selector"
         android:title="@string/tab_mine" />
 
 </menu>

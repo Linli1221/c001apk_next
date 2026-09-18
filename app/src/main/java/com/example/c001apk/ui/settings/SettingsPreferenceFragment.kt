@@ -15,6 +15,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.preference.Preference
 import androidx.preference.PreferenceDataStore
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceScreen
 import androidx.recyclerview.widget.RecyclerView
 import com.example.c001apk.BuildConfig
 import com.example.c001apk.R
@@ -74,15 +75,35 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     }
 
     /**
-     * 一级菜单点进去是二级 PreferenceScreen（由 PreferenceFragmentCompat 自动压栈）。
-     * 这里在每次回到本页时，把当前这一层的标题同步到工具栏；
-     * 根页没有 android:title，回退成「设置」。
+     * 二级页面导航栈。androidx 的 [PreferenceFragmentCompat.onNavigateToScreen]
+     * 默认是空实现（嵌套 PreferenceScreen 点击不会自动跳转），
+     * 所以这里自己维护栈：进入子页压栈，返回时出栈。
      */
-    override fun onResume() {
-        super.onResume()
+    private val screenStack = ArrayDeque<PreferenceScreen>()
+
+    override fun onNavigateToScreen(preferenceScreen: PreferenceScreen) {
+        this.preferenceScreen?.let { screenStack.addLast(it) }
+        setPreferenceScreen(preferenceScreen)
+        syncToolbarTitle()
+    }
+
+    /** 返回上一层；已在根页时返回 false（交给 Activity finish）。 */
+    fun navigateUp(): Boolean {
+        if (screenStack.isEmpty()) return false
+        setPreferenceScreen(screenStack.removeLast())
+        syncToolbarTitle()
+        return true
+    }
+
+    private fun syncToolbarTitle() {
         val title = preferenceScreen?.title?.takeIf { it.isNotBlank() }
             ?: getString(R.string.tab_setting)
         (activity as? SettingsActivity)?.supportActionBar?.title = title
+    }
+
+    override fun onResume() {
+        super.onResume()
+        syncToolbarTitle()
     }
 
     class SettingsPreferenceDataStore : PreferenceDataStore() {
