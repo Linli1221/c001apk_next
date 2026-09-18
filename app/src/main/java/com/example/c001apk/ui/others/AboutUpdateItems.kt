@@ -1,6 +1,5 @@
 package com.example.c001apk.ui.others
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -32,8 +31,8 @@ class UpdateSwitchBinder : ItemViewBinder<UpdateSwitchItem, UpdateSwitchBinder.V
 
     class ViewHolder(val binding: ItemAboutSwitchBinding) : RecyclerView.ViewHolder(binding.root)
 
-    override fun onCreateViewHolder(context: Context, parent: ViewGroup): ViewHolder =
-        ViewHolder(ItemAboutSwitchBinding.inflate(LayoutInflater.from(context), parent, false))
+    override fun onCreateViewHolder(inflater: LayoutInflater, parent: ViewGroup): ViewHolder =
+        ViewHolder(ItemAboutSwitchBinding.inflate(inflater, parent, false))
 
     override fun onBindViewHolder(holder: ViewHolder, item: UpdateSwitchItem) {
         holder.binding.apply {
@@ -52,8 +51,8 @@ class UpdateActionBinder : ItemViewBinder<UpdateActionItem, UpdateActionBinder.V
 
     class ViewHolder(val binding: ItemAboutActionBinding) : RecyclerView.ViewHolder(binding.root)
 
-    override fun onCreateViewHolder(context: Context, parent: ViewGroup): ViewHolder =
-        ViewHolder(ItemAboutActionBinding.inflate(LayoutInflater.from(context), parent, false))
+    override fun onCreateViewHolder(inflater: LayoutInflater, parent: ViewGroup): ViewHolder =
+        ViewHolder(ItemAboutActionBinding.inflate(inflater, parent, false))
 
     override fun onBindViewHolder(holder: ViewHolder, item: UpdateActionItem) {
         holder.binding.apply {
