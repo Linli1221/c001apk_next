@@ -133,8 +133,9 @@ object SpannableStringBuilderUtil {
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
                 // 按钮行整行右对齐 → 显示在右上角
+                // 注：Layout.Alignment.ALIGN_RIGHT 是隐藏 API，LTR 下右对齐用 ALIGN_OPPOSITE
                 builder.setSpan(
-                    AlignmentSpan.Standard(Layout.Alignment.ALIGN_RIGHT),
+                    AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE),
                     bodyStart, bodyStart + 2,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
