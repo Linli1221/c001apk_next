@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.Html
 import android.text.Spannable
 import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.style.URLSpan
 import com.example.c001apk.view.CenteredImageSpan
 import com.example.c001apk.view.MyURLSpan
@@ -18,10 +19,14 @@ object SpannableStringBuilderUtil {
         imgList: List<String>?,
         showMoreReply: (() -> Unit)? = null
     ): SpannableStringBuilder {
-        val mess = Html.fromHtml(
-            text.replace("\n", "<br/>"),
-            Html.FROM_HTML_MODE_COMPACT
-        )
+        val mess: Spanned =
+            if (MarkdownUtils.isMarkdown(text))
+                MarkdownUtils.parse(mContext, text)
+            else
+                Html.fromHtml(
+                    text.replace("\n", "<br/>"),
+                    Html.FROM_HTML_MODE_COMPACT
+                )
         val builder = SpannableStringBuilder(mess)
         val urls = builder.getSpans(
             0, mess.length,
