@@ -495,7 +495,6 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
                 )
                 numStars = 5
                 stepSize = 1f
-                isIndicator = false
             }
             val desc = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
