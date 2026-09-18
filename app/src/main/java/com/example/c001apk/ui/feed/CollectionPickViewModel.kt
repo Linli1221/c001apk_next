@@ -146,9 +146,14 @@ class CollectionPickViewModel @Inject constructor(
             val d = runCatching {
                 networkRepo.getCollectionDetail(id).firstOrNull()?.getOrNull()?.data
             }.getOrNull()
-            if (d != null) detail.postValue(d)
-            else toastText.postValue(Event("加载收藏夹信息失败"))
+            if (d == null) toastText.postValue(Event("加载收藏夹信息失败"))
+            else publishDetail(d)
         }
+    }
+
+    /** lint NullSafeMutableLiveData 看不到 smart-cast，参数显式非空 */
+    private fun publishDetail(d: CollectionData) {
+        detail.postValue(d)
     }
 
     /** 清除收藏夹内无效内容（服务端异步执行，约 5 分钟后生效） */
