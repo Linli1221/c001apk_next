@@ -24,10 +24,13 @@ import javax.net.ssl.X509TrustManager
  *    DigiCert Global Root CA —— Conscrypt 只允许**系统库**里的锚点使用 SHA-1，
  *    所以这一步不能省，否则服务器塞的老根会让整条链被拒）。
  *
- * 2. **锚点白名单**：证书链的信任锚必须落在应用内置的 Mozilla CA 全集里
- *    （res/raw/cacert_000.pem ~ cacert_120.pem，121 张，来自 https://curl.se/ca/cacert.pem）。
+ * 2. **锚点白名单**：证书链的信任锚必须落在应用内置的 CA 库里
+ *    （res/raw/cacert_000.pem ~ cacert_121.pem，122 张 = Mozilla CA 全集
+ *    https://curl.se/ca/cacert.pem + 追加的 DigiCert Global Root CA 历史根。
+ *    酷安全站（api/www/m/account.coolapk.com）的证书链都锚在这张 SHA-1 老根上，
+ *    Mozilla 政策已把它除名，但系统/Chrome 仍信任，必须显式补上才能过白名单）。
  *    用户自己装的抓包证书（Charles/Fiddler/mitmproxy）、厂商预置的私有根、
- *    被劫持后替换的 CA，都不在 Mozilla 库里 → 一律拒绝。
+ *    被劫持后替换的 CA，都不在库里 → 一律拒绝。
  *
  * 另外：平台校验失败时（例如旧系统缺新根证书），回退到「只用内置 CA 做完整 PKIX 校验」，
  * 内置库齐全，所以老系统也不会掉链子。
@@ -49,7 +52,7 @@ object SslVerify {
         val anchors = mutableListOf<X509Certificate>()
         var index = 0
         while (true) {
-            // 资源名固定三位数：cacert_000 ~ cacert_120
+            // 资源名固定三位数：cacert_000 ~ cacert_121
             val resId = resources.getIdentifier(
                 "cacert_%03d".format(index), "raw", context.packageName
             )
