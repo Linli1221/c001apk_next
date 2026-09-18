@@ -7,6 +7,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import com.example.c001apk.ui.others.BugHandlerActivity
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.TokenDeviceUtils
 import dagger.hilt.android.HiltAndroidApp
 import net.mikaelzero.mojito.Mojito
 import net.mikaelzero.mojito.loader.glide.GlideImageLoader
@@ -22,6 +23,11 @@ class MyApplication : Application() {
         context = applicationContext
 
         AppCompatDelegate.setDefaultNightMode(PrefManager.darkTheme)
+
+        // 兜底：数字联盟 ID 为空时本地生成一个随机 ID 并保存
+        //（仅用于 DID cookie 等场景；设备串里的 szlmId 仍沿用官方那一组，不受影响）
+        if (PrefManager.SZLMID.isEmpty())
+            PrefManager.SZLMID = TokenDeviceUtils.randHexString(16)
 
         Mojito.initialize(
             GlideImageLoader.with(this),

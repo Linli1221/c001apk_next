@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.example.c001apk.R
@@ -19,12 +20,14 @@ import com.example.c001apk.ui.settings.SettingsActivity
 import com.example.c001apk.util.ActivityCollector
 import com.example.c001apk.util.CookieUtil
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.UpdateChecker
 import com.google.android.material.badge.BadgeDrawable
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.navigation.NavigationBarView
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContainer {
@@ -42,6 +45,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
         navView = binding.bottomNav as NavigationBarView
 
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+
+        // 启动时按开关自动检查本应用更新（每个进程只查一次，重建不重复弹）
+        if (!UpdateChecker.checkedThisSession) {
+            UpdateChecker.checkedThisSession = true
+            checkSelfUpdate()
+        }
 
         if (viewModel.isInit) {
             viewModel.isInit = false
@@ -112,6 +121,27 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
             event.getContentIfNotHandledOrReturnNull()?.let {
                 if (it)
                     setBadge()
+            }
+        }
+    }
+
+    /** 启动时的自更新检查：正式版优先，有正式版更新就不再弹 Beta 的 */
+    private fun checkSelfUpdate() {
+        lifecycleScope.launch {
+            val alive get() = !isFinishing && !isDestroyed
+            if (PrefManager.isCheckUpdateStable) {
+                UpdateChecker.fetch(UpdateChecker.STABLE_URL)?.let {
+                    if (it.isNewer && alive) {
+                        UpdateChecker.showUpdateDialog(this@MainActivity, it, UpdateChecker.CHANNEL_STABLE)
+                        return@launch
+                    }
+                }
+            }
+            if (PrefManager.isCheckUpdateBeta) {
+                UpdateChecker.fetch(UpdateChecker.BETA_URL)?.let {
+                    if (it.isNewer && alive)
+                        UpdateChecker.showUpdateDialog(this@MainActivity, it, UpdateChecker.CHANNEL_BETA)
+                }
             }
         }
     }

@@ -186,6 +186,16 @@ object PrefManager {
         get() = pref.getBoolean("isCheckUpdate", true)
         set(value) = pref.edit().putBoolean("isCheckUpdate", value).apply()
 
+    /** 启动时检查本应用正式版更新（升级信息走 jsdelivr 镜像，默认开） */
+    var isCheckUpdateStable: Boolean
+        get() = pref.getBoolean("isCheckUpdateStable", true)
+        set(value) = pref.edit().putBoolean("isCheckUpdateStable", value).apply()
+
+    /** 启动时检查本应用 Beta 版更新（默认关） */
+    var isCheckUpdateBeta: Boolean
+        get() = pref.getBoolean("isCheckUpdateBeta", false)
+        set(value) = pref.edit().putBoolean("isCheckUpdateBeta", value).apply()
+
     /** 其他屏蔽项（关键字/用户/节点）的服务端配置缓存，离线也能先过滤 */
     var spamConfig: String
         get() = pref.getString("spamConfig", "")!!

@@ -139,13 +139,7 @@
             android:key="about"
             android:title="@string/about">
 
-            <!-- 「检查应用更新」从推荐流相关挪进关于 -->
-            <rikka.material.preference.MaterialSwitchPreference
-                android:defaultValue="true"
-                android:icon="@drawable/outline_system_update_24"
-                android:key="isCheckUpdate"
-                android:title="@string/check_apps_update" />
-
+            <!-- 更新相关开关（检查应用更新 / 正式版 / Beta 版）已挪进「关于本应用」页 -->
             <Preference
                 android:icon="@drawable/ic_logo"
                 android:key="aboutPage"

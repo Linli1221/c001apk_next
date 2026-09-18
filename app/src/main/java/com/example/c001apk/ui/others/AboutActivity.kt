@@ -3,6 +3,8 @@ package com.example.c001apk.ui.others
 import android.annotation.SuppressLint
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import com.drakeet.about.AbsAboutActivity
 import com.drakeet.about.Card
 import com.drakeet.about.Category
@@ -11,6 +13,9 @@ import com.drakeet.about.License
 import com.drakeet.about.Line
 import com.example.c001apk.BuildConfig
 import com.example.c001apk.R
+import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.UpdateChecker
+import kotlinx.coroutines.launch
 
 class AboutActivity : AbsAboutActivity() {
 
@@ -22,6 +27,10 @@ class AboutActivity : AbsAboutActivity() {
     }
 
     override fun onItemsCreated(items: MutableList<Any>) {
+        // 自定义条目（开关 / 立即检查按钮）注册进 about-page 的 MultiTypeAdapter
+        adapter.register(UpdateSwitchItem::class.java, UpdateSwitchBinder())
+        adapter.register(UpdateActionItem::class.java, UpdateActionBinder())
+
         items.add(Category(getString(R.string.about)))
         items.add(Card("fake coolapk"))
 
@@ -43,9 +52,51 @@ class AboutActivity : AbsAboutActivity() {
                 "https://github.com/klxiaoniu"
             )
         )
+        items.add(Line())
+        items.add(
+            Contributor(
+                R.drawable.cont_kongwufang,
+                "kongwufang",
+                "Developer & Maintainer",
+                "https://github.com/kongwufang"
+            )
+        )
+
+        // 更新相关：三个开关 + 两个「立即检查」按钮，插在「开发者」和「反馈」中间
+        items.add(
+            UpdateSwitchItem(
+                getString(R.string.check_apps_update), R.drawable.ic_update,
+                get = { PrefManager.isCheckUpdate },
+                set = { PrefManager.isCheckUpdate = it }
+            )
+        )
+        items.add(
+            UpdateSwitchItem(
+                getString(R.string.check_stable_update), R.drawable.outline_system_update_24,
+                get = { PrefManager.isCheckUpdateStable },
+                set = { PrefManager.isCheckUpdateStable = it }
+            )
+        )
+        items.add(
+            UpdateSwitchItem(
+                getString(R.string.check_beta_update), R.drawable.outline_file_download_24,
+                get = { PrefManager.isCheckUpdateBeta },
+                set = { PrefManager.isCheckUpdateBeta = it }
+            )
+        )
+        items.add(
+            UpdateActionItem(
+                getString(R.string.check_update_now_stable), R.drawable.outline_system_update_24
+            ) { checkUpdateNow(UpdateChecker.CHANNEL_STABLE) }
+        )
+        items.add(
+            UpdateActionItem(
+                getString(R.string.check_update_now_beta), R.drawable.outline_file_download_24
+            ) { checkUpdateNow(UpdateChecker.CHANNEL_BETA) }
+        )
 
         items.add(Category(getString(R.string.feedback)))
-        items.add(Card("Github\nhttps://github.com/bggRGjQaUbCoE/c001apk"))
+        items.add(Card("GitHub\nhttps://github.com/kongwufang/c001apk_next"))
 
         items.add(Category(getString(R.string.about_open_source)))
         items.add(
@@ -196,6 +247,30 @@ class AboutActivity : AbsAboutActivity() {
             )
         )
 
+    }
+
+    /** 立即检查一次更新（关于页的两个按钮） */
+    private fun checkUpdateNow(channel: String) {
+        Toast.makeText(this, "正在检查更新…", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val info = UpdateChecker.fetch(
+                if (channel == UpdateChecker.CHANNEL_BETA) UpdateChecker.BETA_URL
+                else UpdateChecker.STABLE_URL
+            )
+            when {
+                info == null ->
+                    Toast.makeText(this@AboutActivity, "检查更新失败，请稍后再试", Toast.LENGTH_SHORT).show()
+
+                info.isNewer ->
+                    // 「不再提示」后刷新列表，让开关条目重新读一遍 PrefManager
+                    UpdateChecker.showUpdateDialog(this@AboutActivity, info, channel) {
+                        adapter.notifyDataSetChanged()
+                    }
+
+                else ->
+                    Toast.makeText(this@AboutActivity, "已是最新版本", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun finish() {
