@@ -29,6 +29,17 @@ data class UserProfileResponse(
         val level: String,
         val experience: Int,
         @SerializedName("next_level_experience") val nextLevelExperience: Int,
+
+        // ---- 个人主页头部展示字段 ----
+        // 认证标题，如「酷安认证: 酷安员工」；verify_status == 1 时展示
+        @SerializedName("verify_title") val verifyTitle: String? = null,
+        @SerializedName("verify_status") val verifyStatus: Int? = null,
+        val province: String? = null,
+        val city: String? = null,
+        // 全部动态数（列表头「全部动态（6164）」）
+        val apkRatingNum: Int? = null,
+        // 拥有装备数（「他的装备 58个装备」）
+        @SerializedName("product_owner_count") val productOwnerCount: Int? = null,
     ) : Parcelable
 }
 

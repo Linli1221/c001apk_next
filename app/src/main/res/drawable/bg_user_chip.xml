@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 个人主页头部的小胶囊（性别 / 地区 / 活跃时间 / 装备条），铺在封面图上用半透明白 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#33FFFFFF" />
+    <corners android:radius="20dp" />
+</shape>

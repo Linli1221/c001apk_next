@@ -150,6 +150,25 @@ data class HomeFeedResponse(
         @SerializedName("goods_url") val goodsUrl: String? = null,
         @SerializedName("goods_buy_url") val goodsBuyUrl: String? = null,
         @SerializedName("goods_buy_text") val goodsBuyText: String? = null,
+
+        // ---- 用户主页「点评」tab 的 nodeRating 实体 ----
+        @SerializedName("target_info") val ratingTargetInfo: RatingTargetInfo? = null,
+        val star: Int? = null,
+        @SerializedName("rating_score_old") val ratingScoreOld: Int? = null,
+        @SerializedName("comment_good") val commentGood: String? = null,
+        @SerializedName("comment_bad") val commentBad: String? = null,
+        @SerializedName("comment_general") val commentGeneral: String? = null,
+        @SerializedName("device_info") val ratingDeviceInfo: String? = null,
+        @SerializedName("buy_status") val buyStatus: Int? = null,
+    ) : Parcelable
+
+    /** 点评指向的产品 */
+    @Parcelize
+    data class RatingTargetInfo(
+        val id: String? = null,
+        val title: String? = null,
+        val logo: String? = null,
+        @SerializedName("star_average_score") val starAverageScore: String? = null,
     ) : Parcelable
 
     @Parcelize

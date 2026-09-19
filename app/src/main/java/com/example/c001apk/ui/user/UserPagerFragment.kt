@@ -1,48 +1,82 @@
 package com.example.c001apk.ui.user
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.c001apk.R
-import com.example.c001apk.databinding.BaseUserPageBinding
 import com.example.c001apk.databinding.BaseViewUserBinding
-import com.example.c001apk.ui.base.BaseFragment
+import com.example.c001apk.ui.base.BasePagerFragment
 import com.example.c001apk.ui.others.WebViewActivity
 import com.example.c001apk.ui.search.SearchActivity
 import com.example.c001apk.util.DateUtils
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.ReplaceViewHelper
+import com.example.c001apk.view.AppBarLayoutStateChangeListener
+import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class UserPagerFragment : BaseFragment<BaseUserPageBinding>() {
+class UserPagerFragment : BasePagerFragment() {
 
     private val viewModel by viewModels<UserViewModel>(ownerProducer = { requireActivity() })
     private lateinit var userBinding: BaseViewUserBinding
     private var menuBlock: MenuItem? = null
-    private var menuFollow: MenuItem? = null
+
+    // 官方的「主页」tab 是 homeTabCardRows 卡片体系，这里先只做列表类的 tab
+    private val tabType = listOf("feed", "rating", "article", "question", "coolpic")
+    private val tabTitle = listOf("动态", "点评", "图文", "问答", "酷图")
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initBar()
-        initPage()
         initUser()
         initObserve()
     }
 
-    private fun initPage() {
-        if (childFragmentManager.findFragmentById(R.id.fragmentContainer) == null) {
-            childFragmentManager
-                .beginTransaction()
-                .replace(R.id.fragmentContainer, UserFragment())
-                .commit()
+    override fun initTabList() {
+        tabList = tabTitle
+    }
+
+    override fun getFragment(position: Int): Fragment =
+        UserTabFragment.newInstance(viewModel.uid, tabType[position])
+
+    override fun onBackClick() {
+        activity?.finish()
+    }
+
+    private fun initUser() {
+        userBinding = BaseViewUserBinding.inflate(layoutInflater, null, false)
+        ReplaceViewHelper(requireContext()).toReplaceView(binding.view, userBinding.root)
+        (userBinding.root.layoutParams as? CollapsingToolbarLayout.LayoutParams)
+            ?.collapseMode = CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PARALLAX
+
+        userBinding.userData = viewModel.userData
+        userBinding.listener = viewModel.ItemClickListener()
+
+        // 关注按钮：自己 / 未登录不显示
+        userBinding.followBtn.isVisible =
+            PrefManager.isLogin && viewModel.uid != PrefManager.uid
+        userBinding.followBtn.setOnClickListener {
+            viewModel.onPostFollowUnFollow(
+                if (viewModel.userData?.isFollow == 1) "/v6/user/unfollow" else "/v6/user/follow"
+            )
+        }
+
+        userBinding.equipLayout.setOnClickListener {
+            IntentUtil.startActivity<WebViewActivity>(requireContext()) {
+                putExtra("url", "https://m.coolapk.com/myDevice/${viewModel.uid}")
+            }
         }
     }
 
@@ -53,16 +87,13 @@ class UserPagerFragment : BaseFragment<BaseUserPageBinding>() {
                     if (it) "移除黑名单"
                     else "加入黑名单"
                 )
-
             }
         }
 
         viewModel.followState.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandledOrReturnNull()?.let {
-                menuFollow?.title = getMenuTitle(
-                    if (it == 1) "取消关注"
-                    else "关注"
-                )
+                userBinding.userData = viewModel.userData
+                userBinding.executePendingBindings()
             }
         }
 
@@ -73,16 +104,9 @@ class UserPagerFragment : BaseFragment<BaseUserPageBinding>() {
         }
     }
 
-    private fun initUser() {
-        val replaceViewHelper = ReplaceViewHelper(requireContext())
-        userBinding = BaseViewUserBinding.inflate(layoutInflater, null, false)
-        replaceViewHelper.toReplaceView(binding.view, userBinding.root)
-        userBinding.userData = viewModel.userData
-        userBinding.listener = viewModel.ItemClickListener()
-    }
-
     private fun getMenuTitle(title: CharSequence?): SpannableString {
-        return SpannableString(title).also {
+        val text = title ?: return SpannableString("")
+        return SpannableString(text).also {
             it.setSpan(
                 ForegroundColorSpan(
                     MaterialColors.getColor(
@@ -91,26 +115,50 @@ class UserPagerFragment : BaseFragment<BaseUserPageBinding>() {
                         0
                     )
                 ),
-                0, title?.length ?: 0, 0
+                0, text.length, 0
             )
         }
     }
 
-    private fun initBar() {
-        binding.collapsingToolbar.title = viewModel.userData?.username
-        binding.toolBar.apply {
-            setNavigationIcon(R.drawable.ic_back)
-            setNavigationOnClickListener {
-                activity?.finish()
-            }
+    override fun initBar() {
+        super.initBar()
 
+        // 官方主页 tab 是左对齐、可横向滑动的
+        binding.tabLayout.tabMode = TabLayout.MODE_SCROLLABLE
+
+        // 收起后才显示昵称；展开时昵称在头部里
+        binding.collapsingToolbar.title = viewModel.userData?.username
+        binding.collapsingToolbar.setCollapsedTitleTextColor(
+            MaterialColors.getColor(
+                requireContext(),
+                com.google.android.material.R.attr.colorOnSurface,
+                0
+            )
+        )
+
+        // 展开时返回键压在封面图上用白色，收起后 appBar 变成表面色再换回主题色
+        val iconWhite = ColorStateList.valueOf(Color.WHITE)
+        val iconNormal = ColorStateList.valueOf(
+            MaterialColors.getColor(
+                requireContext(),
+                com.google.android.material.R.attr.colorOnSurface,
+                0
+            )
+        )
+        binding.toolBar.navigationIcon?.mutate()?.setTintList(iconWhite)
+        // percent: 1 = 完全展开，0 = 完全收起
+        binding.appBar.addOnOffsetChangedListener(object : AppBarLayoutStateChangeListener() {
+            override fun onScroll(percent: Float) {
+                binding.toolBar.navigationIcon?.setTintList(
+                    if (percent <= 0f) iconNormal else iconWhite
+                )
+            }
+        })
+
+        binding.toolBar.apply {
             inflateMenu(R.menu.user_menu)
             menuBlock = menu?.findItem(R.id.block)
             menuBlock?.title = getMenuTitle(menuBlock?.title)
-
-            menuFollow = menu?.findItem(R.id.subscribe)
-            menuFollow?.title = getMenuTitle(menuFollow?.title)
-            menuFollow?.isVisible = PrefManager.isLogin
 
             val menuShare = menu?.findItem(R.id.share)
             menuShare?.title = getMenuTitle(menuShare?.title)
@@ -144,15 +192,6 @@ class UserPagerFragment : BaseFragment<BaseUserPageBinding>() {
                             )
                             show()
                         }
-                    }
-
-                    R.id.subscribe -> {
-                        viewModel.onPostFollowUnFollow(
-                            if (viewModel.userData?.isFollow == 1)
-                                "/v6/user/unfollow"
-                            else
-                                "/v6/user/follow"
-                        )
                     }
 
                     R.id.search -> {

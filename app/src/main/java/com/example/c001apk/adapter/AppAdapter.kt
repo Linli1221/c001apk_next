@@ -29,6 +29,7 @@ import com.example.c001apk.databinding.ItemPearGoodsBinding
 import com.example.c001apk.databinding.ItemProductConfigListBinding
 import com.example.c001apk.databinding.ItemProductListCardBinding
 import com.example.c001apk.databinding.ItemProductSelectRowBinding
+import com.example.c001apk.databinding.ItemUserNodeRatingBinding
 import com.example.c001apk.databinding.ItemRecentHistoryBinding
 import com.example.c001apk.databinding.ItemSearchApkBinding
 import com.example.c001apk.databinding.ItemSearchTopicBinding
@@ -529,6 +530,18 @@ class AppAdapter(
         }
     }
 
+    // 用户主页「点评」tab 的 nodeRating 实体
+    class NodeRatingViewHolder(
+        val binding: ItemUserNodeRatingBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.setVariable(BR.data, data)
+            binding.setVariable(BR.listener, listener)
+        }
+    }
+
     // 活动页「线下」tab 的 pear_goods 实体（无 entityTemplate，仅有 goods_* 字段）
     class PearGoodsViewHolder(
         val binding: ItemPearGoodsBinding,
@@ -763,6 +776,15 @@ class AppAdapter(
                 )
             }
 
+            21 -> {
+                NodeRatingViewHolder(
+                    ItemUserNodeRatingBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
             else -> {
                 UnsupportedViewHolder(
                     ItemHomeUnsupportedBinding.inflate(
@@ -891,6 +913,9 @@ class AppAdapter(
 
             // 活动页「线下」tab 的 pear_goods 实体（无 entityTemplate）
             "pear_goods" -> 19
+
+            // 用户主页「点评」tab 的评分实体
+            "nodeRating" -> 21
 
             // 未支持的实体类型同样兜底到占位，避免整页空白/崩溃
             else -> 14

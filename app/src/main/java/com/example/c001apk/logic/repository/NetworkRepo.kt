@@ -120,6 +120,14 @@ class NetworkRepo @Inject constructor(
         Result.success(apiService.getUserFeed(uid, page, lastItem).await())
     }
 
+    suspend fun getUserHtmlFeed(uid: String, page: Int, lastItem: String?) = fire {
+        Result.success(apiService.getUserHtmlFeed(uid, page, lastItem).await())
+    }
+
+    suspend fun getUserQuestionAndAnswer(uid: String, page: Int, lastItem: String?) = fire {
+        Result.success(apiService.getUserQuestionAndAnswer(uid, page, lastItem).await())
+    }
+
     suspend fun getAppInfo(id: String) = fire {
         Result.success(apiService.getAppInfo(id).await())
     }

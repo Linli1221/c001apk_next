@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+        <import type="com.example.c001apk.util.UserCardUtils" />
+        <import type="com.example.c001apk.util.DateUtils" />
+
+        <variable
+            name="listener"
+            type="com.example.c001apk.adapter.ItemListener" />
+
+        <variable
+            name="data"
+            type="com.example.c001apk.logic.model.HomeFeedResponse.Data" />
+    </data>
+
+    <!-- 个人主页「点评」tab：用户对某个产品的评分与评价 -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="6dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/avatar"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:setImage="@{data.userAvatar}"
+                app:shapeAppearance="@style/circleImageStyle"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:id="@+id/username"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@{data.userInfo.username}"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="@id/avatar"
+                app:layout_constraintStart_toEndOf="@id/avatar"
+                app:layout_constraintTop_toTopOf="@id/avatar" />
+
+            <TextView
+                android:id="@+id/dateline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{DateUtils.fromToday(data.dateline)}"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="@id/avatar"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/avatar" />
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/targetLogo"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="10dp"
+                android:background="@color/cover"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/avatar"
+                app:setImage="@{data.ratingTargetInfo.logo}"
+                app:shapeAppearance="@style/roundImageStyle"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:id="@+id/targetTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@{data.ratingTargetInfo.title}"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/targetLogo"
+                app:layout_constraintTop_toTopOf="@id/targetLogo" />
+
+            <TextView
+                android:id="@+id/star"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="4dp"
+                android:text="@{UserCardUtils.starText(data.star)}"
+                android:textColor="#FFB300"
+                android:textSize="13sp"
+                app:layout_constraintStart_toEndOf="@id/targetLogo"
+                app:layout_constraintTop_toBottomOf="@id/targetTitle" />
+
+            <TextView
+                android:id="@+id/score"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@{UserCardUtils.scoreText(data.ratingScoreOld)}"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="@id/star"
+                app:layout_constraintStart_toEndOf="@id/star"
+                app:layout_constraintTop_toTopOf="@id/star" />
+
+            <TextView
+                android:id="@+id/viewDetail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{UserCardUtils.prefixText(`平均 `, data.ratingTargetInfo.starAverageScore)}"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="@id/targetLogo"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <TextView
+                android:id="@+id/good"
+                style="@style/UserRatingComment"
+                android:layout_marginTop="10dp"
+                android:text="@{UserCardUtils.commentText(`优点`, data.commentGood)}"
+                android:visibility="@{UserCardUtils.commentText(`优点`, data.commentGood).isEmpty() ? View.GONE : View.VISIBLE}"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/targetLogo" />
+
+            <TextView
+                android:id="@+id/bad"
+                style="@style/UserRatingComment"
+                android:layout_marginTop="4dp"
+                android:text="@{UserCardUtils.commentText(`缺点`, data.commentBad)}"
+                android:visibility="@{UserCardUtils.commentText(`缺点`, data.commentBad).isEmpty() ? View.GONE : View.VISIBLE}"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/good" />
+
+            <TextView
+                android:id="@+id/general"
+                style="@style/UserRatingComment"
+                android:layout_marginTop="4dp"
+                android:text="@{UserCardUtils.commentText(`总结`, data.commentGeneral)}"
+                android:visibility="@{UserCardUtils.commentText(`总结`, data.commentGeneral).isEmpty() ? View.GONE : View.VISIBLE}"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/bad" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+</layout>

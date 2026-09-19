@@ -129,6 +129,22 @@ interface ApiService {
         @Query("lastItem") lastItem: String?
     ): Call<HomeFeedResponse>
 
+    /** 个人主页「图文」tab */
+    @GET("/v6/user/htmlFeedList")
+    fun getUserHtmlFeed(
+        @Query("uid") uid: String,
+        @Query("page") page: Int,
+        @Query("lastItem") lastItem: String?
+    ): Call<HomeFeedResponse>
+
+    /** 个人主页「问答」tab */
+    @GET("/v6/user/questionAndAnswerList")
+    fun getUserQuestionAndAnswer(
+        @Query("uid") uid: String,
+        @Query("page") page: Int,
+        @Query("lastItem") lastItem: String?
+    ): Call<HomeFeedResponse>
+
     @GET("/v6/apk/detail")
     fun getAppInfo(
         @Query("id") id: String,

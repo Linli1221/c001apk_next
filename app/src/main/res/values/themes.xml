@@ -91,8 +91,55 @@
         <item name="cornerSize">50%</item>
     </style>
 
+    <style name="roundImageStyle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <!-- 点评卡里的优点 / 缺点 / 总结 -->
+    <style name="UserRatingComment">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
     <style name="UserTextColor">
         <item name="android:textColor">@color/white</item>
+    </style>
+
+    <!-- 个人主页头部：数据行数字 -->
+    <style name="UserStatNum">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- 个人主页头部：数据行标签 -->
+    <style name="UserStatLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">3dp</item>
+        <item name="android:layout_marginEnd">14dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:textColor">#B3FFFFFF</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <!-- 个人主页头部：性别 / 地区 / 活跃 小胶囊 -->
+    <style name="UserChip">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginEnd">8dp</item>
+        <item name="android:background">@drawable/bg_user_chip</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingTop">3dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:paddingBottom">3dp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">11sp</item>
     </style>
 
     <style name="AppTheme.About" parent="Theme.MaterialComponents.DayNight.NoActionBar">
