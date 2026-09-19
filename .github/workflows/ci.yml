@@ -178,17 +178,27 @@ jobs:
             gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" \
               --target "$GITHUB_REF_NAME" "${PRE[@]}"
           fi
-          gh release upload "$TAG" "${FILES[@]}" --clobber
 
-          # 把本次发行版的位置写进 run summary 和 annotation，方便直接拿链接
+          # release 刚建出来时立刻上传会偶发 404（服务端还没就绪），失败就退避重试
+          ok=0
+          for i in 1 2 3 4 5; do
+            if gh release upload "$TAG" "${FILES[@]}" --clobber; then ok=1; break; fi
+            echo "::warning::发布 ${TAG} 上传失败（第 ${i} 次），5 秒后重试"
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            echo "::error::发布 ${TAG} 失败，产物未上传"
+            exit 1
+          fi
+
+          # 把本次发行版的位置写进 run summary 和 annotation，方便直接拿链接。
+          # asset 名由 GitHub 规范化（文件名里的 ( ) 会变成 .），所以链接以服务端返回的名字为准
+          export BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
           {
             echo "## 发行版位置"
             echo
             echo "- ${TITLE}：https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
-            for f in "${FILES[@]}"; do
-              n=$(basename "$f" | sed 's/(/%28/g; s/)/%29/g')
-              echo "  - https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${n}"
-            done
+            gh release view "$TAG" --json assets --jq '.assets[] | "  - \(env.BASE)/\(.name)"'
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::${TITLE} → https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
 
