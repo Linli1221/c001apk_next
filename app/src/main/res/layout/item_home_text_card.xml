@@ -39,7 +39,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:visibility="@{data.title == null || data.title.isEmpty ? View.GONE : View.VISIBLE}"
-                tools:text="📍 活动坐标" />
+                tools:text="活动坐标" />
 
             <TextView
                 android:id="@+id/description"
