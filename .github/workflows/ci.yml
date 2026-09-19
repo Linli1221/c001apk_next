@@ -85,7 +85,9 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.buildRelease.outputs.releaseName }}
+          # 加 release- 前缀：debug 分支上 release 包的 versionName 也是 -debug，
+          # 与 debug 包同名，不加前缀会撞名 409
+          name: release-${{ steps.buildRelease.outputs.releaseName }}
           path: "app/build/outputs/apk/release/*.apk"
 
       # 每次都把 release 的签名证书指纹打到日志，防止某次悄悄退回 debug 签名
@@ -121,13 +123,14 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.buildDebug.outputs.debugName }}
+          name: debug-${{ steps.buildDebug.outputs.debugName }}
           path: "app/build/outputs/apk/debug/*.apk"
 
       # 失败时把 Gradle 日志尾部转成 annotation，
       # 这样在 Actions 页面和失败通知邮件里就能直接看到原因，不用再翻完整日志
       - name: Report Gradle failure
-        if: failure()
+        # 只在 Gradle 构建本身失败时 tail 日志；上传/签名等步骤失败不再刷一堆假 error
+        if: failure() && (steps.buildRelease.outcome == 'failure' || steps.buildDebug.outcome == 'failure')
         run: |
           echo "::error::REPORT-STEP | pwd=$(pwd) | logs=$(ls -1 gradle-*.log 2>/dev/null | tr '\n' ' ')"
           for f in gradle-release.log gradle-debug.log; do
