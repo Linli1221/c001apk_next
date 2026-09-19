@@ -12,6 +12,7 @@ import com.example.c001apk.R
 import com.example.c001apk.ui.base.BasePagerFragment
 import com.example.c001apk.ui.feed.reply.ReplyActivity
 import com.example.c001apk.ui.home.IOnTabClickListener
+import com.example.c001apk.ui.others.WebViewFragment
 import com.example.c001apk.ui.search.SearchActivity
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
@@ -112,11 +113,17 @@ class TopicFragment : BasePagerFragment() {
 
     override fun getFragment(position: Int): Fragment {
         val bean = viewModel.topicList?.getOrNull(position)
+        val url = bean?.url.orEmpty()
+        // H5 类型的 tab（如「活动详情」tab 的 url = https://m.coolapk.com/activity/<name>）
+        // 用 WebView 渲染，否则走 dataList 接口会返回空导致页面空白
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return WebViewFragment.newInstance(url)
+        }
         // 「参数」tab 走原生 dataList（productConfigList / listCard），
         // 版本配置行来自 product/detail 的 configRows，随 Fragment 传入
         val isParamsTab = bean?.pageName == "main" || bean?.title == "参数"
         return TopicContentFragment.newInstance(
-            bean?.url.orEmpty(),
+            url,
             bean?.title.orEmpty(),
             if (isParamsTab && viewModel.type == "product")
                 ArrayList(viewModel.configRows.orEmpty())
