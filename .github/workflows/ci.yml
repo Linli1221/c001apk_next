@@ -135,7 +135,6 @@ jobs:
       #   beta  → beta-latest（Beta 版，prerelease）
       #   debug → debug-latest（测试版，prerelease）
       # update 分支只放更新配置（json），不发布产物。
-      # 每次先清空该位置的旧产物再传新的，保证每个位置只有最新一份。
       - name: Publish to GitHub Releases
         if: success() && github.event_name == 'push' && github.ref_name != 'update'
         env:
@@ -148,8 +147,11 @@ jobs:
             *)    TAG=debug-latest;   TITLE="测试版（debug 自动构建）"; PRE=(--prerelease) ;;
           esac
 
+          # 只发布正式签名的发行包。debug 构建出的包与它同名（都叫 xxx-debug(版本号).apk），
+          # 而 GitHub 会把文件名里的 ( ) 规范化成 .，两个包放同一位置会撞名（422 already_exists），
+          # 所以 debug 包继续在 Actions 的 artifact 里下载。
           FILES=()
-          for f in app/build/outputs/apk/release/*.apk app/build/outputs/apk/debug/*.apk; do
+          for f in app/build/outputs/apk/release/*.apk; do
             if [ -f "$f" ]; then FILES+=("$f"); fi
           done
           echo "本次发布产物：${FILES[*]}"
@@ -170,14 +172,15 @@ jobs:
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${PRE[@]}"
-            # 清掉上一次的产物（文件名带版本号，不清会越堆越多）
-            gh release view "$TAG" --json assets --jq '.assets[].name' | while read -r n; do
-              gh release delete-asset "$TAG" "$n" --yes
-            done
           else
             gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" \
               --target "$GITHUB_REF_NAME" "${PRE[@]}"
           fi
+
+          # 每个位置只留最新一份：上传前先清空上一次的产物（版本号变化后文件名也不同）
+          gh release view "$TAG" --json assets --jq '.assets[].name' | while read -r n; do
+            if [ -n "$n" ]; then gh release delete-asset "$TAG" "$n" --yes; fi
+          done
 
           # release 刚建出来时立刻上传会偶发 404（服务端还没就绪），失败就退避重试
           ok=0
