@@ -37,11 +37,8 @@ class EventDetailViewModel @Inject constructor(
             val data = runCatching {
                 networkRepo.getEventDetail(id).firstOrNull()?.getOrNull()?.data
             }.getOrNull()
-            if (data != null) {
-                _detail.postValue(data)
-            } else {
-                toastText.postValue(Event("加载失败，请重试"))
-            }
+            data?.let { _detail.postValue(it) }
+                ?: toastText.postValue(Event("加载失败，请重试"))
             loading.postValue(false)
         }
     }
