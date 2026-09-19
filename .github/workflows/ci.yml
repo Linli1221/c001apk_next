@@ -12,6 +12,10 @@ on:
       - '.idea/**'
       - '!.github/workflows/**'
 
+# 把 APK 发布到 GitHub Release 需要写权限（默认只读会 403）
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -125,6 +129,68 @@ jobs:
         with:
           name: debug-${{ steps.buildDebug.outputs.debugName }}
           path: "app/build/outputs/apk/debug/*.apk"
+
+      # 每个分支把各自编译出来的发行版放到「自己固定位置」的 GitHub Release：
+      #   main  → release-latest（正式版）
+      #   beta  → beta-latest（Beta 版，prerelease）
+      #   debug → debug-latest（测试版，prerelease）
+      # update 分支只放更新配置（json），不发布产物。
+      # 每次先清空该位置的旧产物再传新的，保证每个位置只有最新一份。
+      - name: Publish to GitHub Releases
+        if: success() && github.event_name == 'push' && github.ref_name != 'update'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          case "${GITHUB_REF_NAME}" in
+            main) TAG=release-latest; TITLE="正式版（main 自动构建）"; PRE=() ;;
+            beta) TAG=beta-latest;    TITLE="Beta 版（beta 自动构建）"; PRE=(--prerelease) ;;
+            *)    TAG=debug-latest;   TITLE="测试版（debug 自动构建）"; PRE=(--prerelease) ;;
+          esac
+
+          FILES=()
+          for f in app/build/outputs/apk/release/*.apk app/build/outputs/apk/debug/*.apk; do
+            if [ -f "$f" ]; then FILES+=("$f"); fi
+          done
+          echo "本次发布产物：${FILES[*]}"
+
+          VERSION=$(grep -m1 '^VERSION_NAME=' version.properties | cut -d= -f2-)
+          CODE=$(grep -m1 '^VERSION_CODE=' version.properties | cut -d= -f2-)
+          NOTES=/tmp/release-notes.md
+          {
+            echo "自动构建：\`${GITHUB_REF_NAME}\` 分支 @ ${GITHUB_SHA:0:7}"
+            echo
+            echo "| 项 | 值 |"
+            echo "| --- | --- |"
+            echo "| 版本 | ${VERSION}（versionCode ${CODE}） |"
+            echo "| 渠道 | ${{ steps.channel.outputs.channel }} |"
+            echo "| 提交 | ${GITHUB_SHA} |"
+            echo "| 构建时间 | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } > "$NOTES"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${PRE[@]}"
+            # 清掉上一次的产物（文件名带版本号，不清会越堆越多）
+            gh release view "$TAG" --json assets --jq '.assets[].name' | while read -r n; do
+              gh release delete-asset "$TAG" "$n" --yes
+            done
+          else
+            gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" \
+              --target "$GITHUB_REF_NAME" "${PRE[@]}"
+          fi
+          gh release upload "$TAG" "${FILES[@]}" --clobber
+
+          # 把本次发行版的位置写进 run summary 和 annotation，方便直接拿链接
+          {
+            echo "## 发行版位置"
+            echo
+            echo "- ${TITLE}：https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+            for f in "${FILES[@]}"; do
+              n=$(basename "$f" | sed 's/(/%28/g; s/)/%29/g')
+              echo "  - https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${n}"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::${TITLE} → https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
 
       # 失败时把 Gradle 日志尾部转成 annotation，
       # 这样在 Actions 页面和失败通知邮件里就能直接看到原因，不用再翻完整日志
