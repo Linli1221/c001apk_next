@@ -75,24 +75,22 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     }
 
     /**
-     * 二级页面导航栈。androidx 的 [PreferenceFragmentCompat.onNavigateToScreen]
-     * 默认是空实现（嵌套 PreferenceScreen 点击不会自动跳转），
-     * 所以这里自己维护栈：进入子页压栈，返回时出栈。
+     * 进入二级设置页。
+     *
+     * androidx 默认实现只是把当前 [PreferenceScreen] 换成子页（同一个 RecyclerView 换数据），
+     * 所以看起来是「闪现」；这里改成新开一个 Fragment 并压栈，配合自定义转场动画，
+     * 做出和 App 其它页面一致的「从右到左滑入 / 返回时向右滑出」。返回栈交给 FragmentManager。
      */
-    private val screenStack = ArrayDeque<PreferenceScreen>()
-
     override fun onNavigateToScreen(preferenceScreen: PreferenceScreen) {
-        this.preferenceScreen?.let { screenStack.addLast(it) }
-        setPreferenceScreen(preferenceScreen)
-        syncToolbarTitle()
-    }
-
-    /** 返回上一层；已在根页时返回 false（交给 Activity finish）。 */
-    fun navigateUp(): Boolean {
-        if (screenStack.isEmpty()) return false
-        setPreferenceScreen(screenStack.removeLast())
-        syncToolbarTitle()
-        return true
+        val key = preferenceScreen.key ?: return
+        parentFragmentManager.beginTransaction()
+            .setCustomAnimations(
+                R.anim.right_in, R.anim.left_out_fragment,
+                R.anim.left_in, R.anim.right_out
+            )
+            .replace(R.id.settingsContainer, newInstance(key), key)
+            .addToBackStack(key)
+            .commit()
     }
 
     private fun syncToolbarTitle() {
@@ -362,6 +360,15 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
+    }
+
+    companion object {
+        /** rootKey = 某个二级 PreferenceScreen 的 key，为空则是完整的一级设置页 */
+        fun newInstance(rootKey: String?) = SettingsPreferenceFragment().apply {
+            arguments = Bundle().apply {
+                putString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT, rootKey)
+            }
+        }
     }
 
 }

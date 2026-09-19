@@ -2,7 +2,6 @@ package com.example.c001apk.ui.settings
 
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
-import com.example.c001apk.R
 import com.example.c001apk.databinding.ActivitySettingsBinding
 import com.example.c001apk.ui.base.BaseActivity
 
@@ -30,11 +29,8 @@ class SettingsActivity : BaseActivity<ActivitySettingsBinding>() {
     }
 
     private fun navUp(): Boolean {
-        // 先让设置页内部的二级页面出栈（外观/推荐流相关/隐私/高级/其他/关于），
-        // 已经在根页时才真正 finish
-        val fragment = supportFragmentManager.findFragmentById(R.id.settingsContainer)
-                as? SettingsPreferenceFragment
-        if (fragment != null && fragment.navigateUp()) return true
+        // 二级页面（外观/推荐流相关/隐私/高级/其他…）是用 Fragment 压栈实现的，
+        // 直接交给 FragmentManager 出栈，返回时才能带上转场动画；已在根页才真正 finish
         val nav = supportFragmentManager
         if (nav.backStackEntryCount > 0) {
             nav.popBackStack()

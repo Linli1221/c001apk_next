@@ -8,6 +8,7 @@ import android.text.style.ForegroundColorSpan
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -104,6 +105,38 @@ class UserPagerFragment : BasePagerFragment() {
         }
     }
 
+    /** 顶栏图标当前是否为白色（null = 还没刷过，保证首次一定应用） */
+    private var barIconWhite: Boolean? = null
+
+    /**
+     * 顶栏三个图标（返回 / 搜索 / 更多）统一上色。
+     * `ic_search`、`ic_more` 自带 `android:tint="?attr/colorControlNormal"`，
+     * 压在封面上会明显比返回键浅，所以这里显式覆盖。
+     */
+    private fun applyBarIconTint(white: Boolean) {
+        if (barIconWhite == white) return
+        barIconWhite = white
+        val color = if (white) {
+            Color.WHITE
+        } else {
+            MaterialColors.getColor(
+                requireContext(),
+                com.google.android.material.R.attr.colorOnSurface,
+                0
+            )
+        }
+        binding.toolBar.navigationIcon?.setTintList(ColorStateList.valueOf(color))
+        binding.toolBar.menu?.let { menu ->
+            for (i in 0 until menu.size()) {
+                val item = menu.getItem(i)
+                val icon = item.icon ?: continue
+                icon.mutate().setTint(color)
+                item.icon = icon
+            }
+        }
+        binding.toolBar.overflowIcon?.mutate()?.setTint(color)
+    }
+
     private fun getMenuTitle(title: CharSequence?): SpannableString {
         val text = title ?: return SpannableString("")
         return SpannableString(text).also {
@@ -136,22 +169,11 @@ class UserPagerFragment : BasePagerFragment() {
             )
         )
 
-        // 展开时返回键压在封面图上用白色，收起后 appBar 变成表面色再换回主题色
-        val iconWhite = ColorStateList.valueOf(Color.WHITE)
-        val iconNormal = ColorStateList.valueOf(
-            MaterialColors.getColor(
-                requireContext(),
-                com.google.android.material.R.attr.colorOnSurface,
-                0
-            )
-        )
-        binding.toolBar.navigationIcon?.mutate()?.setTintList(iconWhite)
         // percent: 1 = 完全展开，0 = 完全收起
+        // 展开时返回键 / 搜索 / 更多都压在封面图上，统一纯白；收起后一起换回主题色
         binding.appBar.addOnOffsetChangedListener(object : AppBarLayoutStateChangeListener() {
             override fun onScroll(percent: Float) {
-                binding.toolBar.navigationIcon?.setTintList(
-                    if (percent <= 0f) iconNormal else iconWhite
-                )
+                applyBarIconTint(percent > 0f)
             }
         })
 
@@ -168,6 +190,9 @@ class UserPagerFragment : BasePagerFragment() {
             menuReport?.isVisible = PrefManager.isLogin
 
             menu?.findItem(R.id.check)?.title = getMenuTitle(menu?.findItem(R.id.check)?.title)
+
+            // 顶栏右侧图标和左侧返回键同一色调（展开纯白 / 收起主题色）
+            overflowIcon = ContextCompat.getDrawable(context, R.drawable.ic_more)
 
             viewModel.checkMenuState()
 
@@ -241,5 +266,8 @@ class UserPagerFragment : BasePagerFragment() {
                 return@setOnMenuItemClickListener true
             }
         }
+
+        // 初始为完全展开
+        applyBarIconTint(true)
     }
 }

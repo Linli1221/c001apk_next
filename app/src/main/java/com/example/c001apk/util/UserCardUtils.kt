@@ -34,10 +34,10 @@ object UserCardUtils {
         else n.toString()
     }
 
-    /** 装备条右侧文案 */
+    /** 装备条右侧文案（左侧已有「他的装备」，这里只补数量，别重复「装备」二字） */
     @JvmStatic
     fun equipText(count: Int?): String =
-        if (count == null || count <= 0) "" else "${count}个装备"
+        if (count == null || count <= 0) "" else "${count} 件"
 
     /** 点评星级：star 为 1~5，补空心星 */
     @JvmStatic

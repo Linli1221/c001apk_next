@@ -135,15 +135,15 @@ object UpdateChecker {
         return OrgLink(o.optString("name").ifBlank { "加入群组" }, url)
     }
 
-    /** 下载一定在外部浏览器打开 */
-    fun openExternal(context: Context, url: String) {
+    /** 一律跳外部浏览器打开（下载、反馈群组都用它） */
+    fun openExternal(context: Context, url: String, failTip: String = "无法打开链接") {
         runCatching {
             context.startActivity(
                 Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }.onFailure {
-            Toast.makeText(context, "打开下载链接失败", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, failTip, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -180,14 +180,14 @@ object UpdateChecker {
             }
             setPositiveButton("下载") { _, _ ->
                 if (info.lines.size == 1) {
-                    openExternal(context, info.lines[0].url)
+                    openExternal(context, info.lines[0].url, "打开下载链接失败")
                 } else {
                     val names = info.lines.map { it.name }.toTypedArray()
                     MaterialAlertDialogBuilder(context).apply {
                         setTitle("选择下载线路")
                         setItems(names) { d, which ->
                             d.dismiss()
-                            openExternal(context, info.lines[which].url)
+                            openExternal(context, info.lines[which].url, "打开下载链接失败")
                         }
                         setNegativeButton(android.R.string.cancel, null)
                         show()
