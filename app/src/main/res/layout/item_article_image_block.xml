@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="图片"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/blockDelete"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/actionBarItemBackground"
+            android:padding="8dp"
+            android:src="@drawable/ic_close" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/blockImage"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/round_corners_12"
+        android:scaleType="centerCrop"
+        tools:background="@color/cover" />
+
+    <EditText
+        android:id="@+id/blockDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/round_corners_12"
+        android:hint="添加图片说明（可选）"
+        android:inputType="text"
+        android:maxLength="200"
+        android:padding="12dp"
+        android:textSize="13sp" />
+
+</LinearLayout>

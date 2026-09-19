@@ -14,6 +14,7 @@ import com.alibaba.sdk.android.oss.common.auth.OSSStsTokenCredentialProvider
 import com.alibaba.sdk.android.oss.model.ObjectMetadata
 import com.alibaba.sdk.android.oss.model.PutObjectRequest
 import com.alibaba.sdk.android.oss.model.PutObjectResult
+import com.example.c001apk.constant.Constants
 import com.example.c001apk.logic.model.OSSUploadPrepareResponse
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -60,9 +61,19 @@ suspend fun ossUpload(
             val metadata = ObjectMetadata()
             metadata.contentType = typeList[index]
             metadata.contentMD5 = Base64.encodeToString(md5List[index], Base64.DEFAULT).trim()
+            // versionCode 必须与请求头 X-App-Code 一致（服务端校验），来源 PrefManager.VERSION_CODE
+            val versionCode = PrefManager.VERSION_CODE.ifEmpty { Constants.VERSION_CODE }
+            val ossCallbackHeader = buildString {
+                append("{\"callbackBodyType\":\"application/json\",")
+                append("\"callbackHost\":\"api.coolapk.com\",")
+                append("\"callbackUrl\":\"https://api.coolapk.com/v6/callback/mobileOssUploadSuccessCallback?checkArticleCoverResolution=0&versionCode=")
+                append(versionCode)
+                append("\",")
+                append("\"callbackBody\":\"{\\\"bucket\\\":\${bucket},\\\"object\\\":\${object},\\\"hasProcess\\\":\${x:var1}}\"}")
+            }
             metadata.setHeader(
                 "x-oss-callback",
-                "eyJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb25cL2pzb24iLCJjYWxsYmFja0hvc3QiOiJhcGkuY29vbGFway5jb20iLCJjYWxsYmFja1VybCI6Imh0dHBzOlwvXC9hcGkuY29vbGFway5jb21cL3Y2XC9jYWxsYmFja1wvbW9iaWxlT3NzVXBsb2FkU3VjY2Vzc0NhbGxiYWNrP2NoZWNrQXJ0aWNsZUNvdmVyUmVzb2x1dGlvbj0wJnZlcnNpb25Db2RlPTIxMDIwMzEiLCJjYWxsYmFja0JvZHkiOiJ7XCJidWNrZXRcIjoke2J1Y2tldH0sXCJvYmplY3RcIjoke29iamVjdH0sXCJoYXNQcm9jZXNzXCI6JHt4OnZhcjF9fSJ9"
+                Base64.encodeToString(ossCallbackHeader.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
             )
             metadata.setHeader("x-oss-callback-var", "eyJ4OnZhcjEiOiJmYWxzZSJ9")
             put.metadata = metadata

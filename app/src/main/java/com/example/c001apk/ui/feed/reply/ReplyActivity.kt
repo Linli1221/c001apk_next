@@ -444,8 +444,11 @@ class ReplyActivity : BaseActivity<ActivityReplyBinding>(),
     private fun initPage() {
         binding.checkBox.text = if (type == "createFeed") "仅自己可见"
         else "回复并转发"
-        binding.title.text = if (type == "createFeed") "发布动态"
-        else "回复"
+        binding.title.text = when (type) {
+            "createFeed" -> "发布动态"
+            "createArticle" -> "发布图文"
+            else -> "回复"
+        }
         if (type != "createFeed" && !username.isNullOrEmpty())
             binding.editText.hint = "回复: $username"
         binding.publish.isClickable = false

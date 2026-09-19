@@ -137,6 +137,30 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="@string/reply" />
 
+        <!-- 发布图文（type=createArticle）：标题输入框 -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/articleTitleLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:hint="标题"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/title">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/articleTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLength="50"
+                android:maxLines="2"
+                android:minLines="1"
+                android:textSize="16sp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
         <TextView
             android:id="@+id/publish"
             android:layout_width="wrap_content"
@@ -160,7 +184,7 @@
             app:counterMaxLength="500"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/title">
+            app:layout_constraintTop_toBottomOf="@id/articleTitleLayout">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editText"

@@ -22,6 +22,7 @@ import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.adapter.PlaceHolderAdapter
 import com.example.c001apk.constant.Constants.SZLM_ID
 import com.example.c001apk.databinding.BaseRefreshRecyclerviewBinding
+import com.example.c001apk.ui.article.ArticlePublishActivity
 import com.example.c001apk.ui.base.BaseAppFragment
 import com.example.c001apk.ui.feed.reply.ReplyActivity
 import com.example.c001apk.ui.home.IOnTabClickContainer
@@ -161,14 +162,16 @@ class HomeFeedFragment : BaseAppFragment<HomeFeedViewModel>(), IOnTabClickListen
                 if (PrefManager.SZLMID == "") {
                     Toast.makeText(requireContext(), SZLM_ID, Toast.LENGTH_SHORT).show()
                 } else {
-                    val intent = Intent(requireContext(), ReplyActivity::class.java)
-                    intent.putExtra("type", "createFeed")
-                    val options = ActivityOptionsCompat.makeCustomAnimation(
-                        requireContext(),
-                        R.anim.anim_bottom_sheet_slide_up,
-                        R.anim.anim_bottom_sheet_slide_down
-                    )
-                    requireContext().startActivity(intent, options.toBundle())
+                    // 首页发动态按钮：二选一菜单，给「图文」留入口
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.publish)
+                        .setItems(arrayOf(
+                            getString(R.string.publishFeed),
+                            getString(R.string.type_article)
+                        )) { _, which ->
+                            startReply(if (which == 0) "createFeed" else "createArticle")
+                        }
+                        .show()
                 }
             }
         }
@@ -180,6 +183,21 @@ class HomeFeedFragment : BaseAppFragment<HomeFeedViewModel>(), IOnTabClickListen
             }
             insets
         }
+    }
+
+    private fun startReply(type: String) {
+        val options = ActivityOptionsCompat.makeCustomAnimation(
+            requireContext(),
+            R.anim.anim_bottom_sheet_slide_up,
+            R.anim.anim_bottom_sheet_slide_down
+        )
+        // 「图文」走独立混排发布页，其余（动态/点评）仍走 ReplyActivity
+        val intent = if (type == "createArticle") {
+            Intent(requireContext(), ArticlePublishActivity::class.java)
+        } else {
+            Intent(requireContext(), ReplyActivity::class.java).putExtra("type", type)
+        }
+        requireContext().startActivity(intent, options.toBundle())
     }
 
     override fun onScrolled(dy: Int) {
