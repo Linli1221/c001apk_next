@@ -36,7 +36,8 @@ object UserCardUtils {
 
     /** 装备条右侧文案 */
     @JvmStatic
-    fun equipText(count: Int?): String = if (count == null || count <= 0) "" else "$count个装备"
+    fun equipText(count: Int?): String =
+        if (count == null || count <= 0) "" else "${count}个装备"
 
     /** 点评星级：star 为 1~5，补空心星 */
     @JvmStatic
@@ -57,5 +58,5 @@ object UserCardUtils {
     /** 优点 / 缺点 / 总结 */
     @JvmStatic
     fun commentText(label: String, text: String?): String =
-        if (text.isNullOrEmpty()) "" else "$label：$text"
+        if (text.isNullOrEmpty()) "" else "${label}：${text}"
 }
