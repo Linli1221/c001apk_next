@@ -10,6 +10,7 @@ import com.example.c001apk.adapter.ProductSortHeaderAdapter
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.ui.base.BaseAppFragment
 import dagger.hilt.android.AndroidEntryPoint
+import java.net.URLDecoder
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -59,8 +60,11 @@ class TopicContentFragment : BaseAppFragment<TopicContentViewModel>() {
 
     override fun initAdapter() {
         super.initAdapter()
-        // 产品讨论 tab：顶部内嵌「默认/最新/热度」三段式排序（对齐官方 UI）
-        if (viewModel.url.contains("product/feedList") && viewModel.url.contains("type=feed")) {
+        // 产品讨论 tab：顶部内嵌「默认/最新/热度」三段式排序（对齐官方 UI）。
+        // 注意：product/detail 下发的 tab url 是 URL 编码的（如 %2Fproduct%2FfeedList、type%3Dfeed），
+        // 必须先解码再判断，否则 contains 匹配不到，排序开关就不显示。
+        val decodedUrl = URLDecoder.decode(viewModel.url, "UTF-8")
+        if (decodedUrl.contains("product/feedList") && decodedUrl.contains("type=feed")) {
             val sortAdapter = ProductSortHeaderAdapter(viewModel.currentSort) { label ->
                 onSortChanged(label)
             }
@@ -69,7 +73,8 @@ class TopicContentFragment : BaseAppFragment<TopicContentViewModel>() {
     }
 
     private fun onSortChanged(label: String) {
-        val id = Regex("id=(\\d+)").find(viewModel.url)?.groupValues?.get(1) ?: return
+        val decodedUrl = URLDecoder.decode(viewModel.url, "UTF-8")
+        val id = Regex("id=(\\d+)").find(decodedUrl)?.groupValues?.get(1) ?: return
         viewModel.currentSort = label
         viewModel.title = label
         viewModel.url = when (label) {

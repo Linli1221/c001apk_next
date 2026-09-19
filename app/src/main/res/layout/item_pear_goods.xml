@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="data"
+            type="com.example.c001apk.logic.model.HomeFeedResponse.Data" />
+
+        <variable
+            name="listener"
+            type="com.example.c001apk.adapter.ItemListener" />
+
+    </data>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:onClick="@{(view) -> listener.onOpenLink(view, data.goodsUrl != null ? data.goodsUrl : data.goodsBuyUrl, data.goodsTitle != null ? data.goodsTitle : data.title)}"
+        app:cardBackgroundColor="@color/home_card_background_color"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/goodsPic"
+                android:layout_width="96dp"
+                android:layout_height="72dp"
+                android:background="@color/cover"
+                android:scaleType="centerCrop"
+                app:setImage="@{data.goodsPic}"
+                tools:src="@tools:sample/backgrounds/scenic" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/goodsTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:text="@{data.goodsTitle != null ? data.goodsTitle : data.title}"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="一起去看发布会 | 荣耀Magic9系列" />
+
+                <TextView
+                    android:id="@+id/goodsPromoTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@{data.goodsPromoTitle}"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="12sp"
+                    tools:text="2026年9月28日" />
+
+                <TextView
+                    android:id="@+id/goodsTags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@{data.goodsTags}"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="12sp"
+                    tools:text="北京 · 8人 · 含机酒" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/goodsBuyText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/shape_outline_btn"
+                android:paddingStart="12dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="4dp"
+                android:text="@{data.goodsBuyText}"
+                android:textSize="12sp"
+                tools:text="查看详情" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</layout>

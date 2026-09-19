@@ -140,6 +140,16 @@ data class HomeFeedResponse(
         @SerializedName("config_name") val configName: String? = null,
         val productSpecs: List<String>? = null,
         val productRatingSpecs: Map<String, String>? = null,
+
+        // ---- 活动页「线下」tab 的 pear_goods 实体字段 ----
+        @SerializedName("goods_title") val goodsTitle: String? = null,
+        @SerializedName("goods_promo_title") val goodsPromoTitle: String? = null,
+        @SerializedName("goods_promo_price") val goodsPromoPrice: Int? = null,
+        @SerializedName("goods_pic") val goodsPic: String? = null,
+        @SerializedName("goods_tags") val goodsTags: String? = null,
+        @SerializedName("goods_url") val goodsUrl: String? = null,
+        @SerializedName("goods_buy_url") val goodsBuyUrl: String? = null,
+        @SerializedName("goods_buy_text") val goodsBuyText: String? = null,
     ) : Parcelable
 
     @Parcelize

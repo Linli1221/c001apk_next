@@ -24,6 +24,7 @@ import com.example.c001apk.databinding.ItemHomeImageTextGridCardBinding
 import com.example.c001apk.databinding.ItemHomeImageSquareScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeImageTextScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeUnsupportedBinding
+import com.example.c001apk.databinding.ItemPearGoodsBinding
 import com.example.c001apk.databinding.ItemProductConfigListBinding
 import com.example.c001apk.databinding.ItemProductListCardBinding
 import com.example.c001apk.databinding.ItemProductSelectRowBinding
@@ -512,7 +513,32 @@ class AppAdapter(
     ) :
         BaseViewHolder<ViewDataBinding>(binding) {
         override fun bind(data: HomeFeedResponse.Data) {
-            binding.setVariable(BR.data, data)
+            // 众测卡片的数据在 entities[0] 里（title/url/pic），card 级 title/url/logo 均为空，
+            // 若不回填则标题不显示、点击也拿不到跳转 url（表现为「众测打不开」）。
+            val display = data.entities?.firstOrNull()?.let { e ->
+                data.copy(
+                    title = e.title,
+                    url = e.url,
+                    pic = e.pic,
+                    logo = e.pic,
+                )
+            } ?: data
+            binding.setVariable(BR.data, display)
+            binding.setVariable(BR.listener, listener)
+        }
+    }
+
+    // 活动页「线下」tab 的 pear_goods 实体（无 entityTemplate，仅有 goods_* 字段）
+    class PearGoodsViewHolder(
+        val binding: ItemPearGoodsBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            val display = if (data.goodsBuyText.isNullOrEmpty())
+                data.copy(goodsBuyText = binding.root.context.getString(R.string.view_detail))
+            else data
+            binding.setVariable(BR.data, display)
             binding.setVariable(BR.listener, listener)
         }
     }
@@ -706,6 +732,15 @@ class AppAdapter(
                 )
             }
 
+            19 -> {
+                PearGoodsViewHolder(
+                    ItemPearGoodsBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
             else -> {
                 UnsupportedViewHolder(
                     ItemHomeUnsupportedBinding.inflate(
@@ -828,6 +863,9 @@ class AppAdapter(
             "collection" -> 11
 
             "recentHistory" -> 12
+
+            // 活动页「线下」tab 的 pear_goods 实体（无 entityTemplate）
+            "pear_goods" -> 19
 
             // 未支持的实体类型同样兜底到占位，避免整页空白/崩溃
             else -> 14

@@ -80,7 +80,7 @@ class CarouselViewModel @AssistedInject constructor(
                                 lastItem = response.data.lastOrNull()?.id
                                 response.data.forEach {
                                     // 「card」类型也要放行：活动页的轮播/图文卡片都是 card
-                                    if (it.entityType in listOf("feed", "topic", "product", "user", "card"))
+                                    if (it.entityType in listOf("feed", "topic", "product", "user", "card", "pear_goods"))
                                         if (!blackListRepo.checkUid(it.userInfo?.uid.toString())
                                             && !blackListRepo.checkTopic(
                                                 it.tags + it.ttitle + it.relationRows?.getOrNull(0)?.title
@@ -138,7 +138,7 @@ class CarouselViewModel @AssistedInject constructor(
                             if (isRefreshing || isLoadMore) {
                                 data.data.forEach {
                                     // 「card」类型也要放行：活动页的轮播/图文卡片都是 card
-                                    if (it.entityType in listOf("feed", "topic", "product", "user", "card"))
+                                    if (it.entityType in listOf("feed", "topic", "product", "user", "card", "pear_goods"))
                                         if (!blackListRepo.checkUid(it.userInfo?.uid.toString())
                                             && !blackListRepo.checkTopic(
                                                 it.tags + it.ttitle + it.relationRows?.getOrNull(0)?.title
