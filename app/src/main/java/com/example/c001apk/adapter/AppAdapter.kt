@@ -23,6 +23,7 @@ import com.example.c001apk.databinding.ItemHomeImageCarouselCardBinding
 import com.example.c001apk.databinding.ItemHomeImageTextGridCardBinding
 import com.example.c001apk.databinding.ItemHomeImageSquareScrollCardBinding
 import com.example.c001apk.databinding.ItemHomeImageTextScrollCardBinding
+import com.example.c001apk.databinding.ItemHomeTextCardBinding
 import com.example.c001apk.databinding.ItemHomeUnsupportedBinding
 import com.example.c001apk.databinding.ItemPearGoodsBinding
 import com.example.c001apk.databinding.ItemProductConfigListBinding
@@ -543,6 +544,18 @@ class AppAdapter(
         }
     }
 
+    // 专题页「说明」等纯文本卡片（entityTemplate=textCard，title + description）
+    class TextCardViewHolder(
+        val binding: ItemHomeTextCardBinding,
+        val listener: ItemListener
+    ) :
+        BaseViewHolder<ViewDataBinding>(binding) {
+        override fun bind(data: HomeFeedResponse.Data) {
+            binding.setVariable(BR.data, data)
+            binding.setVariable(BR.listener, listener)
+        }
+    }
+
     // 产品列表页（同价位/同SoC/同系列对比）的条目：product/productSelect
     class ProductSelectRowViewHolder(
         val binding: ItemProductSelectRowBinding,
@@ -741,6 +754,15 @@ class AppAdapter(
                 )
             }
 
+            20 -> {
+                TextCardViewHolder(
+                    ItemHomeTextCardBinding.inflate(
+                        LayoutInflater.from(parent.context), parent,
+                        false
+                    ), listener
+                )
+            }
+
             else -> {
                 UnsupportedViewHolder(
                     ItemHomeUnsupportedBinding.inflate(
@@ -835,6 +857,9 @@ class AppAdapter(
 
                     // 活动/众测图文卡片
                     "imageTextGridCard" -> 17
+
+                    // 专题页「说明」等纯文本卡片
+                    "textCard" -> 20
 
                     // 未支持的卡片模板交给占位 ViewHolder，避免整页空白/崩溃
                     else -> 14
