@@ -62,11 +62,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 渠道只影响 versionName 后缀：c001apk_next-V1.0.1-release / -beta / -debug
+      - name: Resolve channel
+        id: channel
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            main) C=release ;;
+            beta) C=beta ;;
+            *)    C=debug ;;
+          esac
+          echo "channel=$C" >> $GITHUB_OUTPUT
+          echo "本次构建渠道：$C"
+
       - name: Build release
         id: buildRelease
         run: |
           set -o pipefail
-          ./gradlew :app:assembleRelease 2>&1 | tee gradle-release.log
+          ./gradlew :app:assembleRelease -Pchannel=${{ steps.channel.outputs.channel }} 2>&1 | tee gradle-release.log
           echo "releaseName=$(ls app/build/outputs/apk/release/*.apk | awk -F '(/|\\.apk)' '{print $6}')" >> $GITHUB_OUTPUT
 
       - name: Upload release

@@ -65,19 +65,30 @@ fun String.execute(currentWorkingDir: File = file("./")): String {
     return String(byteOut.toByteArray()).trim()
 }
 
-val gitCommitCount = "git rev-list HEAD --count".execute().toInt()
-val gitCommitHash = "git rev-parse --verify --short HEAD".execute()
+// ===== 发行版本（唯一真源：仓库根目录 version.properties，发布只改那个文件）=====
+// 规则：只有 beta 阶段主动推进版本号，main 继承 beta 的版本号；debug 快速迭代不涨号。
+val releaseProps = Properties().also { it.load(rootProject.file("version.properties").inputStream()) }
+val verCode = releaseProps.getProperty("VERSION_CODE").trim().toInt()
+val verTag = releaseProps.getProperty("VERSION_NAME").trim()
+// 发行渠道：CI 按分支传 -Pchannel=release|beta|debug；本地不传默认 release
+val channel = (findProperty("channel") as String?)?.takeIf { it.isNotBlank() } ?: "release"
+// versionName 统一前缀（与仓库同名）：c001apk_next-V1.0.1-release
+val apkPrefix = "c001apk_next"
 
 android {
+    // 注意：namespace 决定 R / ViewBinding / DataBinding 生成类的包名，
+    // 源码里全是 import com.example.c001apk.R / com.example.c001apk.databinding.*，不能跟着改名
     namespace = "com.example.c001apk"
     compileSdk = 34
 
     defaultConfig {
+        // 包名同样保持不变：改 applicationId 等于换一个 App，老用户无法覆盖安装
         applicationId = "com.example.c001apk"
         minSdk = 24
         targetSdk = 34
-        versionCode = gitCommitCount
-        versionName = gitCommitHash
+        versionCode = verCode
+        // 完整 versionName = 前缀-版本号-渠道，渠道后缀由 buildTypes.versionNameSuffix 追加
+        versionName = "$apkPrefix-$verTag"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -102,12 +113,18 @@ android {
             signingConfig = config ?: signingConfigs["debug"]
         }
         release {
+            // 拼出完整版本名：c001apk_next-V1.0.1-release（beta 分支为 -beta）
+            versionNameSuffix = "-$channel"
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            // 调试包恒为 c001apk_next-V1.0.1-debug
+            versionNameSuffix = "-debug"
         }
     }
     compileOptions {
@@ -135,10 +152,10 @@ android {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
     applicationVariants.configureEach {
+        // APK 文件名与 versionName 严格一致：c001apk_next-V1.0.1-release(10000).apk
+        val apkFileName = "$versionName($versionCode)"
         outputs.configureEach {
-            if (baseName == "release")
-                (this as? ApkVariantOutputImpl)?.outputFileName =
-                    "c001apk_$versionName($versionCode).apk"
+            (this as? ApkVariantOutputImpl)?.outputFileName = "$apkFileName.apk"
         }
     }
 }
