@@ -11,6 +11,7 @@ import com.example.c001apk.logic.model.CollectionListResponse
 import com.example.c001apk.logic.model.CollectionUploadResponse
 import com.example.c001apk.logic.model.CreateFeedResponse
 import com.example.c001apk.logic.model.SpamConfigResponse
+import com.example.c001apk.logic.model.EventDetailResponse
 import com.example.c001apk.logic.model.FeedContentResponse
 import com.example.c001apk.logic.model.HitHistoryListResponse
 import com.example.c001apk.logic.model.HomeFeedResponse
@@ -55,6 +56,11 @@ interface ApiService {
         @Query("id") id: String,
         @Query("rid") rid: String?
     ): Call<FeedContentResponse>
+
+    @GET("/v6/event/detail")
+    fun getEventDetail(
+        @Query("id") id: String,
+    ): Call<EventDetailResponse>
 
     @GET("/v6/feed/replyList")
     fun getFeedContentReply(

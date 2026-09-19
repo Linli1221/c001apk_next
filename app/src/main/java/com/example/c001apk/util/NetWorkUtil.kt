@@ -14,6 +14,7 @@ import com.example.c001apk.ui.app.AppActivity
 import com.example.c001apk.ui.carousel.CarouselActivity
 import com.example.c001apk.ui.coolpic.CoolPicActivity
 import com.example.c001apk.ui.dyh.DyhActivity
+import com.example.c001apk.ui.event.EventDetailActivity
 import com.example.c001apk.ui.feed.FeedActivity
 import com.example.c001apk.ui.others.WebViewActivity
 import com.example.c001apk.ui.topic.TopicActivity
@@ -111,13 +112,13 @@ object NetWorkUtil {
                 putExtra("id", replace.substring(9))
             }
         } else if (replace.startsWith("/event/") || replace.contains("./event/")) {
-            // 众测/活动详情是官方 H5（www.coolapk.com/event/<id>）。
-            // 注意 openLink 会把域名里的 coolapk.com 删掉（www./event/、api./event/）
-            IntentUtil.startActivity<WebViewActivity>(context) {
-                putExtra(
-                    "url",
-                    "https://www.coolapk.com/event/" + replace.substring(replace.indexOf("/event/") + 7)
-                )
+            // 众测/活动详情没有 H5，www.coolapk.com/event/<id> 只是下载引导落地页。
+            // 改为原生接口 /v6/event/detail（EventDetailActivity）。
+            val id = replace.substring(replace.indexOf("/event/") + 7)
+                .substringBefore('?')
+                .substringBefore('/')
+            IntentUtil.startActivity<EventDetailActivity>(context) {
+                putExtra("id", id)
             }
         } else if (replace.startsWith("/activity/") || replace.contains("./activity/")) {
             // 活动 H5 落地页（m.coolapk.com/activity/<name>）

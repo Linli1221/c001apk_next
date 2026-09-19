@@ -92,6 +92,10 @@ class NetworkRepo @Inject constructor(
         Result.success(apiService.getProductLayout(id).await())
     }
 
+    suspend fun getEventDetail(id: String) = fire {
+        Result.success(apiService.getEventDetail(id).await())
+    }
+
     suspend fun getUserSpace(uid: String) = fire {
         Result.success(apiService.getUserSpace(uid).await())
     }
