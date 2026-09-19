@@ -84,7 +84,7 @@ class TopicContentViewModel @AssistedInject constructor(
                                     // productConfigList/listCard 都是 card，过滤掉会整页空白
                                     if (it.entityType in listOf(
                                             "feed", "topic", "product", "user", "card"
-                                        )
+                                        ) && it.entityTemplate != "sortSelectCard"
                                     )
                                         if (!blackListRepo.checkUid(it.userInfo?.uid.toString())
                                             && !blackListRepo.checkTopic(

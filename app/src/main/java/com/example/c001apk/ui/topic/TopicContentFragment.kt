@@ -60,11 +60,15 @@ class TopicContentFragment : BaseAppFragment<TopicContentViewModel>() {
 
     override fun initAdapter() {
         super.initAdapter()
-        // 产品讨论 tab：顶部内嵌「默认/最新/热度」三段式排序（对齐官方 UI）。
+        // 「默认/最新/热度」三段式排序（对齐官方 UI），覆盖两类栏目：
+        // 1) 产品讨论 tab：product/feedList + type=feed（排序参数 listType）
+        // 2) 话题讨论 tab：topic/tagFeedList + withSortCard=1（服务端下发排序卡片，排序参数 sortField）
         // 注意：product/detail 下发的 tab url 是 URL 编码的（如 %2Fproduct%2FfeedList、type%3Dfeed），
         // 必须先解码再判断，否则 contains 匹配不到，排序开关就不显示。
         val decodedUrl = URLDecoder.decode(viewModel.url, "UTF-8")
-        if (decodedUrl.contains("product/feedList") && decodedUrl.contains("type=feed")) {
+        val isProductFeed = decodedUrl.contains("product/feedList") && decodedUrl.contains("type=feed")
+        val isTopicFeed = decodedUrl.contains("topic/tagFeedList") && decodedUrl.contains("withSortCard=1")
+        if (isProductFeed || isTopicFeed) {
             val sortAdapter = ProductSortHeaderAdapter(viewModel.currentSort) { label ->
                 onSortChanged(label)
             }
@@ -74,18 +78,32 @@ class TopicContentFragment : BaseAppFragment<TopicContentViewModel>() {
 
     private fun onSortChanged(label: String) {
         val decodedUrl = URLDecoder.decode(viewModel.url, "UTF-8")
-        val id = Regex("id=(\\d+)").find(decodedUrl)?.groupValues?.get(1) ?: return
         viewModel.currentSort = label
         viewModel.title = label
-        viewModel.url = when (label) {
-            "最新" ->
-                "/page?url=/product/feedList?cacheExpires=60&type=feed&ignoreEntityById=1&listType=dateline_desc&id=$id"
+        viewModel.url = if (decodedUrl.contains("topic/tagFeedList")) {
+            // 话题讨论 tab：排序走 sortField 参数（lastupdate_desc / dateline_desc / rank_score）
+            val sortValue = when (label) {
+                "最新" -> "dateline_desc"
+                "热度" -> "rank_score"
+                else -> "lastupdate_desc"
+            }
+            if (decodedUrl.contains("sortField="))
+                decodedUrl.replace(Regex("sortField=[^&]*"), "sortField=$sortValue")
+            else
+                "$decodedUrl&sortField=$sortValue"
+        } else {
+            // 产品讨论 tab：排序走 listType 参数
+            val id = Regex("id=(\\d+)").find(decodedUrl)?.groupValues?.get(1) ?: return
+            when (label) {
+                "最新" ->
+                    "/page?url=/product/feedList?cacheExpires=60&type=feed&ignoreEntityById=1&listType=dateline_desc&id=$id"
 
-            "热度" ->
-                "/page?url=/product/feedList?cacheExpires=60&type=feed&listType=rank_score&id=$id"
+                "热度" ->
+                    "/page?url=/product/feedList?cacheExpires=60&type=feed&listType=rank_score&id=$id"
 
-            else ->
-                "/page?url=/product/feedList?cacheExpires=60&type=feed&ignoreEntityById=1&id=$id"
+                else ->
+                    "/page?url=/product/feedList?cacheExpires=60&type=feed&ignoreEntityById=1&id=$id"
+            }
         }
         viewModel.dataList.value = emptyList()
         viewModel.footerState.value = FooterState.LoadingDone
