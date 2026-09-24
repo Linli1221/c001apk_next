@@ -35,6 +35,11 @@ class UserPagerFragment : BasePagerFragment() {
     private lateinit var userBinding: BaseViewUserBinding
     private var menuBlock: MenuItem? = null
 
+    /** 是不是在看自己的主页（uid 和本地登录 uid 相同） */
+    private val isSelf: Boolean
+        get() = PrefManager.isLogin && PrefManager.uid.isNotEmpty() &&
+                (viewModel.userData?.uid ?: viewModel.uid) == PrefManager.uid
+
     // 官方的「主页」tab 是 homeTabCardRows 卡片体系，这里先只做列表类的 tab
     private val tabType = listOf("feed", "rating", "article", "question", "coolpic")
     private val tabTitle = listOf("动态", "点评", "图文", "问答", "酷图")
@@ -64,14 +69,18 @@ class UserPagerFragment : BasePagerFragment() {
 
         userBinding.userData = viewModel.userData
         userBinding.listener = viewModel.ItemClickListener()
+        userBinding.isSelf = isSelf
 
-        // 关注按钮：自己 / 未登录不显示
-        userBinding.followBtn.isVisible =
-            PrefManager.isLogin && viewModel.uid != PrefManager.uid
+        // 自己的主页：按钮变成「编辑信息」；别人的主页：关注 / 已关注；未登录不显示
+        userBinding.followBtn.isVisible = isSelf || PrefManager.isLogin
         userBinding.followBtn.setOnClickListener {
-            viewModel.onPostFollowUnFollow(
-                if (viewModel.userData?.isFollow == 1) "/v6/user/unfollow" else "/v6/user/follow"
-            )
+            if (isSelf) {
+                IntentUtil.startActivity<EditProfileActivity>(requireContext()) {}
+            } else {
+                viewModel.onPostFollowUnFollow(
+                    if (viewModel.userData?.isFollow == 1) "/v6/user/unfollow" else "/v6/user/follow"
+                )
+            }
         }
 
         userBinding.equipLayout.setOnClickListener {
@@ -94,6 +103,17 @@ class UserPagerFragment : BasePagerFragment() {
         viewModel.followState.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandledOrReturnNull()?.let {
                 userBinding.userData = viewModel.userData
+                userBinding.isSelf = isSelf
+                userBinding.executePendingBindings()
+            }
+        }
+
+        // 自己的资料被编辑过（头像 / 签名 / 等级）时重新绑定头部
+        viewModel.profileState.observe(viewLifecycleOwner) { event ->
+            event.getContentIfNotHandledOrReturnNull()?.let {
+                binding.collapsingToolbar.title = viewModel.userData?.username
+                userBinding.userData = viewModel.userData
+                userBinding.isSelf = isSelf
                 userBinding.executePendingBindings()
             }
         }
@@ -103,6 +123,12 @@ class UserPagerFragment : BasePagerFragment() {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 自己的主页：编辑资料返回、或者切回来时重新拉一次资料
+        if (isSelf) viewModel.fetchUser()
     }
 
     /** 顶栏图标当前是否为白色（null = 还没刷过，保证首次一定应用） */
@@ -181,13 +207,15 @@ class UserPagerFragment : BasePagerFragment() {
             inflateMenu(R.menu.user_menu)
             menuBlock = menu?.findItem(R.id.block)
             menuBlock?.title = getMenuTitle(menuBlock?.title)
+            // 自己的主页：不能拉黑 / 举报自己
+            menuBlock?.isVisible = !isSelf
 
             val menuShare = menu?.findItem(R.id.share)
             menuShare?.title = getMenuTitle(menuShare?.title)
 
             val menuReport = menu?.findItem(R.id.report)
             menuReport?.title = getMenuTitle(menuReport?.title)
-            menuReport?.isVisible = PrefManager.isLogin
+            menuReport?.isVisible = PrefManager.isLogin && !isSelf
 
             menu?.findItem(R.id.check)?.title = getMenuTitle(menu?.findItem(R.id.check)?.title)
 

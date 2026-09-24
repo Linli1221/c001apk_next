@@ -36,6 +36,10 @@ data class UserProfileResponse(
         @SerializedName("verify_status") val verifyStatus: Int? = null,
         val province: String? = null,
         val city: String? = null,
+        // 生日（编辑资料用）；0 表示未设置 / 保密
+        val birthyear: Int? = null,
+        val birthmonth: Int? = null,
+        val birthday: Int? = null,
         // 全部动态数（列表头「全部动态（6164）」）
         val apkRatingNum: Int? = null,
         // 拥有装备数（「他的装备 58个装备」）

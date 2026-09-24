@@ -27,6 +27,10 @@
             android:name=".ui.article.ArticlePublishActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.user.EditProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.article.CropImageActivity"
             android:exported="false" />
         <activity

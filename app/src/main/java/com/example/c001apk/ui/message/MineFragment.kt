@@ -22,6 +22,7 @@ import com.example.c001apk.ui.base.BaseFragment
 import com.example.c001apk.ui.login.WebLoginActivity
 import com.example.c001apk.ui.main.MainActivity
 import com.example.c001apk.ui.settings.SettingsActivity
+import com.example.c001apk.ui.user.UserActivity
 import com.example.c001apk.util.CookieUtil
 import com.example.c001apk.util.CookieUtil.atcommentme
 import com.example.c001apk.util.CookieUtil.atme
@@ -73,6 +74,13 @@ class MineFragment : BaseFragment<FragmentMineBinding>() {
         initMenu()
         if (isLogin) {
             viewModel.messCountList.value = true
+            // 头部整块（头像 + 昵称 + 等级 + 进度）点击进入自己的主页
+            binding.profileLayout.setOnClickListener {
+                if (PrefManager.uid.isNotEmpty())
+                    IntentUtil.startActivity<UserActivity>(requireContext()) {
+                        putExtra("id", PrefManager.uid)
+                    }
+            }
             if (viewModel.initLogin) {
                 viewModel.initLogin = false
                 showProfile()
@@ -254,6 +262,8 @@ class MineFragment : BaseFragment<FragmentMineBinding>() {
 
     override fun onResume() {
         super.onResume()
+        // 编辑资料（头像）返回后同步头部
+        if (isLogin) showProfile()
         if (viewModel.isInit) {
             viewModel.isInit = false
             initView()

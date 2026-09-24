@@ -93,5 +93,24 @@
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
+
+    <!--
+        关注 / 已关注：官方的关注按钮在头部右侧（与标题齐平），
+        背景色与文字色跟随关注状态在代码里设置（bindFollowBtn）。
+    -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/followBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_gravity="top"
+        android:layout_marginStart="8dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:minWidth="76dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:text="关注"
+        android:textSize="13sp"
+        app:cornerRadius="16dp" />
 </LinearLayout>
 

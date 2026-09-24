@@ -38,6 +38,9 @@ class UserViewModel @AssistedInject constructor(
     var isAInit: Boolean = true
     val blockState = MutableLiveData<Event<Boolean>>()
     val followState = MutableLiveData<Event<Int?>>()
+
+    // 资料刷新完成（自己的主页编辑资料返回后要重新绑定头部）
+    val profileState = MutableLiveData<Event<Unit>>()
     var userData: UserProfileResponse.Data? = null
 
     fun fetchUser() {
@@ -52,6 +55,7 @@ class UserViewModel @AssistedInject constructor(
                         uid = user.data.uid
                         userData = user.data
                         activityState.postValue(LoadingState.LoadingDone)
+                        profileState.postValue(Event(Unit))
                     } else {
                         activityState.postValue(LoadingState.LoadingFailed(LOADING_FAILED))
                         result.exceptionOrNull()?.printStackTrace()

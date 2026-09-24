@@ -22,6 +22,7 @@ import com.example.c001apk.logic.model.LoadUrlResponse
 import com.example.c001apk.logic.model.MessageResponse
 import com.example.c001apk.logic.model.OSSUploadPrepareResponse
 import com.example.c001apk.logic.model.PostReplyResponse
+import com.example.c001apk.logic.model.ProfileEditResponse
 import com.example.c001apk.logic.model.StringDataResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
 import com.example.c001apk.logic.model.UserProfileResponse
@@ -450,5 +451,46 @@ interface ApiService {
 
     @GET("/v6/notification/checkCount")
     fun checkCount(): Call<CheckCountResponse>
+
+    // ---------------- 编辑资料（个人主页） ----------------
+
+    /**
+     * 改资料（2026-09-24 抓包核对）。只提交改动的那一项：
+     * `key=gender`/`value=1|0|-1`、`key=&value={"birthyear":..,"birthmonth":..,"birthday":..}`、
+     * `key=&value={"province":"..","city":".."}`、`key=bio&value=..`
+     *
+     * 成功响应是 `{"data":{...完整资料...}}`，**不带 message**。
+     */
+    @POST("/v6/account/changeProfile")
+    @FormUrlEncoded
+    fun changeProfile(
+        @Field("key") key: String,
+        @Field("value") value: String,
+    ): Call<ProfileEditResponse>
+
+    /** 生日 / 地区回到「保密」：key=birth 或 key=location（抓包核对） */
+    @POST("/v6/account/resetProfile")
+    @FormUrlEncoded
+    fun resetProfile(
+        @Field("key") key: String,
+    ): Call<ProfileEditResponse>
+
+    /** 换头像：multipart，part 名固定 imgFile、filename 用图片 md5（无扩展名），返回 `{"data":"<新头像 url>"}` */
+    @Multipart
+    @POST("/v6/account/changeAvatar")
+    fun changeAvatar(
+        @Part file: MultipartBody.Part,
+    ): Call<StringDataResponse>
+
+    /**
+     * 换主页背景图（抓包 + 实测核对 2026-09-24）：先 `ossUploadPrepare` 拿凭证上传到 OSS，
+     * 再把地址回传。`url` = **完整 CDN 地址** `http://avatar.coolapk.com/<uploadFileName>`，
+     * 成功返回 `{"data":"上传成功"}`（同样没有 message）。
+     */
+    @POST("/v6/account/changeAvatarCover")
+    @FormUrlEncoded
+    fun changeAvatarCover(
+        @Field("url") url: String,
+    ): Call<StringDataResponse>
 
 }

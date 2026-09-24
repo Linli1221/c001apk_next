@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.c001apk.databinding.ActivityCropImageBinding
@@ -19,18 +20,25 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * 封面裁剪页：固定比例 1600:719，输出精确 1600x719 的 JPEG。
+ * 裁剪页：默认固定比例 1600:719（图文封面），输出精确 1600x719 的 JPEG。
+ * 传 EXTRA_OUT_W / EXTRA_OUT_H 可以换比例（头像、主页背景图传 600 / 1080 这种正方形）。
  * 结果通过 RESULT_URI 返回（file:// Uri 字符串）。
  */
 class CropImageActivity : BaseActivity<ActivityCropImageBinding>() {
 
     companion object {
         const val EXTRA_URI = "extra_uri"
+        const val EXTRA_OUT_W = "extra_out_w"
+        const val EXTRA_OUT_H = "extra_out_h"
         const val RESULT_URI = "result_uri"
         const val COVER_W = 1600
         const val COVER_H = 719
         private const val MAX_SCALE = 4f
     }
+
+    /** 输出尺寸（决定裁剪框比例）；不传就是图文封面 1600x719 */
+    private val outW by lazy { intent.getIntExtra(EXTRA_OUT_W, COVER_W) }
+    private val outH by lazy { intent.getIntExtra(EXTRA_OUT_H, COVER_H) }
 
     private var srcBitmap: Bitmap? = null
     private var scale = 1f
@@ -58,6 +66,15 @@ class CropImageActivity : BaseActivity<ActivityCropImageBinding>() {
 
         binding.cancel.setOnClickListener { finish() }
         binding.confirm.setOnClickListener { confirmCrop() }
+
+        // 非默认比例（头像 / 背景图是正方形）时改裁剪框比例，必须在测量前设置
+        if (outW != COVER_W || outH != COVER_H) {
+            (binding.cropOverlay.layoutParams as? ConstraintLayout.LayoutParams)?.let { lp ->
+                lp.dimensionRatio = "$outW:$outH"
+                binding.cropOverlay.layoutParams = lp
+            }
+        }
+
         binding.cropImage.post { loadAndInit() }
     }
 
@@ -187,10 +204,10 @@ class CropImageActivity : BaseActivity<ActivityCropImageBinding>() {
             return
         }
         val cropped = Bitmap.createBitmap(bmp, left.toInt(), top.toInt(), cropW, cropH)
-        val scaled = Bitmap.createScaledBitmap(cropped, COVER_W, COVER_H, true)
+        val scaled = Bitmap.createScaledBitmap(cropped, outW, outH, true)
         if (cropped !== scaled) cropped.recycle()
 
-        val file = File(cacheDir, "article_cover_${System.currentTimeMillis()}.jpg")
+        val file = File(cacheDir, "crop_${System.currentTimeMillis()}.jpg")
         try {
             FileOutputStream(file).use { out ->
                 scaled.compress(Bitmap.CompressFormat.JPEG, 92, out)

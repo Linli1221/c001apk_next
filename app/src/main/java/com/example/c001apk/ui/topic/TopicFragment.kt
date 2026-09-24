@@ -2,6 +2,7 @@ package com.example.c001apk.ui.topic
 
 import android.app.ActivityOptions
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
@@ -22,6 +23,7 @@ import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.ReplaceViewHelper
 import com.google.android.material.appbar.CollapsingToolbarLayout
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.GRAVITY_CENTER
@@ -108,6 +110,7 @@ class TopicFragment : BasePagerFragment() {
             event.getContentIfNotHandledOrReturnNull()?.let {
                 subscribe.title = if (it) "取消关注"
                 else "关注"
+                bindFollowBtn(it)
             }
         }
 
@@ -137,6 +140,65 @@ class TopicFragment : BasePagerFragment() {
         }
         header.root.isVisible = false
         headerBinding = header
+
+        // 未登录不显示关注按钮（和工具栏菜单项保持一致）
+        header.followBtn.isVisible = PrefManager.isLogin
+        header.followBtn.setOnClickListener { onSubscribeClick() }
+    }
+
+    /**
+     * 关注按钮的两态配色：未关注=主题色填充 / 已关注=弱化底色。
+     * 用 MaterialColors 取主题属性，避免在 drawable 里写 ?attr（浅色深色都要能看）。
+     */
+    private fun bindFollowBtn(followed: Boolean) {
+        val header = headerBinding ?: return
+        val accent = MaterialColors.getColor(
+            requireContext(), com.google.android.material.R.attr.colorPrimary, 0
+        )
+        val onAccent = MaterialColors.getColor(
+            requireContext(), com.google.android.material.R.attr.colorOnPrimary, 0
+        )
+        val muted = MaterialColors.getColor(
+            requireContext(), com.google.android.material.R.attr.colorSurfaceVariant, 0
+        )
+        val onMuted = MaterialColors.getColor(
+            requireContext(), com.google.android.material.R.attr.colorOnSurfaceVariant, 0
+        )
+        header.followBtn.apply {
+            text = if (followed) "已关注" else "关注"
+            backgroundTintList =
+                ColorStateList.valueOf(if (followed) muted else accent)
+            setTextColor(if (followed) onMuted else onAccent)
+        }
+    }
+
+    // 关注 / 取消关注的两种类型（话题 tag / 机型 product），菜单与头部按钮共用
+    private fun onSubscribeClick() {
+        when (viewModel.type) {
+            "topic" -> {
+                val followUrl =
+                    if (viewModel.isFollow) "/v6/feed/unFollowTag"
+                    else "/v6/feed/followTag"
+                val tag = viewModel.url.replace("/t/", "")
+                viewModel.onGetFollow(followUrl, tag, null)
+            }
+
+            "product" -> {
+                if (viewModel.postFollowData.isNullOrEmpty())
+                    viewModel.postFollowData = HashMap()
+                viewModel.postFollowData?.let { map ->
+                    map["id"] = viewModel.id
+                    map["status"] = if (viewModel.isFollow) "0" else "1"
+                }
+                viewModel.onPostFollow()
+            }
+
+            else -> Toast.makeText(
+                requireContext(),
+                "type error: ${viewModel.type}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun bindHeader(header: TopicHeader) {
@@ -165,6 +227,9 @@ class TopicFragment : BasePagerFragment() {
             header.followNum?.takeIf { it.isNotEmpty() }?.let { "${it}人关注" }.orEmpty()
         headerBinding.followText.isVisible = headerBinding.followText.text.isNotEmpty()
         headerBinding.followRow.isVisible = avatars.isNotEmpty() || headerBinding.followText.isVisible
+
+        // 头部按钮初值（checkFollow 之后还会通过 followState 再刷一次）
+        bindFollowBtn(viewModel.isFollow)
     }
 
     override fun onDestroyView() {
@@ -265,35 +330,7 @@ class TopicFragment : BasePagerFragment() {
                         }
                     }
 
-                    R.id.subscribe -> {
-                        when (viewModel.type) {
-                            "topic" -> {
-                                val followUrl =
-                                    if (viewModel.isFollow) "/v6/feed/unFollowTag"
-                                    else "/v6/feed/followTag"
-                                val tag = viewModel.url.replace("/t/", "")
-                                viewModel.onGetFollow(followUrl, tag, null)
-                            }
-
-                            "product" -> {
-                                if (viewModel.postFollowData.isNullOrEmpty())
-                                    viewModel.postFollowData = HashMap()
-                                viewModel.postFollowData?.let { map ->
-                                    map["id"] = viewModel.id
-                                    map["status"] =
-                                        if (viewModel.isFollow) "0"
-                                        else "1"
-                                }
-                                viewModel.onPostFollow()
-                            }
-
-                            else -> Toast.makeText(
-                                requireContext(),
-                                "type error: ${viewModel.type}",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                    R.id.subscribe -> onSubscribeClick()
 
                 }
                 return@setOnMenuItemClickListener true

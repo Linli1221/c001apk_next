@@ -141,6 +141,26 @@ class NetworkRepo @Inject constructor(
         Result.success(api2Service.getProfile(uid).await())
     }
 
+    // ---------------- 编辑资料 ----------------
+
+    /** 改资料，只提交改动的那一项（key 为空表示 value 是 JSON：生日 / 地区） */
+    suspend fun changeProfile(key: String, value: String) = fire {
+        Result.success(apiService.changeProfile(key, value).await())
+    }
+
+    /** 生日（key=birth）/ 地区（key=location）恢复「保密」 */
+    suspend fun resetProfile(key: String) = fire {
+        Result.success(apiService.resetProfile(key).await())
+    }
+
+    suspend fun changeAvatar(part: MultipartBody.Part) = fire {
+        Result.success(apiService.changeAvatar(part).await())
+    }
+
+    suspend fun changeAvatarCover(url: String) = fire {
+        Result.success(apiService.changeAvatarCover(url).await())
+    }
+
     suspend fun getFollowList(url: String, uid: String, page: Int, lastItem: String?) = fire {
         Result.success(apiService.getFollowList(url, uid, page, lastItem).await())
     }
