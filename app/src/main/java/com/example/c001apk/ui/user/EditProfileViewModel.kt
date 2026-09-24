@@ -2,6 +2,7 @@ package com.example.c001apk.ui.user
 
 import android.content.ContentResolver
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -122,6 +123,7 @@ class EditProfileViewModel @Inject constructor(
 
     /** `message` 为空就是成功（服务端失败时一定带 message） */
     private fun handleEditResponse(response: ProfileEditResponse?) {
+        Log.i("CoverDbg", "changeProfile/resetProfile -> message=" + response?.message)
         if (response != null && response.message == null) {
             changed = true
             over.postValue(Event(true))
@@ -181,11 +183,20 @@ class EditProfileViewModel @Inject constructor(
             networkRepo.postOSSUploadPrepare(ossUploadPrepareData)
                 .collect { result ->
                     val response = result.getOrNull()
+                    Log.i("CoverDbg", "postOSSUploadPrepare -> message=" + response?.message)
                     if (response?.message != null) {
                         toastText.postValue(Event("uploadPrepare error: ${response.message}"))
                     } else if (response?.data != null) {
+                        val info = response.data.uploadPrepareInfo
+                        Log.i(
+                            "CoverDbg",
+                            "uploadPrepare ok: bucket=" + info.bucket + " endPoint=" + info.endPoint +
+                                " prefix=" + info.uploadImagePrefix + " callbackUrl=" + info.callbackUrl +
+                                " fileName=" + response.data.fileInfo.firstOrNull()?.uploadFileName
+                        )
                         uploadImage.postValue(Event(response.data))
                     } else {
+                        Log.i("CoverDbg", "uploadPrepare: response is null, ex=" + result.exceptionOrNull()?.message)
                         toastText.postValue(Event("response is null"))
                     }
                 }
@@ -198,6 +209,11 @@ class EditProfileViewModel @Inject constructor(
             networkRepo.changeAvatarCover(url)
                 .collect { result ->
                     val response = result.getOrNull()
+                    Log.i(
+                        "CoverDbg",
+                        "changeAvatarCover url=" + url + " -> message=" + response?.message +
+                            " data=" + response?.data + " ex=" + result.exceptionOrNull()?.message
+                    )
                     if (response?.data != null) {
                         changed = true
                         over.postValue(Event(true))

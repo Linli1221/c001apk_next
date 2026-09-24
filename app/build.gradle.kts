@@ -111,6 +111,9 @@ android {
     buildTypes {
         all {
             signingConfig = config ?: signingConfigs["debug"]
+            // debug 频道的包 CI 是用 release 变体打的（BuildConfig.DEBUG=false），
+            // 但排障需要看云端报文，所以这里单独开一个开关
+            buildConfigField("boolean", "HTTP_LOG", (channel == "debug" || name == "debug").toString())
         }
         release {
             // 拼出完整版本名：c001apk_next-V1.0.1-release（beta 分支为 -beta）

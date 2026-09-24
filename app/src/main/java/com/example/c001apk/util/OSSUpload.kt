@@ -85,6 +85,14 @@ suspend fun ossUpload(
                     put("callbackBody", "filename=${responseData.fileInfo[index].name}")
                 }
             }
+            Log.i(
+                "CoverDbg",
+                "oss put start: endPoint=" + endPoint + " bucket=" + bucket +
+                    " object=" + responseData.fileInfo[index].uploadFileName +
+                    " contentType=" + typeList[index] +
+                    " md5Null=" + (md5List[index] == null) +
+                    " callbackUrl=" + callbackUrl
+            )
             oss.asyncPutObject(put, OSSCallBack(
                 iOnSuccess = {
                     iOnSuccess(index)

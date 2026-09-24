@@ -98,7 +98,7 @@ object NetworkModule {
             .addInterceptor(SslErrorInterceptor)
             .addInterceptor(
                 HttpLoggingInterceptor().setLevel(
-                    if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    if (BuildConfig.DEBUG || BuildConfig.HTTP_LOG) HttpLoggingInterceptor.Level.BODY
                     else HttpLoggingInterceptor.Level.NONE
                 )
             )
@@ -116,7 +116,7 @@ object NetworkModule {
             .addInterceptor(SslErrorInterceptor)
             .addInterceptor(
                 HttpLoggingInterceptor().setLevel(
-                    if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    if (BuildConfig.DEBUG || BuildConfig.HTTP_LOG) HttpLoggingInterceptor.Level.BODY
                     else HttpLoggingInterceptor.Level.NONE
                 )
             )
