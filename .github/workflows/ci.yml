@@ -170,6 +170,17 @@ jobs:
             echo "| 构建时间 | $(date -u '+%Y-%m-%d %H:%M UTC') |"
           } > "$NOTES"
 
+          # 追加仓库内维护的功能清单（.github/release-notes.md），
+          # 让发行版页面始终带一份完整的功能说明，而不是只有自动构建信息
+          if [ -f .github/release-notes.md ]; then
+            {
+              echo
+              echo "---"
+              echo
+              cat .github/release-notes.md
+            } >> "$NOTES"
+          fi
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${PRE[@]}"
           else
