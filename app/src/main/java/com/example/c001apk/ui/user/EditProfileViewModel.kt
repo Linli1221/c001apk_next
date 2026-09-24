@@ -67,8 +67,9 @@ class EditProfileViewModel @Inject constructor(
             networkRepo.getProfile(PrefManager.uid)
                 .collect { result ->
                     val response = result.getOrNull()
-                    if (response?.data != null) {
-                        profile.postValue(response.data)
+                    val data = response?.data
+                    if (data != null) {
+                        publishProfile(data)
                         loadingState.postValue(LoadingState.LoadingDone)
                     } else {
                         response?.message?.let { toastText.postValue(Event(it)) }
@@ -77,6 +78,9 @@ class EditProfileViewModel @Inject constructor(
                 }
         }
     }
+
+    /** 抽一层非空入口：Lint NullSafeMutableLiveData 不允许把可空值直接塞进非空 LiveData */
+    private fun publishProfile(data: UserProfileResponse.Data) = profile.postValue(data)
 
     // ---------------- 文本类字段 ----------------
 
