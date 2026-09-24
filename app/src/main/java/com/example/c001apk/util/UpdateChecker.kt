@@ -3,10 +3,12 @@ package com.example.c001apk.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.example.c001apk.BuildConfig
+import com.example.c001apk.MyApplication
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -76,6 +78,36 @@ object UpdateChecker {
 
     private val client by lazy { OkHttpClient() }
 
+    private val userAgent: String by lazy {
+        val d = TokenDeviceUtils.detectRealDevice()
+        "Dalvik/2.1.0 (Linux; U; Android ${d.androidVersion}; ${d.model} ${d.buildNumber}) " +
+            "(#Build; ${d.brand}; ${d.model}; ${d.buildNumber}; ${d.androidVersion}) okhttp/4.12.0"
+    }
+
+    private fun installHeaders(): List<Pair<String, String>> = runCatching {
+        val ctx = MyApplication.context
+        val pm = ctx.packageManager
+        val pkg = ctx.packageName
+        val (installer, initiator) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val src = pm.getInstallSourceInfo(pkg)
+            src.installingPackageName to src.initiatingPackageName
+        } else {
+            @Suppress("DEPRECATION")
+            val legacy = pm.getInstallerPackageName(pkg)
+            legacy to null
+        }
+        @Suppress("DEPRECATION")
+        val info = pm.getPackageInfo(pkg, 0)
+        listOf(
+            "X-Install-Source" to installer.orEmpty(),
+            "X-Install-Origin" to initiator.orEmpty(),
+            "X-Install-Time" to info.firstInstallTime.toString(),
+            "X-Update-Time" to info.lastUpdateTime.toString(),
+            "X-Client-Version" to BuildConfig.VERSION_NAME,
+            "X-Client-Code" to BuildConfig.VERSION_CODE.toString(),
+        ).filter { it.second.isNotEmpty() }
+    }.getOrDefault(emptyList())
+
     /** 自建接口一次响应里的三段 JSON（原样留着，按渠道各取所需） */
     private class Snapshot(
         val stable: String?,
@@ -100,10 +132,12 @@ object UpdateChecker {
         cached?.takeIf { System.currentTimeMillis() - it.at < CACHE_TTL }
             ?.let { return@withContext it }
         runCatching {
-            val request = Request.Builder()
+            val builder = Request.Builder()
                 .url(BASE_URL)
                 .header("X-Union-Id", PrefManager.updateUnionId)
-                .build()
+                .header("User-Agent", userAgent)
+            installHeaders().forEach { (name, value) -> builder.header(name, value) }
+            val request = builder.build()
             val body = client.newCall(request).execute().use { resp ->
                 if (!resp.isSuccessful) return@use null
                 resp.body?.string()
