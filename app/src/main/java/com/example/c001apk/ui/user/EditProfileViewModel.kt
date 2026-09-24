@@ -139,7 +139,8 @@ class EditProfileViewModel @Inject constructor(
             val bytes = runCatching {
                 resolver.openInputStream(uri)?.use { it.readBytes() }
             }.getOrNull()
-            if (bytes.isNullOrEmpty()) {
+            // 注意：ByteArray 没有 isNullOrEmpty()（那是 Array/CharSequence/Collection 的扩展）
+            if (bytes == null || bytes.isEmpty()) {
                 loadingState.postValue(LoadingState.LoadingDone)
                 toastText.postValue(Event("读取图片失败"))
                 return@launch
