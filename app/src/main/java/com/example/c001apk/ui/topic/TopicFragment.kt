@@ -5,17 +5,23 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.c001apk.R
+import com.example.c001apk.databinding.ItemTopicHeaderBinding
 import com.example.c001apk.ui.base.BasePagerFragment
 import com.example.c001apk.ui.feed.reply.ReplyActivity
 import com.example.c001apk.ui.home.IOnTabClickListener
 import com.example.c001apk.ui.others.WebViewFragment
 import com.example.c001apk.ui.search.SearchActivity
+import com.example.c001apk.util.ImageUtil
 import com.example.c001apk.util.IntentUtil
 import com.example.c001apk.util.PrefManager
+import com.example.c001apk.util.ReplaceViewHelper
+import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.GRAVITY_CENTER
@@ -30,6 +36,7 @@ class TopicFragment : BasePagerFragment() {
     override var tabController: IOnTabClickListener? = null
     private lateinit var subscribe: MenuItem
     private var menuBlock: MenuItem? = null
+    private var headerBinding: ItemTopicHeaderBinding? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -109,6 +116,60 @@ class TopicFragment : BasePagerFragment() {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
+
+        viewModel.headerState.observe(viewLifecycleOwner) { header ->
+            header?.let { bindHeader(it) }
+        }
+    }
+
+    /**
+     * 头部卡片铺在折叠标题栏里（复用 base_tablayout_viewpager 的占位 View）：
+     * 展开时可见，向上滚动时随标题栏收起、TabLayout 吸顶。
+     */
+    private fun initHeader() {
+        val header = ItemTopicHeaderBinding.inflate(layoutInflater, null, false)
+        ReplaceViewHelper(requireContext()).toReplaceView(binding.view, header.root)
+        header.root.layoutParams = CollapsingToolbarLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            collapseMode = CollapsingToolbarLayout.LayoutParams.COLLAPSE_MODE_PARALLAX
+        }
+        header.root.isVisible = false
+        headerBinding = header
+    }
+
+    private fun bindHeader(header: TopicHeader) {
+        val headerBinding = headerBinding ?: return
+        headerBinding.root.isVisible = true
+
+        ImageUtil.showIMG(headerBinding.logo, header.logo)
+        headerBinding.title.text = header.title.orEmpty()
+
+        // 服务端只下发数字（如「1.2万」），单位在本地点上
+        val stats = listOfNotNull(
+            header.hotNum?.takeIf { it.isNotEmpty() },
+            header.commentNum?.takeIf { it.isNotEmpty() }?.let { "${it}讨论" },
+        )
+        headerBinding.stats.text = stats.joinToString(" · ")
+        headerBinding.stats.isVisible = stats.isNotEmpty()
+
+        val avatars = header.avatars.take(3)
+        listOf(headerBinding.avatar1, headerBinding.avatar2, headerBinding.avatar3)
+            .forEachIndexed { index, imageView ->
+                val url = avatars.getOrNull(index)
+                imageView.isVisible = !url.isNullOrEmpty()
+                url?.let { ImageUtil.showIMG(imageView, it) }
+            }
+        headerBinding.followText.text =
+            header.followNum?.takeIf { it.isNotEmpty() }?.let { "${it}人关注" }.orEmpty()
+        headerBinding.followText.isVisible = headerBinding.followText.text.isNotEmpty()
+        headerBinding.followRow.isVisible = avatars.isNotEmpty() || headerBinding.followText.isVisible
+    }
+
+    override fun onDestroyView() {
+        headerBinding = null
+        super.onDestroyView()
     }
 
     override fun getFragment(position: Int): Fragment {
@@ -146,6 +207,7 @@ class TopicFragment : BasePagerFragment() {
     override fun initBar() {
         super.initBar()
         binding.collapsingToolbar.isTitleEnabled = false
+        initHeader()
         binding.toolBar.apply {
             title = if (viewModel.type == "topic") viewModel.url.replace("/t/", "")
             else viewModel.title

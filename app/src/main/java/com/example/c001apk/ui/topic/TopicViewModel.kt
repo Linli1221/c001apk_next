@@ -55,6 +55,7 @@ class TopicViewModel @AssistedInject constructor(
 
     val blockState = MutableLiveData<Event<Boolean>>()
     val followState = MutableLiveData<Event<Boolean>>()
+    val headerState = MutableLiveData<TopicHeader>()
 
     fun fetchTopicLayout() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -68,6 +69,7 @@ class TopicViewModel @AssistedInject constructor(
                         } else if (data.data != null) {
                             isFollow = data.data.userAction?.follow == 1
                             id = data.data.id ?: ""
+                            publishHeader(data.data)
                             type = data.data.entityType
                             subtitle = data.data.intro
                             getTopicList(data.data.tabList, data.data.selectedTab.toString())
@@ -95,6 +97,7 @@ class TopicViewModel @AssistedInject constructor(
                         } else if (data.data != null) {
                             isFollow = data.data.userAction?.follow == 1
                             subtitle = data.data.intro
+                            publishHeader(data.data)
                             // 「参数」tab 原生渲染需要的版本配置 + 评分子项
                             configRows = data.data.configRows
                             ratingItemInfo = data.data.ratingItemInfo
@@ -175,6 +178,22 @@ class TopicViewModel @AssistedInject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             blockState.postValue(Event(blackListRepo.checkTopic(title)))
         }
+    }
+
+    private fun publishHeader(data: HomeFeedResponse.Data) {
+        val avatars = data.recentFollowList.orEmpty()
+            .mapNotNull { it.userAvatar }
+            .filter { it.isNotEmpty() }
+        headerState.postValue(
+            TopicHeader(
+                logo = data.logo,
+                title = data.title,
+                hotNum = data.hotNumTxt,
+                commentNum = data.commentnumTxt,
+                followNum = data.follownumTxt,
+                avatars = avatars,
+            )
+        )
     }
 
     private fun checkFollow() {

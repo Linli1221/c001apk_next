@@ -114,6 +114,8 @@ data class HomeFeedResponse(
         @SerializedName("hot_num_txt") val hotNumTxt: String?,
         @SerializedName("feed_comment_num_txt") val feedCommentNumTxt: String?,
         @SerializedName("commentnum_txt") val commentnumTxt: String?,
+        @SerializedName("follownum_txt") val follownumTxt: String? = null,
+        @SerializedName("recent_follow_list") val recentFollowList: List<RecentFollow>? = null,
         val commentCount: String?,
         @SerializedName("alias_title") val aliasTitle: String?,
         val userAction: UserAction?,
@@ -160,6 +162,13 @@ data class HomeFeedResponse(
         @SerializedName("comment_general") val commentGeneral: String? = null,
         @SerializedName("device_info") val ratingDeviceInfo: String? = null,
         @SerializedName("buy_status") val buyStatus: Int? = null,
+    ) : Parcelable
+
+    /** 话题页头部「最近关注的人」（只要 uid + 头像） */
+    @Parcelize
+    data class RecentFollow(
+        val uid: String? = null,
+        val userAvatar: String? = null,
     ) : Parcelable
 
     /** 点评指向的产品 */
