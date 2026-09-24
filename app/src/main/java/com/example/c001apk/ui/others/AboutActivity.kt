@@ -266,10 +266,7 @@ class AboutActivity : AbsAboutActivity() {
     private fun checkUpdateNow(channel: String) {
         Toast.makeText(this, "正在检查更新…", Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
-            val info = UpdateChecker.fetch(
-                if (channel == UpdateChecker.CHANNEL_BETA) UpdateChecker.BETA_URL
-                else UpdateChecker.STABLE_URL
-            )
+            val info = UpdateChecker.fetchUpdate(channel)
             when {
                 info == null ->
                     Toast.makeText(this@AboutActivity, "检查更新失败，请稍后再试", Toast.LENGTH_SHORT).show()

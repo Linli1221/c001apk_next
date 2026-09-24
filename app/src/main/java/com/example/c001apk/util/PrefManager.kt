@@ -182,10 +182,26 @@ object PrefManager {
         get() = pref.getBoolean("isColorFilter", true)
         set(value) = pref.edit().putBoolean("isColorFilter", value).apply()
 
-    /** 启动时检查本应用正式版更新（升级信息走 jsdelivr 镜像，默认开） */
+    /** 启动时检查本应用正式版更新（升级信息走自建接口，默认开） */
     var isCheckUpdateStable: Boolean
         get() = pref.getBoolean("isCheckUpdateStable", true)
         set(value) = pref.edit().putBoolean("isCheckUpdateStable", value).apply()
+
+    /**
+     * 自更新接口的匿名统计 ID（`X-Union-Id` 请求头）。
+     *
+     * 安装后首次读取时随机生成 32 位 hex 并落盘，之后不再变化；
+     * 只用于服务端统计「多少台设备在查更新」，不含任何用户/设备信息，
+     * 与设备串（xAppDevice / szlmId）完全无关。
+     */
+    var updateUnionId: String
+        get() {
+            pref.getString("updateUnionId", null)?.takeIf { it.isNotEmpty() }?.let { return it }
+            val id = java.util.UUID.randomUUID().toString().replace("-", "")
+            pref.edit().putString("updateUnionId", id).apply()
+            return id
+        }
+        set(value) = pref.edit().putString("updateUnionId", value).apply()
 
     /** 启动时检查本应用 Beta 版更新（默认关） */
     var isCheckUpdateBeta: Boolean

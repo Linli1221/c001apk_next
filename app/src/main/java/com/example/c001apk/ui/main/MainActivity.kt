@@ -125,12 +125,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
         }
     }
 
-    /** 启动时的自更新检查：正式版优先，有正式版更新就不再弹 Beta 的 */
+    /**
+     * 启动时的自更新检查：正式版优先，有正式版更新就不再弹 Beta 的。
+     *
+     * 自建接口一次响应里同时有 stable / beta，两次调用共用 60 秒缓存，不会重复请求。
+     */
     private fun checkSelfUpdate() {
         lifecycleScope.launch {
             fun alive() = !isFinishing && !isDestroyed
             if (PrefManager.isCheckUpdateStable) {
-                UpdateChecker.fetch(UpdateChecker.STABLE_URL)?.let {
+                UpdateChecker.fetchUpdate(UpdateChecker.CHANNEL_STABLE)?.let {
                     if (it.isNewer && alive()) {
                         UpdateChecker.showUpdateDialog(this@MainActivity, it, UpdateChecker.CHANNEL_STABLE)
                         return@launch
@@ -138,7 +142,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), IOnBottomClickContaine
                 }
             }
             if (PrefManager.isCheckUpdateBeta) {
-                UpdateChecker.fetch(UpdateChecker.BETA_URL)?.let {
+                UpdateChecker.fetchUpdate(UpdateChecker.CHANNEL_BETA)?.let {
                     if (it.isNewer && alive())
                         UpdateChecker.showUpdateDialog(this@MainActivity, it, UpdateChecker.CHANNEL_BETA)
                 }

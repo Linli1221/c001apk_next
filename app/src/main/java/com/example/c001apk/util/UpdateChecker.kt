@@ -18,13 +18,18 @@ import org.json.JSONObject
 /**
  * 本应用自更新检查。
  *
- * 升级信息放在 GitHub 仓库 kongwufang/c001apk_next 的 `update` 分支，
- * 通过 cdn.jsdelivr.net 镜像拉取（国内可直连）：
+ * 升级信息走自建接口（顺带给服务端做匿名访问统计）：
  *
- *   正式版：https://cdn.jsdelivr.net/gh/kongwufang/c001apk_next@update/stable.json
- *   Beta 版：https://cdn.jsdelivr.net/gh/kongwufang/c001apk_next@update/beta.json
+ *   GET https://service.houlangs.cn/c001apk/
+ *   请求头 X-Union-Id：本机随机生成并落盘的匿名统计 ID（见 [PrefManager.updateUnionId]）
  *
- * JSON 格式：
+ * 一次请求同时返回三段（服务端：仓库 _rev/update_files/index.php）：
+ * {
+ *   "code": 0, "message": "ok", "time": 1789806080,
+ *   "stable": { 正式版 }, "beta": { Beta 版 }, "org": { 关于页按钮 }
+ * }
+ *
+ * 单段 JSON 格式：
  * {
  *   "versionName": "1.0.1",
  *   "versionCode": 468,
@@ -40,19 +45,17 @@ import org.json.JSONObject
  */
 object UpdateChecker {
 
-    private const val REPO = "kongwufang/c001apk_next"
-    const val STABLE_URL = "https://cdn.jsdelivr.net/gh/$REPO@update/stable.json"
-    const val BETA_URL = "https://cdn.jsdelivr.net/gh/$REPO@update/beta.json"
+    /** 自建更新接口；stable / beta / org 都在同一次响应里，不用分别请求 */
+    const val BASE_URL = "https://service.houlangs.cn/c001apk/"
 
     /**
-     * 关于页「组织」按钮配置（update 分支 org.json），随时可下发/改名/换链接：
+     * 关于页「组织」按钮配置（响应里的 org 段），随时可下发/改名/换链接：
      *
      *   {"buttons": [{"name": "官方群组", "url": "https://..."}]}
      * 也兼容 {"name": "...", "url": "..."} 和裸数组 [{"name": "...", "url": "..."}]
      *
      * 点击后强制跳外部浏览器打开。
      */
-    const val ORG_URL = "https://cdn.jsdelivr.net/gh/$REPO@update/org.json"
 
     /** 每个进程只做一次启动时自动检查（Activity 重建不会重复弹窗） */
     var checkedThisSession = false
@@ -73,16 +76,56 @@ object UpdateChecker {
 
     private val client by lazy { OkHttpClient() }
 
-    /** 拉取并解析；失败返回 null */
-    suspend fun fetch(url: String): UpdateInfo? = withContext(Dispatchers.IO) {
+    /** 自建接口一次响应里的三段 JSON（原样留着，按渠道各取所需） */
+    private class Snapshot(
+        val stable: String?,
+        val beta: String?,
+        val org: String?,
+        val at: Long,
+    )
+
+    private const val CACHE_TTL = 60_000L
+
+    /** 同一份响应 60 秒内复用：启动时先查正式版再查 Beta，只会打一次接口 */
+    @Volatile
+    private var cached: Snapshot? = null
+
+    /**
+     * 拉取自建接口并拆成 stable / beta / org 三段；失败返回 null
+     * （调用方按「没有更新」「没有按钮」处理，不弹错误框）。
+     *
+     * X-Union-Id 传 [PrefManager.updateUnionId]（本机随机 32 位 hex），服务端据此统计设备数。
+     */
+    private suspend fun loadSnapshot(): Snapshot? = withContext(Dispatchers.IO) {
+        cached?.takeIf { System.currentTimeMillis() - it.at < CACHE_TTL }
+            ?.let { return@withContext it }
         runCatching {
-            val body = client.newCall(Request.Builder().url(url).build())
-                .execute().use { resp ->
-                    if (!resp.isSuccessful) return@use null
-                    resp.body?.string()
-                } ?: return@runCatching null
-            parse(body)
+            val request = Request.Builder()
+                .url(BASE_URL)
+                .header("X-Union-Id", PrefManager.updateUnionId)
+                .build()
+            val body = client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) return@use null
+                resp.body?.string()
+            } ?: return@runCatching null
+            val obj = JSONObject(body)
+            Snapshot(
+                stable = obj.optJSONObject("stable")?.toString(),
+                beta = obj.optJSONObject("beta")?.toString(),
+                org = obj.optJSONObject("org")?.toString(),
+                at = System.currentTimeMillis(),
+            ).also { cached = it }
         }.getOrNull()
+    }
+
+    /**
+     * 查某个渠道（[CHANNEL_STABLE] / [CHANNEL_BETA]）的更新信息。
+     * 接口不通或该段缺失时返回 null。
+     */
+    suspend fun fetchUpdate(channel: String): UpdateInfo? {
+        val snapshot = loadSnapshot() ?: return null
+        val json = if (channel == CHANNEL_BETA) snapshot.beta else snapshot.stable
+        return json?.let { parse(it) }
     }
 
     fun parse(json: String): UpdateInfo? = runCatching {
@@ -105,16 +148,10 @@ object UpdateChecker {
 
     data class OrgLink(val name: String, val url: String)
 
-    /** 拉取关于页「组织」按钮配置；失败返回空表（不显示按钮） */
-    suspend fun fetchOrgLinks(): List<OrgLink> = withContext(Dispatchers.IO) {
-        runCatching {
-            val body = client.newCall(Request.Builder().url(ORG_URL).build())
-                .execute().use { resp ->
-                    if (!resp.isSuccessful) return@use null
-                    resp.body?.string()
-                } ?: return@runCatching emptyList()
-            parseOrgLinks(body)
-        }.getOrDefault(emptyList())
+    /** 关于页「组织」按钮配置；失败 / 缺失返回空表（不显示按钮） */
+    suspend fun fetchOrgLinks(): List<OrgLink> {
+        val json = loadSnapshot()?.org ?: return emptyList()
+        return parseOrgLinks(json)
     }
 
     fun parseOrgLinks(json: String): List<OrgLink> = runCatching {
