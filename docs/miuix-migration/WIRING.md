@@ -35,6 +35,8 @@ setContent {
 （随子代理报告陆续追加）
 
 ## 已核验 API（抽查记录）
+
+**批量 token 审计（全量 Screen 代码）**：colorScheme 用到 25 个 token（background/dividerLine/error/onBackground/onError/onPrimary/onSecondary/onSecondaryContainer/onSecondaryVariant/onSurface/onSurfaceSecondary/onSurfaceVariantActions/onSurfaceVariantSummary/onTertiaryContainer/outline/primary/secondary/secondaryContainer/secondaryVariant/surface/surfaceContainer/surfaceContainerHigh/surfaceVariant/tertiaryContainer/windowDimming）、textStyles 用到 11 个（body1/body2/button/footnote1/footnote2/main/paragraph/subtitle/title2/title3/title4），**逐一比对 Colors.kt/TextStyles.kt（39c40f99）全部真实，零臆造**。
 - SmallTopAppBar/TopAppBar/Scaffold（含 floatingToolbar/popupHost/snackbarHost 槽位）— v0.9.4 源码逐签名核对 ✓
 - MiuixScrollBehavior() 工厂 + ScrollBehavior.nestedScrollConnection — TopAppBar.kt L250/L422 ✓
 - MiuixIcons.Back/Close — miuix-icons extended 包 ✓
