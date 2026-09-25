@@ -1,22 +1,14 @@
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
-import org.jetbrains.kotlin.konan.properties.Properties
-import java.io.ByteArrayOutputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.rikka.tools.materialthemebuilder)
     alias(libs.plugins.google.dagger.hilt.android)
-    alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.kotlin.parcelize)
-}
-
-apply(plugin = "kotlin-kapt")
-
-kapt {
-    generateStubs = true
-    correctErrorTypes = true
 }
 
 materialThemeBuilder {
@@ -55,16 +47,6 @@ materialThemeBuilder {
     generatePalette = true
 }
 
-fun String.execute(currentWorkingDir: File = file("./")): String {
-    val byteOut = ByteArrayOutputStream()
-    rootProject.exec {
-        workingDir = currentWorkingDir
-        commandLine = split("\\s".toRegex())
-        standardOutput = byteOut
-    }
-    return String(byteOut.toByteArray()).trim()
-}
-
 // ===== 发行版本（唯一真源：仓库根目录 version.properties，发布只改那个文件）=====
 // 规则：只有 beta 阶段主动推进版本号，main 继承 beta 的版本号；debug 快速迭代不涨号。
 val releaseProps = Properties().also { it.load(rootProject.file("version.properties").inputStream()) }
@@ -79,7 +61,7 @@ android {
     // 注意：namespace 决定 R / ViewBinding / DataBinding 生成类的包名，
     // 源码里全是 import com.example.c001apk.R / com.example.c001apk.databinding.*，不能跟着改名
     namespace = "com.example.c001apk"
-    compileSdk = 34
+    compileSdk = 37
 
     defaultConfig {
         // 包名同样保持不变：改 applicationId 等于换一个 App，老用户无法覆盖安装
@@ -138,6 +120,7 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
+        compose = true
         viewBinding = true
         dataBinding = true
         buildConfig = true
@@ -195,7 +178,6 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp3.logging.interceptor)
     implementation(libs.glide)
-    ksp(libs.glide.ksp)
     implementation(libs.glide.okhttp3.integration)
     implementation(libs.glide.transformations)
     implementation(project(":mojito"))
@@ -214,4 +196,17 @@ dependencies {
     implementation(libs.oss.android.sdk)
     implementation(libs.utilcode)
 
+    // ===== Miuix（Compose）迁移 =====
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui.tooling.preview)
+    debugImplementation(libs.compose.ui.tooling)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.livedata.compose)
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.icons)
 }

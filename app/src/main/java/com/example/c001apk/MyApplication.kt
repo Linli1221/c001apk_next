@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import com.example.c001apk.ui.others.BugHandlerActivity
+import com.example.c001apk.util.IconGlideModule
 import com.example.c001apk.util.PrefManager
 import com.example.c001apk.util.RiskControlPrompter
 import com.example.c001apk.util.SslErrorPrompter
@@ -35,6 +36,9 @@ class MyApplication : Application() {
         SslVerify.applyDebugGlobally()
 
         AppCompatDelegate.setDefaultNightMode(PrefManager.darkTheme)
+
+        // Glide 自定义模型加载器手动注册（原 @GlideModule 注解处理已随 glide-ksp 一并移除）
+        IconGlideModule.register(this)
 
         // 图片加载同样走 OkHttp（Mojito 的 Glide 会替换 GlideUrl 加载器），
         // 调试模式下换成不校验证书的客户端；非调试模式传 null = 行为不变
