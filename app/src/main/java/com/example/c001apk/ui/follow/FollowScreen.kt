@@ -43,7 +43,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.c001apk.R
 import com.example.c001apk.adapter.FooterState
@@ -74,66 +74,55 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 关注 / 粉丝列表页（Miuix 版）。
- *
- * 对照老代码：
- * - [FollowPagerFragment]：标题（initBar）+ 分栏（initTabList / getFragment）
- * - [FollowFragment] + [FollowViewModel]：每个分栏一个 ViewModel，数据仍走原 LiveData
- * - `BaseViewFragment` 的刷新 / 加载更多 / 空态 / 错误态流程在 [FollowUserList] 内复刻
- * - `AppAdapter.UserViewHolder` + `item_search_user.xml` 的用户行在 [FollowUserRow] 内复刻
- *
- * 只做 UI 层迁移：ViewModel / Repository / 网络逻辑全部复用，不改动任何既有文件。
- */
+ * 鍏虫敞 / 绮変笣鍒楄〃椤碉紙Miuix 鐗堬級銆? *
+ * 瀵圭収鑰佷唬鐮侊細
+ * - [FollowPagerFragment]锛氭爣棰橈紙initBar锛? 鍒嗘爮锛坕nitTabList / getFragment锛? * - [FollowFragment] + [FollowViewModel]锛氭瘡涓垎鏍忎竴涓?ViewModel锛屾暟鎹粛璧板師 LiveData
+ * - `BaseViewFragment` 鐨勫埛鏂?/ 鍔犺浇鏇村 / 绌烘€?/ 閿欒鎬佹祦绋嬪湪 [FollowUserList] 鍐呭鍒? * - `AppAdapter.UserViewHolder` + `item_search_user.xml` 鐨勭敤鎴疯鍦?[FollowUserRow] 鍐呭鍒? *
+ * 鍙仛 UI 灞傝縼绉伙細ViewModel / Repository / 缃戠粶閫昏緫鍏ㄩ儴澶嶇敤锛屼笉鏀瑰姩浠讳綍鏃㈡湁鏂囦欢銆? */
 
-/** 一个分栏（老 FollowPagerFragment.getFragment 的一个 tab）。 */
+/** 涓€涓垎鏍忥紙鑰?FollowPagerFragment.getFragment 鐨勪竴涓?tab锛夈€?*/
 data class FollowTab(
     val label: String,
     val type: String,
-    /** 覆盖页面 uid（默认沿用页面 uid；老代码 apk 等类型内部会把 uid 置空，行为不变）。 */
+    /** 瑕嗙洊椤甸潰 uid锛堥粯璁ゆ部鐢ㄩ〉闈?uid锛涜€佷唬鐮?apk 绛夌被鍨嬪唴閮ㄤ細鎶?uid 缃┖锛岃涓轰笉鍙橈級銆?*/
     val uid: String? = null,
 )
 
-/** 老 FollowPagerFragment.initBar() 的标题映射。 */
+/** 鑰?FollowPagerFragment.initBar() 鐨勬爣棰樻槧灏勩€?*/
 fun followTitleOf(type: String, isMe: Boolean): String = when (type) {
-    "feed" -> "我的动态"
-    "follow" -> if (isMe) "我的关注" else "TA关注的人"
-    "fans" -> if (isMe) "关注我的人" else "TA的粉丝"
-    "like" -> "我的赞"
-    "reply" -> "我的回复"
-    "recentHistory" -> "我的常去"
+    "feed" -> "鎴戠殑鍔ㄦ€?
+    "follow" -> if (isMe) "鎴戠殑鍏虫敞" else "TA鍏虫敞鐨勪汉"
+    "fans" -> if (isMe) "鍏虫敞鎴戠殑浜? else "TA鐨勭矇涓?
+    "like" -> "鎴戠殑璧?
+    "reply" -> "鎴戠殑鍥炲"
+    "recentHistory" -> "鎴戠殑甯稿幓"
     else -> type
 }
 
-/** 老 FollowPagerFragment.initTabList() + getFragment() 的分栏映射。 */
+/** 鑰?FollowPagerFragment.initTabList() + getFragment() 鐨勫垎鏍忔槧灏勩€?*/
 fun followTabsOf(type: String, isMe: Boolean): List<FollowTab> = when (type) {
     "follow" ->
         if (isMe)
             listOf(
-                FollowTab("用户", "follow"),
-                FollowTab("话题", "topic"),
-                FollowTab("数码", "product"),
-                FollowTab("应用", "apk"),
+                FollowTab("鐢ㄦ埛", "follow"),
+                FollowTab("璇濋", "topic"),
+                FollowTab("鏁扮爜", "product"),
+                FollowTab("搴旂敤", "apk"),
             )
         else
             listOf(FollowTab("", "follow"))
 
     "reply" -> listOf(
-        FollowTab("我的回复", "reply"),
-        FollowTab("我收到的回复", "replyToMe"),
+        FollowTab("鎴戠殑鍥炲", "reply"),
+        FollowTab("鎴戞敹鍒扮殑鍥炲", "replyToMe"),
     )
 
     else -> listOf(FollowTab("", type))
 }
 
 /**
- * 关注 / 粉丝列表整页（顶栏 + 可选 TabRow 分栏 + 列表）。
- *
- * @param viewModelFactory 由调用方注入 FollowViewModel 的 AssistedFactory，
- * 例如 `{ uid, type -> FollowViewModel.provideFactory(assistedFactory, uid, type) }`。
- * @param onBackClick 返回按钮；null 时结束宿主 Activity（等价老 onBackClick）。
- * @param onUserClick 点击用户行；null 时跳转 UserActivity（等价老 ItemListener.onViewUser）。
- * @param onEntityClick 点击非用户行（话题/数码/应用等兜底行）；null 时不跳转。
- */
+ * 鍏虫敞 / 绮変笣鍒楄〃鏁撮〉锛堥《鏍?+ 鍙€?TabRow 鍒嗘爮 + 鍒楄〃锛夈€? *
+ * @param viewModelFactory 鐢辫皟鐢ㄦ柟娉ㄥ叆 FollowViewModel 鐨?AssistedFactory锛? * 渚嬪 `{ uid, type -> FollowViewModel.provideFactory(assistedFactory, uid, type) }`銆? * @param onBackClick 杩斿洖鎸夐挳锛沶ull 鏃剁粨鏉熷涓?Activity锛堢瓑浠疯€?onBackClick锛夈€? * @param onUserClick 鐐瑰嚮鐢ㄦ埛琛岋紱null 鏃惰烦杞?UserActivity锛堢瓑浠疯€?ItemListener.onViewUser锛夈€? * @param onEntityClick 鐐瑰嚮闈炵敤鎴疯锛堣瘽棰?鏁扮爜/搴旂敤绛夊厹搴曡锛夛紱null 鏃朵笉璺宠浆銆? */
 @Composable
 fun FollowScreen(
     uid: String,
@@ -160,14 +149,14 @@ fun FollowScreen(
                             else (context as? Activity)?.finish()
                         },
                     ) {
-                        Icon(MiuixIcons.Back, contentDescription = "返回")
+                        Icon(MiuixIcons.Back, contentDescription = "杩斿洖")
                     }
                 },
             )
         },
     ) { paddingValues ->
         if (tabs.size <= 1) {
-            // 单列表（TA关注的人 / 粉丝 / 动态 等）：老代码隐藏 tabLayout
+            // 鍗曞垪琛紙TA鍏虫敞鐨勪汉 / 绮変笣 / 鍔ㄦ€?绛夛級锛氳€佷唬鐮侀殣钘?tabLayout
             val tab = tabs.firstOrNull() ?: return@Scaffold
             val viewModel = rememberFollowViewModel(tab, uid, viewModelFactory)
             FollowUserList(
@@ -217,9 +206,7 @@ fun FollowScreen(
 }
 
 /**
- * 单个分栏的列表内容（复用现有 [FollowViewModel]，LiveData 用 observeAsState 桥接）。
- * 状态闭环：加载中 / 列表 / 空态 / 错误态 / 下拉刷新 / 触底加载 / 底部重试。
- */
+ * 鍗曚釜鍒嗘爮鐨勫垪琛ㄥ唴瀹癸紙澶嶇敤鐜版湁 [FollowViewModel]锛孡iveData 鐢?observeAsState 妗ユ帴锛夈€? * 鐘舵€侀棴鐜細鍔犺浇涓?/ 鍒楄〃 / 绌烘€?/ 閿欒鎬?/ 涓嬫媺鍒锋柊 / 瑙﹀簳鍔犺浇 / 搴曢儴閲嶈瘯銆? */
 @Composable
 fun FollowUserList(
     viewModel: FollowViewModel,
@@ -240,13 +227,12 @@ fun FollowUserList(
     val pullToRefreshState = rememberPullToRefreshState()
     val listState = rememberLazyListState()
 
-    // 复用 BaseAppViewModel.ItemClickListener：关注/取关走原 onPostFollowUnFollow 链路
+    // 澶嶇敤 BaseAppViewModel.ItemClickListener锛氬叧娉?鍙栧叧璧板師 onPostFollowUnFollow 閾捐矾
     val itemListener = remember(viewModel) { viewModel.ItemClickListener() }
 
-    // 老 BaseAppFragment 在 dataList 变化时同步 listSize（fetchFeedList 据此决定 loading/footer 分支）
-    SideEffect { viewModel.listSize = dataList.size }
+    // 鑰?BaseAppFragment 鍦?dataList 鍙樺寲鏃跺悓姝?listSize锛坒etchFeedList 鎹鍐冲畾 loading/footer 鍒嗘敮锛?    SideEffect { viewModel.listSize = dataList.size }
 
-    // 首次进入：等价 BaseViewFragment.onResume 的 isInit 分支 + refreshData()
+    // 棣栨杩涘叆锛氱瓑浠?BaseViewFragment.onResume 鐨?isInit 鍒嗘敮 + refreshData()
     LaunchedEffect(viewModel) {
         applyFollowTypeConfig(viewModel)
         if (viewModel.isInit) {
@@ -255,8 +241,8 @@ fun FollowUserList(
         }
     }
 
-    // 下拉刷新收尾：loadingState 任意变化、footerState 变为非 Loading 时关闭刷新指示器
-    // （等价老 BaseViewFragment.initObserve / BaseAppFragment.initObserve 对 swipeRefresh 的处理）
+    // 涓嬫媺鍒锋柊鏀跺熬锛歭oadingState 浠绘剰鍙樺寲銆乫ooterState 鍙樹负闈?Loading 鏃跺叧闂埛鏂版寚绀哄櫒
+    // 锛堢瓑浠疯€?BaseViewFragment.initObserve / BaseAppFragment.initObserve 瀵?swipeRefresh 鐨勫鐞嗭級
     DisposableEffect(viewModel, lifecycleOwner) {
         val stopRefreshing = { pullRefreshing = false }
         val loadingObserver = Observer<LoadingState> { stopRefreshing() }
@@ -271,8 +257,7 @@ fun FollowUserList(
         }
     }
 
-    // 触底加载更多（等价老 RecyclerView.OnScrollListener 的 loadMore 触发）
-    LaunchedEffect(listState) {
+    // 瑙﹀簳鍔犺浇鏇村锛堢瓑浠疯€?RecyclerView.OnScrollListener 鐨?loadMore 瑙﹀彂锛?    LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
             .let { flow ->
                 var lastEmitted = Int.MIN_VALUE
@@ -290,8 +275,7 @@ fun FollowUserList(
             }
     }
 
-    // toastText 事件消费（等价老 FollowFragment.initObserve 的 Toast）
-    LaunchedEffect(toastEvent) {
+    // toastText 浜嬩欢娑堣垂锛堢瓑浠疯€?FollowFragment.initObserve 鐨?Toast锛?    LaunchedEffect(toastEvent) {
         toastEvent?.getContentIfNotHandledOrReturnNull()?.let { message ->
             if (message != null) {
                 if (onToast != null) onToast(message)
@@ -315,7 +299,7 @@ fun FollowUserList(
                     InfiniteProgressIndicator(color = MiuixTheme.colorScheme.primary)
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "加载中…",
+                        text = "鍔犺浇涓€?,
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
@@ -381,7 +365,7 @@ fun FollowUserList(
     }
 }
 
-/** 空态 / 错误态：提示文案 + 重试按钮。 */
+/** 绌烘€?/ 閿欒鎬侊細鎻愮ず鏂囨 + 閲嶈瘯鎸夐挳銆?*/
 @Composable
 private fun StateCenter(
     message: String,
@@ -403,7 +387,7 @@ private fun StateCenter(
     }
 }
 
-/** 列表底部：加载中 / 没有更多了 / 加载失败重试（等价老 FooterAdapter）。 */
+/** 鍒楄〃搴曢儴锛氬姞杞戒腑 / 娌℃湁鏇村浜?/ 鍔犺浇澶辫触閲嶈瘯锛堢瓑浠疯€?FooterAdapter锛夈€?*/
 @Composable
 private fun FollowFooter(
     footerState: FooterState?,
@@ -424,7 +408,7 @@ private fun FollowFooter(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "加载中…",
+                        text = "鍔犺浇涓€?,
                         style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
@@ -438,7 +422,7 @@ private fun FollowFooter(
             )
 
             is FooterState.LoadingError -> Text(
-                text = "${footerState.errMsg}，点击重试",
+                text = "${footerState.errMsg}锛岀偣鍑婚噸璇?,
                 style = MiuixTheme.textStyles.footnote1,
                 color = MiuixTheme.colorScheme.error,
                 modifier = Modifier.clickable(onClick = onRetry),
@@ -450,9 +434,8 @@ private fun FollowFooter(
 }
 
 /**
- * 列表条目：用户行（entityType contacts/user，复刻 AppAdapter.UserViewHolder），
- * 其余实体（话题/数码/应用/回复等）用基础行兜底，点击走 onEntityClick。
- */
+ * 鍒楄〃鏉＄洰锛氱敤鎴疯锛坋ntityType contacts/user锛屽鍒?AppAdapter.UserViewHolder锛夛紝
+ * 鍏朵綑瀹炰綋锛堣瘽棰?鏁扮爜/搴旂敤/鍥炲绛夛級鐢ㄥ熀纭€琛屽厹搴曪紝鐐瑰嚮璧?onEntityClick銆? */
 @Composable
 private fun FollowItemRow(
     data: HomeFeedResponse.Data,
@@ -503,9 +486,7 @@ private fun FollowItemRow(
 }
 
 /**
- * 用户行（复刻 item_search_user.xml + AppAdapter.UserViewHolder.bind 的三分支）。
- * 关注按钮只在「data.userInfo != null && data.fUserInfo == null」且已登录时显示。
- */
+ * 鐢ㄦ埛琛岋紙澶嶅埢 item_search_user.xml + AppAdapter.UserViewHolder.bind 鐨勪笁鍒嗘敮锛夈€? * 鍏虫敞鎸夐挳鍙湪銆宒ata.userInfo != null && data.fUserInfo == null銆嶄笖宸茬櫥褰曟椂鏄剧ず銆? */
 @Composable
 private fun FollowUserRow(
     data: HomeFeedResponse.Data,
@@ -578,21 +559,21 @@ private fun FollowUserRow(
             Spacer(Modifier.height(5.dp))
             Row {
                 Text(
-                    text = "$follow关注",
+                    text = "$follow鍏虫敞",
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                 )
                 Spacer(Modifier.width(5.dp))
                 Text(
-                    text = "$fans粉丝",
+                    text = "$fans绮変笣",
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                 )
                 Spacer(Modifier.width(5.dp))
                 Text(
-                    text = DateUtils.fromToday(logintime ?: 0L) + "活跃",
+                    text = DateUtils.fromToday(logintime ?: 0L) + "娲昏穬",
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
@@ -602,7 +583,7 @@ private fun FollowUserRow(
         if (showFollowButton) {
             Spacer(Modifier.width(8.dp))
             TextButton(
-                text = if (isFollow == 1) "已关注" else "关注",
+                text = if (isFollow == 1) "宸插叧娉? else "鍏虫敞",
                 onClick = {
                     uid?.let { onFollowClick(it, isFollow) }
                 },
@@ -616,7 +597,7 @@ private fun FollowUserRow(
     }
 }
 
-/** 圆形头像：沿用 Glide 链路（ImageUtil.showIMG），AndroidView 包 ImageView。 */
+/** 鍦嗗舰澶村儚锛氭部鐢?Glide 閾捐矾锛圛mageUtil.showIMG锛夛紝AndroidView 鍖?ImageView銆?*/
 @Composable
 private fun AvatarImage(
     url: String?,
@@ -634,29 +615,28 @@ private fun AvatarImage(
 }
 
 /**
- * 复刻 FollowFragment.onCreate 的 url/title 预置（topic/product/favorite），
- * 必须在第一次 fetchData 之前调用。
- */
+ * 澶嶅埢 FollowFragment.onCreate 鐨?url/title 棰勭疆锛坱opic/product/favorite锛夛紝
+ * 蹇呴』鍦ㄧ涓€娆?fetchData 涔嬪墠璋冪敤銆? */
 private fun applyFollowTypeConfig(viewModel: FollowViewModel) {
     when (viewModel.type) {
         "topic" -> {
             viewModel.url = "#/topic/userFollowTagList"
-            viewModel.title = "我关注的话题"
+            viewModel.title = "鎴戝叧娉ㄧ殑璇濋"
         }
 
         "product" -> {
             viewModel.url = "#/product/followProductList"
-            viewModel.title = "我关注的数码吧"
+            viewModel.title = "鎴戝叧娉ㄧ殑鏁扮爜鍚?
         }
 
         "favorite" -> {
             viewModel.url = "#/collection/followList"
-            viewModel.title = "我关注的收藏单"
+            viewModel.title = "鎴戝叧娉ㄧ殑鏀惰棌鍗?
         }
     }
 }
 
-/** 复刻 BaseViewFragment.refreshData()。 */
+/** 澶嶅埢 BaseViewFragment.refreshData()銆?*/
 private fun refreshFollowList(viewModel: FollowViewModel, showLoadingIndicator: Boolean) {
     viewModel.lastItem = null
     viewModel.page = 1
@@ -669,7 +649,7 @@ private fun refreshFollowList(viewModel: FollowViewModel, showLoadingIndicator: 
     viewModel.fetchData()
 }
 
-/** 每个分栏一个 [FollowViewModel]，随 ViewModelStore 走配置变更存活。 */
+/** 姣忎釜鍒嗘爮涓€涓?[FollowViewModel]锛岄殢 ViewModelStore 璧伴厤缃彉鏇村瓨娲汇€?*/
 @Composable
 private fun rememberFollowViewModel(
     tab: FollowTab,

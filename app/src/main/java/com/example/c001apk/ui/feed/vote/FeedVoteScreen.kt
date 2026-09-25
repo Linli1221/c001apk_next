@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.logic.model.HomeFeedResponse
 import com.example.c001apk.logic.model.TotalReplyResponse
@@ -62,20 +61,14 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 /**
- * 投票动态详情页 —— 对应老的 [com.example.c001apk.ui.feed.vote.FeedVoteFragment]
- * （feedType == "vote"，FeedViewModel 数据 + 投票面板 + 投票评论瀑布流）。
- *
- * 数据流完全复用 [FeedViewModel]（LiveData 用 observeAsState 桥接）：
- * - 头部主体 = viewModel.feedDataList[0]（Activity 侧 LoadingDone 后才会 compose 本页面，数据已就绪）
- * - 评论列表 = viewModel.feedReplyData；加载更多 = viewModel.preFetchVoteComment()（与老 Fragment 一致）
- * - footer 状态 = viewModel.footerState；下拉刷新沿用老的 page/isEnd/isRefreshing/isLoadMore 标志位
- *
- * 注意：
- * - 不自带 MiuixAppTheme（根主题由接线方套）；页面自含一个 Scaffold。
- * - 头像沿用 Glide 链路（ImageUtil.showIMG + AndroidView 包 ImageView），未引入新图片库。
- * - 老代码没有投票面板 UI（只有列表），[VotePanel] 是按 HomeFeedResponse.Vote 模型新做的块级组件，
- *   可单独嵌入动态详情页；投票提交接口老代码没有实现，故只暴露 onOptionClick/onSubmit 回调。
- */
+ * 鎶曠エ鍔ㄦ€佽鎯呴〉 鈥斺€?瀵瑰簲鑰佺殑 [com.example.c001apk.ui.feed.vote.FeedVoteFragment]
+ * 锛坒eedType == "vote"锛孎eedViewModel 鏁版嵁 + 鎶曠エ闈㈡澘 + 鎶曠エ璇勮鐎戝竷娴侊級銆? *
+ * 鏁版嵁娴佸畬鍏ㄥ鐢?[FeedViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛細
+ * - 澶撮儴涓讳綋 = viewModel.feedDataList[0]锛圓ctivity 渚?LoadingDone 鍚庢墠浼?compose 鏈〉闈紝鏁版嵁宸插氨缁級
+ * - 璇勮鍒楄〃 = viewModel.feedReplyData锛涘姞杞芥洿澶?= viewModel.preFetchVoteComment()锛堜笌鑰?Fragment 涓€鑷达級
+ * - footer 鐘舵€?= viewModel.footerState锛涗笅鎷夊埛鏂版部鐢ㄨ€佺殑 page/isEnd/isRefreshing/isLoadMore 鏍囧織浣? *
+ * 娉ㄦ剰锛? * - 涓嶈嚜甯?MiuixAppTheme锛堟牴涓婚鐢辨帴绾挎柟濂楋級锛涢〉闈㈣嚜鍚竴涓?Scaffold銆? * - 澶村儚娌跨敤 Glide 閾捐矾锛圛mageUtil.showIMG + AndroidView 鍖?ImageView锛夛紝鏈紩鍏ユ柊鍥剧墖搴撱€? * - 鑰佷唬鐮佹病鏈夋姇绁ㄩ潰鏉?UI锛堝彧鏈夊垪琛級锛孾VotePanel] 鏄寜 HomeFeedResponse.Vote 妯″瀷鏂板仛鐨勫潡绾х粍浠讹紝
+ *   鍙崟鐙祵鍏ュ姩鎬佽鎯呴〉锛涙姇绁ㄦ彁浜ゆ帴鍙ｈ€佷唬鐮佹病鏈夊疄鐜帮紝鏁呭彧鏆撮湶 onOptionClick/onSubmit 鍥炶皟銆? */
 @Composable
 fun FeedVoteScreen(
     viewModel: FeedViewModel,
@@ -84,19 +77,18 @@ fun FeedVoteScreen(
     onOpenUser: (String) -> Unit = {},
     onToast: (String) -> Unit = {},
 ) {
-    // observeAsState 返回 State<T?>，统一在这里归一化
-    val replies by viewModel.feedReplyData.observeAsState(emptyList())
+    // observeAsState 杩斿洖 State<T?>锛岀粺涓€鍦ㄨ繖閲屽綊涓€鍖?    val replies by viewModel.feedReplyData.observeAsState(emptyList())
     val footer by viewModel.footerState.observeAsState(FooterState.LoadingDone)
     val toastEvent by viewModel.toastText.observeAsState()
     val replyList = replies.orEmpty()
     val footerState = footer ?: FooterState.LoadingDone
 
-    // toast 事件桥接（Event 语义：只会被消费一次）
+    // toast 浜嬩欢妗ユ帴锛圗vent 璇箟锛氬彧浼氳娑堣垂涓€娆★級
     LaunchedEffect(toastEvent) {
         toastEvent?.getContentIfNotHandledOrReturnNull()?.let { onToast(it) }
     }
 
-    // 进入页面首次拉取（与老 Fragment 的 initData 一致）
+    // 杩涘叆椤甸潰棣栨鎷夊彇锛堜笌鑰?Fragment 鐨?initData 涓€鑷达級
     LaunchedEffect(Unit) {
         if (viewModel.isInit) {
             viewModel.isInit = false
@@ -104,14 +96,12 @@ fun FeedVoteScreen(
         }
     }
 
-    // PullToRefresh 的 isRefreshing 提升为本地状态；footer 离开 Loading 即视为刷新结束
-    var isRefreshing by remember { mutableStateOf(false) }
+    // PullToRefresh 鐨?isRefreshing 鎻愬崌涓烘湰鍦扮姸鎬侊紱footer 绂诲紑 Loading 鍗宠涓哄埛鏂扮粨鏉?    var isRefreshing by remember { mutableStateOf(false) }
     LaunchedEffect(footerState) {
         if (footerState !is FooterState.Loading) isRefreshing = false
     }
 
-    // 滑到底自动加载更多（对应老 Fragment 的 OnScrollListener）
-    val gridState = rememberLazyStaggeredGridState()
+    // 婊戝埌搴曡嚜鍔ㄥ姞杞芥洿澶氾紙瀵瑰簲鑰?Fragment 鐨?OnScrollListener锛?    val gridState = rememberLazyStaggeredGridState()
     LaunchedEffect(gridState) {
         snapshotFlow { gridState.layoutInfo }
             .collect { info ->
@@ -126,19 +116,19 @@ fun FeedVoteScreen(
             }
     }
 
-    // 投票面板的选中态：纯界面态（老代码没有投票提交接口）
+    // 鎶曠エ闈㈡澘鐨勯€変腑鎬侊細绾晫闈㈡€侊紙鑰佷唬鐮佹病鏈夋姇绁ㄦ彁浜ゆ帴鍙ｏ級
     var selectedIds by remember { mutableStateOf(emptySet<String>()) }
     val vote = viewModel.feedDataList?.getOrNull(0)?.vote
 
     Scaffold(
         topBar = {
             SmallTopAppBar(
-                title = viewModel.feedTypeName ?: "投票",
+                title = viewModel.feedTypeName ?: "鎶曠エ",
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             MiuixIcons.Back,
-                            contentDescription = "返回",
+                            contentDescription = "杩斿洖",
                         )
                     }
                 },
@@ -166,7 +156,7 @@ fun FeedVoteScreen(
                 verticalItemSpacing = 10.dp,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // 头部：动态主体 + 投票面板
+                // 澶撮儴锛氬姩鎬佷富浣?+ 鎶曠エ闈㈡澘
                 item(span = StaggeredGridItemSpan.FullLine) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         FeedAuthorRow(
@@ -223,7 +213,7 @@ fun FeedVoteScreen(
                 if (replyList.isEmpty()) {
                     item(span = StaggeredGridItemSpan.FullLine) {
                         Text(
-                            text = if (footerState is FooterState.Loading) "" else "暂无评论",
+                            text = if (footerState is FooterState.Loading) "" else "鏆傛棤璇勮",
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier
@@ -233,7 +223,7 @@ fun FeedVoteScreen(
                     }
                 }
 
-                // footer：加载中 / 没有更多 / 出错重试
+                // footer锛氬姞杞戒腑 / 娌℃湁鏇村 / 鍑洪敊閲嶈瘯
                 item(span = StaggeredGridItemSpan.FullLine) {
                     ListFooter(
                         state = footerState,
@@ -248,7 +238,7 @@ fun FeedVoteScreen(
     }
 }
 
-/** 刷新：复位老 ViewModel 的分页标志位后重新拉取（对应老 Fragment 的 refreshData） */
+/** 鍒锋柊锛氬浣嶈€?ViewModel 鐨勫垎椤垫爣蹇椾綅鍚庨噸鏂版媺鍙栵紙瀵瑰簲鑰?Fragment 鐨?refreshData锛?*/
 private fun refreshVote(viewModel: FeedViewModel) {
     viewModel.firstItem = null
     viewModel.lastItem = null
@@ -259,23 +249,19 @@ private fun refreshVote(viewModel: FeedViewModel) {
     viewModel.preFetchVoteComment()
 }
 
-/** 加载更多（对应老 Fragment 的 loadMore） */
+/** 鍔犺浇鏇村锛堝搴旇€?Fragment 鐨?loadMore锛?*/
 private fun loadMoreVote(viewModel: FeedViewModel) {
     viewModel.isLoadMore = true
     viewModel.preFetchVoteComment()
 }
 
 /**
- * 投票面板（块级组件，可单独嵌入动态详情页）：
- * 题目 + 每个选项的进度条/百分比/票数 + 参与人数与截止时间。
- *
- * 进度用 Miuix [LinearProgressIndicator]；颜色一律走 MiuixTheme.colorScheme。
- * 选项的 `color` 字段是接口下发的十六进制色值，按契约不硬编码/不解析色值，统一用主题 primary。
- *
- * @param vote 投票数据（HomeFeedResponse.Vote）
- * @param selectedOptionIds 当前选中的选项 id（界面态由调用方持有）
- * @param onOptionClick 点选项回调（投票提交接口老代码未实现，由调用方决定行为）
- * @param onSubmit 非空时展示「投票」按钮；为 null 时只展示结果
+ * 鎶曠エ闈㈡澘锛堝潡绾х粍浠讹紝鍙崟鐙祵鍏ュ姩鎬佽鎯呴〉锛夛細
+ * 棰樼洰 + 姣忎釜閫夐」鐨勮繘搴︽潯/鐧惧垎姣?绁ㄦ暟 + 鍙備笌浜烘暟涓庢埅姝㈡椂闂淬€? *
+ * 杩涘害鐢?Miuix [LinearProgressIndicator]锛涢鑹蹭竴寰嬭蛋 MiuixTheme.colorScheme銆? * 閫夐」鐨?`color` 瀛楁鏄帴鍙ｄ笅鍙戠殑鍗佸叚杩涘埗鑹插€硷紝鎸夊绾︿笉纭紪鐮?涓嶈В鏋愯壊鍊硷紝缁熶竴鐢ㄤ富棰?primary銆? *
+ * @param vote 鎶曠エ鏁版嵁锛圚omeFeedResponse.Vote锛? * @param selectedOptionIds 褰撳墠閫変腑鐨勯€夐」 id锛堢晫闈㈡€佺敱璋冪敤鏂规寔鏈夛級
+ * @param onOptionClick 鐐归€夐」鍥炶皟锛堟姇绁ㄦ彁浜ゆ帴鍙ｈ€佷唬鐮佹湭瀹炵幇锛岀敱璋冪敤鏂瑰喅瀹氳涓猴級
+ * @param onSubmit 闈炵┖鏃跺睍绀恒€屾姇绁ㄣ€嶆寜閽紱涓?null 鏃跺彧灞曠ず缁撴灉
  */
 @Composable
 fun VotePanel(
@@ -297,15 +283,15 @@ fun VotePanel(
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                text = vote.messageTitle?.takeIf { it.isNotEmpty() } ?: "投票",
+                text = vote.messageTitle?.takeIf { it.isNotEmpty() } ?: "鎶曠エ",
                 style = MiuixTheme.textStyles.title3,
                 fontWeight = FontWeight.Bold,
             )
 
             val modeText = if ((vote.maxSelectNum ?: 1) > 1) {
-                "多选（最多 ${vote.maxSelectNum} 项）"
+                "澶氶€夛紙鏈€澶?${vote.maxSelectNum} 椤癸級"
             } else {
-                "单选"
+                "鍗曢€?
             }
             Text(
                 text = modeText,
@@ -328,13 +314,13 @@ fun VotePanel(
             val nowSeconds = System.currentTimeMillis() / 1000
             val endSeconds = vote.endTime
             val metaText = buildString {
-                append("${vote.totalVoteNum ?: 0} 人参与")
-                vote.totalOptionNum?.let { append(" · $it 个选项") }
+                append("${vote.totalVoteNum ?: 0} 浜哄弬涓?)
+                vote.totalOptionNum?.let { append(" 路 $it 涓€夐」") }
                 if (endSeconds != null && endSeconds > 0) {
                     if (endSeconds < nowSeconds) {
-                        append(" · 已截止")
+                        append(" 路 宸叉埅姝?)
                     } else {
-                        append(" · 截止 ${DateUtils.timeStamp2Date(endSeconds)}")
+                        append(" 路 鎴 ${DateUtils.timeStamp2Date(endSeconds)}")
                     }
                 }
             }
@@ -353,7 +339,7 @@ fun VotePanel(
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(
-                        text = "投票",
+                        text = "鎶曠エ",
                         onClick = onSubmit,
                         enabled = selectedOptionIds.isNotEmpty(),
                     )
@@ -363,7 +349,7 @@ fun VotePanel(
     }
 }
 
-/** 单个投票项：选中圆点 + 选项标题 + 进度条 + 百分比/票数 */
+/** 鍗曚釜鎶曠エ椤癸細閫変腑鍦嗙偣 + 閫夐」鏍囬 + 杩涘害鏉?+ 鐧惧垎姣?绁ㄦ暟 */
 @Composable
 private fun VoteOptionRow(
     option: HomeFeedResponse.Option,
@@ -403,7 +389,7 @@ private fun VoteOptionRow(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${option.totalSelectNum ?: 0L}票",
+                    text = "${option.totalSelectNum ?: 0L}绁?,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -412,7 +398,7 @@ private fun VoteOptionRow(
     }
 }
 
-/** 选中态圆点（自绘，选中填 primary，未选中描边 outline） */
+/** 閫変腑鎬佸渾鐐癸紙鑷粯锛岄€変腑濉?primary锛屾湭閫変腑鎻忚竟 outline锛?*/
 @Composable
 private fun VoteSelectDot(selected: Boolean) {
     Box(
@@ -438,7 +424,7 @@ private fun VoteSelectDot(selected: Boolean) {
     }
 }
 
-/** 投票参与者评论卡片（item_feed_content_reply_item 的 Compose 版，块级可复用） */
+/** 鎶曠エ鍙備笌鑰呰瘎璁哄崱鐗囷紙item_feed_content_reply_item 鐨?Compose 鐗堬紝鍧楃骇鍙鐢級 */
 @Composable
 fun VoteCommentCard(
     reply: TotalReplyResponse.Data,
@@ -484,7 +470,7 @@ fun VoteCommentCard(
                     )
                     if (reply.replynum.isNotEmpty()) {
                         Text(
-                            text = "回复 ${reply.replynum}",
+                            text = "鍥炲 ${reply.replynum}",
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.padding(end = 10.dp),
@@ -503,7 +489,7 @@ fun VoteCommentCard(
     }
 }
 
-/** 列表 footer：加载中 / 没有更多 / 出错重试（对应老 FooterAdapter） */
+/** 鍒楄〃 footer锛氬姞杞戒腑 / 娌℃湁鏇村 / 鍑洪敊閲嶈瘯锛堝搴旇€?FooterAdapter锛?*/
 @Composable
 internal fun ListFooter(
     state: FooterState,
@@ -537,18 +523,17 @@ internal fun ListFooter(
                         color = MiuixTheme.colorScheme.error,
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    TextButton(text = "重试", onClick = onRetry)
+                    TextButton(text = "閲嶈瘯", onClick = onRetry)
                 }
             }
 
             else -> {
-                // LoadingDone / LoadingReply：不留痕迹
-            }
+                // LoadingDone / LoadingReply锛氫笉鐣欑棔杩?            }
         }
     }
 }
 
-/** 动态作者行：头像 + 昵称 + 发布时间 · 设备 */
+/** 鍔ㄦ€佷綔鑰呰锛氬ご鍍?+ 鏄电О + 鍙戝竷鏃堕棿 路 璁惧 */
 @Composable
 internal fun FeedAuthorRow(
     avatar: String?,
@@ -575,7 +560,7 @@ internal fun FeedAuthorRow(
                 text = listOfNotNull(
                     dateText.takeIf { it.isNotEmpty() },
                     device?.takeIf { it.isNotEmpty() },
-                ).joinToString(" · "),
+                ).joinToString(" 路 "),
                 style = MiuixTheme.textStyles.footnote1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 maxLines = 1,
@@ -585,7 +570,7 @@ internal fun FeedAuthorRow(
     }
 }
 
-/** 圆形头像：Glide（ImageUtil.showIMG）+ AndroidView 包 ImageView，沿用老图片链路 */
+/** 鍦嗗舰澶村儚锛欸lide锛圛mageUtil.showIMG锛? AndroidView 鍖?ImageView锛屾部鐢ㄨ€佸浘鐗囬摼璺?*/
 @Composable
 internal fun FeedAvatar(
     url: String?,
@@ -600,7 +585,7 @@ internal fun FeedAvatar(
             }
         },
         update = { imageView ->
-            // url 变化才重新走 Glide，避免每次重组都发起加载
+            // url 鍙樺寲鎵嶉噸鏂拌蛋 Glide锛岄伩鍏嶆瘡娆￠噸缁勯兘鍙戣捣鍔犺浇
             if (imageView.tag != url) {
                 imageView.tag = url
                 ImageUtil.showIMG(imageView, url)

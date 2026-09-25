@@ -29,7 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.R
 import com.example.c001apk.logic.model.HitHistoryData
 import com.example.c001apk.util.DateUtils
@@ -52,20 +52,13 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 浏览历史页面（酷安云端）—— 对应老的 [HistoryActivity] + [HistoryAdapter]（item_history_cloud.xml）。
- *
- * 数据流完全复用 [HistoryViewModel]（LiveData 用 observeAsState 桥接），本文件只负责界面与交互：
- * 缩略图（logo）/ 标题 / 描述 / 类型·时间，下拉刷新、滚到底自动加载更多、进入页面自动拉取，
- * 右上角「清空」入口，清空前用 Miuix [OverlayDialog] 确认。
- *
- * 注意：
- * - 不自带 MiuixAppTheme（根主题由 Activity 接线时套）；页面自含 Scaffold（OverlayDialog 需要 Scaffold 祖先）。
- * - [HistoryViewModel] 是 `@HiltViewModel`，由 Activity 侧 `viewModels()` 创建后传入。
- * - [onClearHistory] 是提升出来的清空回调：现有 [HistoryViewModel] 只有 `GET /v6/user/hitHistoryList`
- *   读取接口（云端无删除 / 清空接口，老代码也没有清空入口），清空落地逻辑由接线方决定
- *   （可先清本地 Room 历史 `HistoryFavoriteRepo.deleteAllHistory()` + 本地隐藏，见报告）。
- * - 图片沿用 Glide 链路（ImageUtil.showIMG + AndroidView 包 ImageView），未引入新图片库。
- */
+ * 娴忚鍘嗗彶椤甸潰锛堥叿瀹変簯绔級鈥斺€?瀵瑰簲鑰佺殑 [HistoryActivity] + [HistoryAdapter]锛坕tem_history_cloud.xml锛夈€? *
+ * 鏁版嵁娴佸畬鍏ㄥ鐢?[HistoryViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛紝鏈枃浠跺彧璐熻矗鐣岄潰涓庝氦浜掞細
+ * 缂╃暐鍥撅紙logo锛? 鏍囬 / 鎻忚堪 / 绫诲瀷路鏃堕棿锛屼笅鎷夊埛鏂般€佹粴鍒板簳鑷姩鍔犺浇鏇村銆佽繘鍏ラ〉闈㈣嚜鍔ㄦ媺鍙栵紝
+ * 鍙充笂瑙掋€屾竻绌恒€嶅叆鍙ｏ紝娓呯┖鍓嶇敤 Miuix [OverlayDialog] 纭銆? *
+ * 娉ㄦ剰锛? * - 涓嶈嚜甯?MiuixAppTheme锛堟牴涓婚鐢?Activity 鎺ョ嚎鏃跺锛夛紱椤甸潰鑷惈 Scaffold锛圤verlayDialog 闇€瑕?Scaffold 绁栧厛锛夈€? * - [HistoryViewModel] 鏄?`@HiltViewModel`锛岀敱 Activity 渚?`viewModels()` 鍒涘缓鍚庝紶鍏ャ€? * - [onClearHistory] 鏄彁鍗囧嚭鏉ョ殑娓呯┖鍥炶皟锛氱幇鏈?[HistoryViewModel] 鍙湁 `GET /v6/user/hitHistoryList`
+ *   璇诲彇鎺ュ彛锛堜簯绔棤鍒犻櫎 / 娓呯┖鎺ュ彛锛岃€佷唬鐮佷篃娌℃湁娓呯┖鍏ュ彛锛夛紝娓呯┖钀藉湴閫昏緫鐢辨帴绾挎柟鍐冲畾
+ *   锛堝彲鍏堟竻鏈湴 Room 鍘嗗彶 `HistoryFavoriteRepo.deleteAllHistory()` + 鏈湴闅愯棌锛岃鎶ュ憡锛夈€? * - 鍥剧墖娌跨敤 Glide 閾捐矾锛圛mageUtil.showIMG + AndroidView 鍖?ImageView锛夛紝鏈紩鍏ユ柊鍥剧墖搴撱€? */
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
@@ -84,13 +77,11 @@ fun HistoryScreen(
     var refreshing by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
-    // 进入页面拉取（老 HistoryActivity.onCreate 直接 viewModel.refresh()）
-    LaunchedEffect(Unit) {
+    // 杩涘叆椤甸潰鎷夊彇锛堣€?HistoryActivity.onCreate 鐩存帴 viewModel.refresh()锛?    LaunchedEffect(Unit) {
         viewModel.refresh()
     }
 
-    // 下拉刷新指示与 VM 的首屏加载指示保持同步
-    LaunchedEffect(initialLoading) {
+    // 涓嬫媺鍒锋柊鎸囩ず涓?VM 鐨勯灞忓姞杞芥寚绀轰繚鎸佸悓姝?    LaunchedEffect(initialLoading) {
         refreshing = initialLoading == true
     }
 
@@ -98,8 +89,7 @@ fun HistoryScreen(
         toastEvent?.getContentIfNotHandledOrReturnNull()?.let { onToast(it) }
     }
 
-    // 滚到底自动加载更多（HistoryViewModel.loadMore 自带 isEnd / isLoading 守卫）
-    LaunchedEffect(listState) {
+    // 婊氬埌搴曡嚜鍔ㄥ姞杞芥洿澶氾紙HistoryViewModel.loadMore 鑷甫 isEnd / isLoading 瀹堝崼锛?    LaunchedEffect(listState) {
         snapshotFlow {
             listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index to
                 listState.layoutInfo.totalItemsCount
@@ -116,13 +106,13 @@ fun HistoryScreen(
                 title = stringResource(R.string.history),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, contentDescription = "返回")
+                        Icon(MiuixIcons.Back, contentDescription = "杩斿洖")
                     }
                 },
                 actions = {
-                    // 清空入口（老页面没有；新需求加的），确认后走 onClearHistory 回调
+                    // 娓呯┖鍏ュ彛锛堣€侀〉闈㈡病鏈夛紱鏂伴渶姹傚姞鐨勶級锛岀‘璁ゅ悗璧?onClearHistory 鍥炶皟
                     TextButton(
-                        text = "清空",
+                        text = "娓呯┖",
                         onClick = { showClearConfirm = true },
                         colors = ButtonDefaults.textButtonColors(
                             textColor = MiuixTheme.colorScheme.error,
@@ -144,7 +134,7 @@ fun HistoryScreen(
 
                 list.isEmpty() -> {
                     Text(
-                        text = "暂无浏览历史",
+                        text = "鏆傛棤娴忚鍘嗗彶",
                         modifier = Modifier.align(Alignment.Center),
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -177,7 +167,7 @@ fun HistoryScreen(
                             if (viewModel.isEnd) {
                                 item {
                                     Text(
-                                        text = "没有更多了",
+                                        text = "娌℃湁鏇村浜?,
                                         style = MiuixTheme.textStyles.footnote2,
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                         textAlign = TextAlign.Center,
@@ -192,10 +182,10 @@ fun HistoryScreen(
                 }
             }
 
-            // 清空确认对话框（OverlayDialog 需要 Scaffold 祖先，放在 Scaffold content 内）
+            // 娓呯┖纭瀵硅瘽妗嗭紙OverlayDialog 闇€瑕?Scaffold 绁栧厛锛屾斁鍦?Scaffold content 鍐咃級
             OverlayDialog(
-                title = "清空浏览历史",
-                summary = "确定清空全部浏览历史吗？",
+                title = "娓呯┖娴忚鍘嗗彶",
+                summary = "纭畾娓呯┖鍏ㄩ儴娴忚鍘嗗彶鍚楋紵",
                 show = showClearConfirm,
                 onDismissRequest = { showClearConfirm = false },
             ) {
@@ -207,7 +197,7 @@ fun HistoryScreen(
                     )
                     Spacer(modifier = Modifier.width(20.dp))
                     TextButton(
-                        text = "清空",
+                        text = "娓呯┖",
                         onClick = {
                             showClearConfirm = false
                             onClearHistory()
@@ -224,10 +214,8 @@ fun HistoryScreen(
 }
 
 /**
- * 一行浏览历史（对应 item_history_cloud.xml）：
- * logo（46dp，无 logo 时隐藏）+ 标题（1 行）+ 描述（2 行，空则隐藏）+ 类型 · 时间。
- * 服务端 title/description 带 HTML 标签，沿用 [richToString] 转纯文本。
- */
+ * 涓€琛屾祻瑙堝巻鍙诧紙瀵瑰簲 item_history_cloud.xml锛夛細
+ * logo锛?6dp锛屾棤 logo 鏃堕殣钘忥級+ 鏍囬锛? 琛岋級+ 鎻忚堪锛? 琛岋紝绌哄垯闅愯棌锛? 绫诲瀷 路 鏃堕棿銆? * 鏈嶅姟绔?title/description 甯?HTML 鏍囩锛屾部鐢?[richToString] 杞函鏂囨湰銆? */
 @Composable
 private fun HistoryRow(
     item: HitHistoryData,
@@ -268,7 +256,7 @@ private fun HistoryRow(
                 text = buildString {
                     if (!item.typeName.isNullOrEmpty()) append(item.typeName)
                     item.dateline?.let {
-                        if (isNotEmpty()) append(" · ")
+                        if (isNotEmpty()) append(" 路 ")
                         append(DateUtils.fromToday(it))
                     }
                 },
@@ -281,7 +269,7 @@ private fun HistoryRow(
     }
 }
 
-/** 历史条目缩略图：Glide（ImageUtil.showIMG）+ AndroidView 包 ImageView */
+/** 鍘嗗彶鏉＄洰缂╃暐鍥撅細Glide锛圛mageUtil.showIMG锛? AndroidView 鍖?ImageView */
 @Composable
 private fun HistoryLogo(url: String) {
     AndroidView(
@@ -291,7 +279,7 @@ private fun HistoryLogo(url: String) {
             }
         },
         update = { imageView ->
-            // url 变化才重新走 Glide，避免每次重组都发起加载
+            // url 鍙樺寲鎵嶉噸鏂拌蛋 Glide锛岄伩鍏嶆瘡娆￠噸缁勯兘鍙戣捣鍔犺浇
             if (imageView.tag != url) {
                 imageView.tag = url
                 ImageUtil.showIMG(imageView, url)

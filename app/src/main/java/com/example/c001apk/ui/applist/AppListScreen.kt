@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.bumptech.glide.Glide
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_EMPTY
@@ -53,26 +53,16 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 应用列表页（Compose 版），对应老代码：
- * - `AppListFragment`（BaseRefreshRecyclerviewBinding：SwipeRefreshLayout + RecyclerView）
- * - `AppListAdapter` + `res/layout/item_app.xml`（图标行：Glide 加载 LocalAppIcon / 名称 / 包名 / 版本）
- *
- * 数据走现有 [AppListViewModel]（items LiveData 用 observeAsState 桥接；getItems(context)
- * 扫描本机已安装应用的逻辑保持不变），列表项图标继续用 Glide（AndroidView 包 ImageView）。
- * 老代码没有筛选 UI，本轮按需求新增纯界面层的关键字过滤与排序（不改 ViewModel）。
- *
- * @param viewModel 复用现有 [AppListViewModel]。
- * @param title 顶栏标题（老代码标题来自首页 tab，独立页面时默认「应用」）。
- * @param onBack 返回；为 null 时不显示返回按钮（作为首页 tab 嵌入时的形态）。
- * @param onAppClick 点击应用行（老代码跳 AppActivity(id=包名)，由接线方实现）。
- * @param onScrollDown 列表向下滚动（老代码隐藏底部导航）。
- * @param onScrollUp 列表向上滚动（老代码显示底部导航）。
- */
+ * 搴旂敤鍒楄〃椤碉紙Compose 鐗堬級锛屽搴旇€佷唬鐮侊細
+ * - `AppListFragment`锛圔aseRefreshRecyclerviewBinding锛歋wipeRefreshLayout + RecyclerView锛? * - `AppListAdapter` + `res/layout/item_app.xml`锛堝浘鏍囪锛欸lide 鍔犺浇 LocalAppIcon / 鍚嶇О / 鍖呭悕 / 鐗堟湰锛? *
+ * 鏁版嵁璧扮幇鏈?[AppListViewModel]锛坕tems LiveData 鐢?observeAsState 妗ユ帴锛沢etItems(context)
+ * 鎵弿鏈満宸插畨瑁呭簲鐢ㄧ殑閫昏緫淇濇寔涓嶅彉锛夛紝鍒楄〃椤瑰浘鏍囩户缁敤 Glide锛圓ndroidView 鍖?ImageView锛夈€? * 鑰佷唬鐮佹病鏈夌瓫閫?UI锛屾湰杞寜闇€姹傛柊澧炵函鐣岄潰灞傜殑鍏抽敭瀛楄繃婊や笌鎺掑簭锛堜笉鏀?ViewModel锛夈€? *
+ * @param viewModel 澶嶇敤鐜版湁 [AppListViewModel]銆? * @param title 椤舵爮鏍囬锛堣€佷唬鐮佹爣棰樻潵鑷椤?tab锛岀嫭绔嬮〉闈㈡椂榛樿銆屽簲鐢ㄣ€嶏級銆? * @param onBack 杩斿洖锛涗负 null 鏃朵笉鏄剧ず杩斿洖鎸夐挳锛堜綔涓洪椤?tab 宓屽叆鏃剁殑褰㈡€侊級銆? * @param onAppClick 鐐瑰嚮搴旂敤琛岋紙鑰佷唬鐮佽烦 AppActivity(id=鍖呭悕)锛岀敱鎺ョ嚎鏂瑰疄鐜帮級銆? * @param onScrollDown 鍒楄〃鍚戜笅婊氬姩锛堣€佷唬鐮侀殣钘忓簳閮ㄥ鑸級銆? * @param onScrollUp 鍒楄〃鍚戜笂婊氬姩锛堣€佷唬鐮佹樉绀哄簳閮ㄥ鑸級銆? */
 @Composable
 fun AppListScreen(
     viewModel: AppListViewModel,
     modifier: Modifier = Modifier,
-    title: String = "应用",
+    title: String = "搴旂敤",
     onBack: (() -> Unit)? = null,
     onAppClick: (AppItem) -> Unit = {},
     onScrollDown: () -> Unit = {},
@@ -80,24 +70,21 @@ fun AppListScreen(
 ) {
     val context = LocalContext.current
 
-    // LiveData → Compose 状态桥接
-    val items by viewModel.items.observeAsState()
+    // LiveData 鈫?Compose 鐘舵€佹ˉ鎺?    val items by viewModel.items.observeAsState()
     val loadingState by viewModel.loadingState.observeAsState()
 
-    // 界面层筛选/排序状态（纯展示，不进 ViewModel）
-    var keyword by rememberSaveable { mutableStateOf("") }
+    // 鐣岄潰灞傜瓫閫?鎺掑簭鐘舵€侊紙绾睍绀猴紝涓嶈繘 ViewModel锛?    var keyword by rememberSaveable { mutableStateOf("") }
     var sortByName by rememberSaveable { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
 
-    // 首次进入自动加载（老代码由宿主 fetchData() 触发；如宿主已触发过则 guard 会跳过）
+    // 棣栨杩涘叆鑷姩鍔犺浇锛堣€佷唬鐮佺敱瀹夸富 fetchData() 瑙﹀彂锛涘瀹夸富宸茶Е鍙戣繃鍒?guard 浼氳烦杩囷級
     LaunchedEffect(Unit) {
         if (viewModel.items.value == null && viewModel.loadingState.value == null) {
             viewModel.getItems(context)
         }
     }
 
-    // 列表刷新完成后收起下拉指示器（老代码在 items observer 里 isRefreshing = false）
-    LaunchedEffect(items, loadingState) {
+    // 鍒楄〃鍒锋柊瀹屾垚鍚庢敹璧蜂笅鎷夋寚绀哄櫒锛堣€佷唬鐮佸湪 items observer 閲?isRefreshing = false锛?    LaunchedEffect(items, loadingState) {
         if (items != null || loadingState is LoadingState.LoadingFailed || loadingState is LoadingState.LoadingError) {
             isRefreshing = false
         }
@@ -108,7 +95,7 @@ fun AppListScreen(
         viewModel.getItems(context)
     }
 
-    // 派生数据：补全应用名 → 关键字过滤 → 可选按名称排序
+    // 娲剧敓鏁版嵁锛氳ˉ鍏ㄥ簲鐢ㄥ悕 鈫?鍏抽敭瀛楄繃婊?鈫?鍙€夋寜鍚嶇О鎺掑簭
     val displayItems = remember(items, keyword, sortByName) {
         items.orEmpty()
             .onEach { app ->
@@ -123,8 +110,7 @@ fun AppListScreen(
             .let { list -> if (sortByName) list.sortedBy { it.appName.lowercase() } else list }
     }
 
-    // 滚动方向回调（老代码 onScrolled(dy) 驱动底部导航显隐）
-    val listState = rememberLazyListState()
+    // 婊氬姩鏂瑰悜鍥炶皟锛堣€佷唬鐮?onScrolled(dy) 椹卞姩搴曢儴瀵艰埅鏄鹃殣锛?    val listState = rememberLazyListState()
     LaunchedEffect(listState) {
         var lastTotal = 0
         var lastDirection = 0
@@ -154,7 +140,7 @@ fun AppListScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
-                                contentDescription = "返回",
+                                contentDescription = "杩斿洖",
                                 tint = MiuixTheme.colorScheme.onBackground,
                             )
                         }
@@ -175,14 +161,14 @@ fun AppListScreen(
             when {
                 items == null && failed != null -> AppListMessage(
                     msg = failed.msg,
-                    buttonText = if (failed.msg == LOADING_EMPTY) "刷新" else "重试",
+                    buttonText = if (failed.msg == LOADING_EMPTY) "鍒锋柊" else "閲嶈瘯",
                     onClick = refresh,
                     modifier = Modifier.fillMaxSize(),
                 )
 
                 items == null && error != null -> AppListMessage(
                     msg = error.errMsg,
-                    buttonText = "重试",
+                    buttonText = "閲嶈瘯",
                     onClick = refresh,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -195,8 +181,8 @@ fun AppListScreen(
                 }
 
                 displayItems.isEmpty() -> AppListMessage(
-                    msg = if (keyword.isBlank()) LOADING_EMPTY else "没有匹配的应用",
-                    buttonText = if (keyword.isBlank()) "刷新" else null,
+                    msg = if (keyword.isBlank()) LOADING_EMPTY else "娌℃湁鍖归厤鐨勫簲鐢?,
+                    buttonText = if (keyword.isBlank()) "鍒锋柊" else null,
                     onClick = if (keyword.isBlank()) refresh else null,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -216,21 +202,21 @@ fun AppListScreen(
                             TextField(
                                 value = keyword,
                                 onValueChange = { keyword = it },
-                                label = "搜索应用名 / 包名",
+                                label = "鎼滅储搴旂敤鍚?/ 鍖呭悕",
                                 useLabelAsPlaceholder = true,
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             TextButton(
-                                text = if (sortByName) "按名称" else "按最近更新",
+                                text = if (sortByName) "鎸夊悕绉? else "鎸夋渶杩戞洿鏂?,
                                 onClick = { sortByName = !sortByName },
                             )
                         }
                     }
                     item(key = "count") {
                         Text(
-                            text = "共 ${displayItems.size} 个应用",
+                            text = "鍏?${displayItems.size} 涓簲鐢?,
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.padding(bottom = 8.dp),
@@ -249,14 +235,14 @@ fun AppListScreen(
     }
 }
 
-/** 应用行：图标 / 名称 / 包名 / 版本（对应 item_app.xml，图标走 Glide + LocalAppIcon） */
+/** 搴旂敤琛岋細鍥炬爣 / 鍚嶇О / 鍖呭悕 / 鐗堟湰锛堝搴?item_app.xml锛屽浘鏍囪蛋 Glide + LocalAppIcon锛?*/
 @Composable
 private fun AppListRow(
     app: AppItem,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    // 老 Adapter.onBindViewHolder 的应用名兜底逻辑
+    // 鑰?Adapter.onBindViewHolder 鐨勫簲鐢ㄥ悕鍏滃簳閫昏緫
     val name = remember(app.packageName, app.appName) {
         if (app.appName.isNotEmpty()) app.appName
         else AppUtils.getAppName(context, app.packageName).also { app.appName = it }
@@ -294,7 +280,7 @@ private fun AppListRow(
     }
 }
 
-/** 本机应用图标（Glide + LocalAppIcon，AndroidView 包 ImageView） */
+/** 鏈満搴旂敤鍥炬爣锛圙lide + LocalAppIcon锛孉ndroidView 鍖?ImageView锛?*/
 @Composable
 private fun AppIconImage(
     packageName: String,

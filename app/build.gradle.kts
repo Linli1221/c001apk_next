@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION_ERROR", "DEPRECATION")
+
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import java.util.Properties
 
@@ -205,7 +207,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.livedata.compose)
+    implementation(libs.compose.runtime.livedata)
     implementation(libs.miuix.ui)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)

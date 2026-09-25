@@ -37,7 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.logic.model.OSSUploadPrepareResponse
 import com.example.c001apk.util.ImageUtil.getImageDimensionsAndMD5
 import com.example.c001apk.util.ImageUtil.toHex
@@ -69,19 +69,17 @@ private const val DESCRIPTION_MAX_LENGTH = 200
 private const val MAX_BODY_IMAGE = 20
 
 /**
- * 发布图文的界面编辑状态（纯 UI 编辑态，业务/网络状态在 [ArticlePublishViewModel]）。
- * 对应老 ArticlePublishActivity 里的 blocks / coverUri / coverMd5 等字段。
- */
+ * 鍙戝竷鍥炬枃鐨勭晫闈㈢紪杈戠姸鎬侊紙绾?UI 缂栬緫鎬侊紝涓氬姟/缃戠粶鐘舵€佸湪 [ArticlePublishViewModel]锛夈€? * 瀵瑰簲鑰?ArticlePublishActivity 閲岀殑 blocks / coverUri / coverMd5 绛夊瓧娈点€? */
 @Stable
 class ArticlePublishState {
     var title by mutableStateOf("")
     var privateOnly by mutableStateOf(false)
     var isPublishing by mutableStateOf(false)
 
-    /** 正文块（按顺序即正文混排结构） */
+    /** 姝ｆ枃鍧楋紙鎸夐『搴忓嵆姝ｆ枃娣锋帓缁撴瀯锛?*/
     val blocks = mutableStateListOf<ArticleBlock>()
 
-    /** 封面（固定 1600:719 裁剪产物） */
+    /** 灏侀潰锛堝浐瀹?1600:719 瑁佸壀浜х墿锛?*/
     var coverUri by mutableStateOf<Uri?>(null)
     var coverName by mutableStateOf("")
     var coverMd5 by mutableStateOf("")
@@ -92,20 +90,12 @@ class ArticlePublishState {
 fun rememberArticlePublishState(): ArticlePublishState = remember { ArticlePublishState() }
 
 /**
- * 发布图文（酷安「图文」= type feed + is_html_article=1）。
- * 结构：标题 + 封面（固定 1600:719 裁剪）+ 正文（文本/图片块混排，图片可加说明）+ 查看权限。
- * 对应老 ArticlePublishActivity + activity_article_publish.xml。
- *
- * 状态与交互全部自含：
- * - 封面：PickVisualMedia 选图 → CropImageActivity 裁剪（RESULT_URI 回传）；
- * - 正文图：PickMultipleVisualMedia 多选（每次最多 9 张，累计最多 20 张）；
- * - 发布：校验 → 组装 uploadFileList / feedData → [ArticlePublishViewModel.onPostOSSUploadPrepare]
- *   → uploadImage 事件里组 message JSON 并走 ossUpload → onPostCreateFeed，与老 Activity 流程一致；
- * - LiveData（toastText / over / uploadImage）用 observeAsState 桥接（Event 单次消费语义由
- *   LaunchedEffect(key = event) 保证）。
- *
- * 宿主只接两个回调：[onBack]、[onPublishSuccess]（发布成功后 finish）。
- */
+ * 鍙戝竷鍥炬枃锛堥叿瀹夈€屽浘鏂囥€? type feed + is_html_article=1锛夈€? * 缁撴瀯锛氭爣棰?+ 灏侀潰锛堝浐瀹?1600:719 瑁佸壀锛? 姝ｆ枃锛堟枃鏈?鍥剧墖鍧楁贩鎺掞紝鍥剧墖鍙姞璇存槑锛? 鏌ョ湅鏉冮檺銆? * 瀵瑰簲鑰?ArticlePublishActivity + activity_article_publish.xml銆? *
+ * 鐘舵€佷笌浜や簰鍏ㄩ儴鑷惈锛? * - 灏侀潰锛歅ickVisualMedia 閫夊浘 鈫?CropImageActivity 瑁佸壀锛圧ESULT_URI 鍥炰紶锛夛紱
+ * - 姝ｆ枃鍥撅細PickMultipleVisualMedia 澶氶€夛紙姣忔鏈€澶?9 寮狅紝绱鏈€澶?20 寮狅級锛? * - 鍙戝竷锛氭牎楠?鈫?缁勮 uploadFileList / feedData 鈫?[ArticlePublishViewModel.onPostOSSUploadPrepare]
+ *   鈫?uploadImage 浜嬩欢閲岀粍 message JSON 骞惰蛋 ossUpload 鈫?onPostCreateFeed锛屼笌鑰?Activity 娴佺▼涓€鑷达紱
+ * - LiveData锛坱oastText / over / uploadImage锛夌敤 observeAsState 妗ユ帴锛圗vent 鍗曟娑堣垂璇箟鐢? *   LaunchedEffect(key = event) 淇濊瘉锛夈€? *
+ * 瀹夸富鍙帴涓や釜鍥炶皟锛歔onBack]銆乕onPublishSuccess]锛堝彂甯冩垚鍔熷悗 finish锛夈€? */
 @Composable
 fun ArticlePublishScreen(
     viewModel: ArticlePublishViewModel,
@@ -121,8 +111,7 @@ fun ArticlePublishScreen(
     val currentToast by rememberUpdatedState(toast)
     val currentOnPublishSuccess by rememberUpdatedState(onPublishSuccess)
 
-    // 封面裁剪（平台裁剪 UI：CropImageActivity，手势/Matrix 裁剪保持现状，不经 Compose）
-    val cropLauncher =
+    // 灏侀潰瑁佸壀锛堝钩鍙拌鍓?UI锛欳ropImageActivity锛屾墜鍔?Matrix 瑁佸壀淇濇寔鐜扮姸锛屼笉缁?Compose锛?    val cropLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val uri = result.data?.getStringExtra(CropImageActivity.RESULT_URI)
@@ -154,7 +143,7 @@ fun ArticlePublishScreen(
             scope.launch {
                 for (uri in uris) {
                     if (state.blocks.count { it is ArticleBlock.Image } >= MAX_BODY_IMAGE) {
-                        currentToast("正文最多插入20张图片")
+                        currentToast("姝ｆ枃鏈€澶氭彃鍏?0寮犲浘鐗?)
                         break
                     }
                     val block = withContext(Dispatchers.IO) {
@@ -165,7 +154,7 @@ fun ArticlePublishScreen(
             }
         }
 
-    // LiveData 事件桥接（observeAsState + LaunchedEffect，单次消费）
+    // LiveData 浜嬩欢妗ユ帴锛坥bserveAsState + LaunchedEffect锛屽崟娆℃秷璐癸級
     val toastEvent by viewModel.toastText.observeAsState()
     LaunchedEffect(toastEvent) {
         toastEvent?.getContentIfNotHandledOrReturnNull()?.let {
@@ -177,7 +166,7 @@ fun ArticlePublishScreen(
     LaunchedEffect(overEvent) {
         overEvent?.getContentIfNotHandledOrReturnNull()?.let {
             state.isPublishing = false
-            currentToast("发布成功")
+            currentToast("鍙戝竷鎴愬姛")
             currentOnPublishSuccess()
         }
     }
@@ -192,15 +181,15 @@ fun ArticlePublishScreen(
         modifier = modifier,
         topBar = {
             SmallTopAppBar(
-                title = "发布图文",
+                title = "鍙戝竷鍥炬枃",
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, contentDescription = "返回")
+                        Icon(MiuixIcons.Back, contentDescription = "杩斿洖")
                     }
                 },
                 actions = {
                     TextButton(
-                        text = "发布",
+                        text = "鍙戝竷",
                         onClick = {
                             startPublish(state, viewModel) { currentToast(it) }
                         },
@@ -223,7 +212,7 @@ fun ArticlePublishScreen(
                     onClick = { state.privateOnly = !state.privateOnly },
                 )
                 Text(
-                    text = "仅自己可见",
+                    text = "浠呰嚜宸卞彲瑙?,
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurface,
                     modifier = Modifier
@@ -244,11 +233,10 @@ fun ArticlePublishScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp),
             ) {
-                // 标题（老界面限 50 字，TextInputLayout 带计数器）
-                TextField(
+                // 鏍囬锛堣€佺晫闈㈤檺 50 瀛楋紝TextInputLayout 甯﹁鏁板櫒锛?                TextField(
                     value = state.title,
                     onValueChange = { if (it.length <= TITLE_MAX_LENGTH) state.title = it },
-                    label = "标题",
+                    label = "鏍囬",
                     maxLines = 2,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -263,9 +251,9 @@ fun ArticlePublishScreen(
                     )
                 }
 
-                // 封面
+                // 灏侀潰
                 Text(
-                    text = "封面",
+                    text = "灏侀潰",
                     style = MiuixTheme.textStyles.subtitle,
                     color = MiuixTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp),
@@ -294,22 +282,21 @@ fun ArticlePublishScreen(
                         )
                     } else {
                         Text(
-                            text = "点击选择封面图",
+                            text = "鐐瑰嚮閫夋嫨灏侀潰鍥?,
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }
                 Text(
-                    text = "封面比例固定为 1600:719，选图后需裁剪",
+                    text = "灏侀潰姣斾緥鍥哄畾涓?1600:719锛岄€夊浘鍚庨渶瑁佸壀",
                     style = MiuixTheme.textStyles.footnote2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     modifier = Modifier.padding(top = 4.dp),
                 )
 
-                // 正文块
-                Text(
-                    text = "正文",
+                // 姝ｆ枃鍧?                Text(
+                    text = "姝ｆ枃",
                     style = MiuixTheme.textStyles.subtitle,
                     color = MiuixTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 16.dp),
@@ -330,10 +317,10 @@ fun ArticlePublishScreen(
                     }
                 }
 
-                // 添加按钮
+                // 娣诲姞鎸夐挳
                 Row(modifier = Modifier.fillMaxWidth()) {
                     TextButton(
-                        text = "插入图片",
+                        text = "鎻掑叆鍥剧墖",
                         onClick = {
                             pickBodyLauncher.launch(
                                 PickVisualMediaRequest(
@@ -344,7 +331,7 @@ fun ArticlePublishScreen(
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(
-                        text = "添加文字",
+                        text = "娣诲姞鏂囧瓧",
                         onClick = { state.blocks.add(ArticleBlock.Text()) },
                         modifier = Modifier.weight(1f),
                     )
@@ -352,7 +339,7 @@ fun ArticlePublishScreen(
                 Spacer(Modifier.height(16.dp))
             }
 
-            // 发布中：非阻断加载层（替代老 dialog_refresh 对话框）
+            // 鍙戝竷涓細闈為樆鏂姞杞藉眰锛堟浛浠ｈ€?dialog_refresh 瀵硅瘽妗嗭級
             if (state.isPublishing) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -364,7 +351,7 @@ fun ArticlePublishScreen(
                         CircularProgressIndicator()
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "发布中…",
+                            text = "鍙戝竷涓€?,
                             style = MiuixTheme.textStyles.body2,
                             color = MiuixTheme.colorScheme.onSurface,
                         )
@@ -375,7 +362,7 @@ fun ArticlePublishScreen(
     }
 }
 
-/** 正文文字块（老 item_article_text_block.xml） */
+/** 姝ｆ枃鏂囧瓧鍧楋紙鑰?item_article_text_block.xml锛?*/
 @Composable
 private fun TextBlockItem(
     block: ArticleBlock.Text,
@@ -387,11 +374,11 @@ private fun TextBlockItem(
             .fillMaxWidth()
             .padding(top = 8.dp),
     ) {
-        BlockHeader(label = "段落", onDelete = onDelete)
+        BlockHeader(label = "娈佃惤", onDelete = onDelete)
         TextField(
             value = block.text,
             onValueChange = onTextChange,
-            label = "输入文字",
+            label = "杈撳叆鏂囧瓧",
             useLabelAsPlaceholder = true,
             minLines = 2,
             modifier = Modifier
@@ -401,7 +388,7 @@ private fun TextBlockItem(
     }
 }
 
-/** 正文图片块（老 item_article_image_block.xml）：图 + 可选说明 + 删除 */
+/** 姝ｆ枃鍥剧墖鍧楋紙鑰?item_article_image_block.xml锛夛細鍥?+ 鍙€夎鏄?+ 鍒犻櫎 */
 @Composable
 private fun ImageBlockItem(
     block: ArticleBlock.Image,
@@ -413,7 +400,7 @@ private fun ImageBlockItem(
             .fillMaxWidth()
             .padding(top = 8.dp),
     ) {
-        BlockHeader(label = "图片", onDelete = onDelete)
+        BlockHeader(label = "鍥剧墖", onDelete = onDelete)
         GlideImage(
             url = block.uri,
             modifier = Modifier
@@ -425,7 +412,7 @@ private fun ImageBlockItem(
         TextField(
             value = block.description,
             onValueChange = { if (it.length <= DESCRIPTION_MAX_LENGTH) onDescriptionChange(it) },
-            label = "添加图片说明（可选）",
+            label = "娣诲姞鍥剧墖璇存槑锛堝彲閫夛級",
             useLabelAsPlaceholder = true,
             singleLine = true,
             maxLines = 1,
@@ -436,7 +423,7 @@ private fun ImageBlockItem(
     }
 }
 
-/** 块头：「段落 / 图片」+ 删除按钮 */
+/** 鍧楀ご锛氥€屾钀?/ 鍥剧墖銆? 鍒犻櫎鎸夐挳 */
 @Composable
 private fun BlockHeader(
     label: String,
@@ -452,14 +439,14 @@ private fun BlockHeader(
         IconButton(onClick = onDelete) {
             Icon(
                 MiuixIcons.Close,
-                contentDescription = "删除$label",
+                contentDescription = "鍒犻櫎$label",
                 tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
         }
     }
 }
 
-/** 选图 → 组装正文图片块（含尺寸/mime/md5，与老 addImageBlock 一致） */
+/** 閫夊浘 鈫?缁勮姝ｆ枃鍥剧墖鍧楋紙鍚昂瀵?mime/md5锛屼笌鑰?addImageBlock 涓€鑷达級 */
 private fun createImageBlock(contentResolver: ContentResolver, uri: Uri): ArticleBlock.Image {
     val res = getImageDimensionsAndMD5(contentResolver, uri)
     val md5Byte = res.second
@@ -478,9 +465,7 @@ private fun createImageBlock(contentResolver: ContentResolver, uri: Uri): Articl
 }
 
 /**
- * 发布校验 + 组装 uploadFileList / feedData，触发 ossUploadPrepare（与老 publish() 一致）。
- * 校验失败时通过 [toast] 提示并返回。
- */
+ * 鍙戝竷鏍￠獙 + 缁勮 uploadFileList / feedData锛岃Е鍙?ossUploadPrepare锛堜笌鑰?publish() 涓€鑷达級銆? * 鏍￠獙澶辫触鏃堕€氳繃 [toast] 鎻愮ず骞惰繑鍥炪€? */
 private fun startPublish(
     state: ArticlePublishState,
     viewModel: ArticlePublishViewModel,
@@ -488,11 +473,11 @@ private fun startPublish(
 ) {
     val title = state.title.trim()
     if (title.isEmpty()) {
-        toast("请输入标题")
+        toast("璇疯緭鍏ユ爣棰?)
         return
     }
     if (state.coverUri == null) {
-        toast("请选择封面图")
+        toast("璇烽€夋嫨灏侀潰鍥?)
         return
     }
     val hasContent = state.blocks.any {
@@ -502,12 +487,11 @@ private fun startPublish(
         }
     }
     if (!hasContent) {
-        toast("请输入正文")
+        toast("璇疯緭鍏ユ鏂?)
         return
     }
 
-    // uploadFileList：封面 + 正文图
-    val uploadFiles = ArrayList<ArticleUploadFile>()
+    // uploadFileList锛氬皝闈?+ 姝ｆ枃鍥?    val uploadFiles = ArrayList<ArticleUploadFile>()
     uploadFiles.add(ArticleUploadFile(state.coverName, "1600x719", state.coverMd5, 0))
     state.blocks.filterIsInstance<ArticleBlock.Image>().forEach {
         uploadFiles.add(ArticleUploadFile(it.name, it.resolution, it.md5, 0))
@@ -528,10 +512,8 @@ private fun startPublish(
 }
 
 /**
- * ossUploadPrepare 成功后：组 message JSON（text/image 块交错）、
- * 按 uploadFileList 顺序上传（封面 + 正文图），全部成功后 createFeed
- * （与老 ArticlePublishActivity 的 uploadImage 事件处理一致）。
- */
+ * ossUploadPrepare 鎴愬姛鍚庯細缁?message JSON锛坱ext/image 鍧椾氦閿欙級銆? * 鎸?uploadFileList 椤哄簭涓婁紶锛堝皝闈?+ 姝ｆ枃鍥撅級锛屽叏閮ㄦ垚鍔熷悗 createFeed
+ * 锛堜笌鑰?ArticlePublishActivity 鐨?uploadImage 浜嬩欢澶勭悊涓€鑷达級銆? */
 private fun launchOssUpload(
     context: Context,
     scope: CoroutineScope,
@@ -542,14 +524,13 @@ private fun launchOssUpload(
 ) {
     val coverUri = state.coverUri ?: run {
         state.isPublishing = false
-        toast("请选择封面图")
+        toast("璇烽€夋嫨灏侀潰鍥?)
         return
     }
     val prefix = responseData.uploadPrepareInfo.uploadImagePrefix
     val fileInfo = responseData.fileInfo
 
-    // message JSON 数组：text/image 块交错；fileInfo[0]=封面，fileInfo[1..]=正文图
-    var bodyIdx = 0
+    // message JSON 鏁扮粍锛歵ext/image 鍧椾氦閿欙紱fileInfo[0]=灏侀潰锛宖ileInfo[1..]=姝ｆ枃鍥?    var bodyIdx = 0
     val msgList = ArrayList<Map<String, String>>()
     state.blocks.forEach { block ->
         when (block) {
@@ -572,8 +553,7 @@ private fun launchOssUpload(
     viewModel.feedData["message"] = Gson().toJson(msgList)
     viewModel.feedData["message_cover"] = prefix + "/" + fileInfo[0].uploadFileName
 
-    // 上传列表与 uploadFileList 顺序一致：封面 + 正文图
-    val imageBlocks = state.blocks.filterIsInstance<ArticleBlock.Image>()
+    // 涓婁紶鍒楄〃涓?uploadFileList 椤哄簭涓€鑷达細灏侀潰 + 姝ｆ枃鍥?    val imageBlocks = state.blocks.filterIsInstance<ArticleBlock.Image>()
     val uriList = ArrayList<Uri>().apply {
         add(coverUri)
         imageBlocks.forEach { add(it.uri) }
@@ -597,7 +577,7 @@ private fun launchOssUpload(
             },
             iOnFailure = {
                 state.isPublishing = false
-                toast("图片上传失败")
+                toast("鍥剧墖涓婁紶澶辫触")
             },
             closeDialog = { state.isPublishing = false },
         )

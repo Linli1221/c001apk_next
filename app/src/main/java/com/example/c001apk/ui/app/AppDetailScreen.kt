@@ -36,7 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.bumptech.glide.Glide
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_EMPTY
@@ -65,27 +65,12 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 应用详情页（Compose 版），对应老代码：
- * - `AppActivity`（状态机：Loading / LoadingDone / LoadingError / LoadingFailed）
- * - `AppFragment` + `res/layout/base_view_app.xml`（头部：logo / 名称 / 版本 / 大小 / 更新时间 / 下载按钮）
- * - `AppFragment.initBar()` 菜单：搜索、关注/取消关注、加入/移除黑名单
- * - `AppFragment.initFab()`：登录后发表回复（type=createFeed, targetType=apk）
- *
- * 数据全部走现有 [AppViewModel]（LiveData 用 observeAsState 桥接，appData/tabList/errMsg
- * 为普通字段，在 activityState 变化触发的重组中读取），不在 Composable 里新建业务逻辑。
- * 图片继续走 Glide（AndroidView 包 ImageView），不引入新图片库。
- *
- * @param viewModel 复用现有 [AppViewModel]（由 AppActivity 的 Hilt Factory 创建）。
- * @param isLogin 是否登录，决定「关注」菜单与 FAB 是否显示（默认取 PrefManager.isLogin）。
- * @param onBack 返回（老代码 activity.finish()）。
- * @param onSearch 点击搜索菜单，跳转 SearchActivity(pageType=apk, pageParam=appId)。
- * @param onLogoClick 点击应用图标，大图预览（老代码 ImageUtil.startBigImgViewSimple / Mojito）。
- * @param onWriteReply 点击 FAB 发表回复，targetId = 1000000000 + appId。
- * @param onDownloadStart 下载实现回调；为 null 时内置老代码的 downloadApk → ACTION_VIEW → 复制链接兜底链。
- * @param onRetry 加载失败后的重试。
- * @param tabContent 评论 tab 内容槽位（老代码 AppContentFragment 三个 pager），
- *   默认占位，由后续接线传入 Compose 版评论列表。
- */
+ * 搴旂敤璇︽儏椤碉紙Compose 鐗堬級锛屽搴旇€佷唬鐮侊細
+ * - `AppActivity`锛堢姸鎬佹満锛歀oading / LoadingDone / LoadingError / LoadingFailed锛? * - `AppFragment` + `res/layout/base_view_app.xml`锛堝ご閮細logo / 鍚嶇О / 鐗堟湰 / 澶у皬 / 鏇存柊鏃堕棿 / 涓嬭浇鎸夐挳锛? * - `AppFragment.initBar()` 鑿滃崟锛氭悳绱€佸叧娉?鍙栨秷鍏虫敞銆佸姞鍏?绉婚櫎榛戝悕鍗? * - `AppFragment.initFab()`锛氱櫥褰曞悗鍙戣〃鍥炲锛坱ype=createFeed, targetType=apk锛? *
+ * 鏁版嵁鍏ㄩ儴璧扮幇鏈?[AppViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛宎ppData/tabList/errMsg
+ * 涓烘櫘閫氬瓧娈碉紝鍦?activityState 鍙樺寲瑙﹀彂鐨勯噸缁勪腑璇诲彇锛夛紝涓嶅湪 Composable 閲屾柊寤轰笟鍔￠€昏緫銆? * 鍥剧墖缁х画璧?Glide锛圓ndroidView 鍖?ImageView锛夛紝涓嶅紩鍏ユ柊鍥剧墖搴撱€? *
+ * @param viewModel 澶嶇敤鐜版湁 [AppViewModel]锛堢敱 AppActivity 鐨?Hilt Factory 鍒涘缓锛夈€? * @param isLogin 鏄惁鐧诲綍锛屽喅瀹氥€屽叧娉ㄣ€嶈彍鍗曚笌 FAB 鏄惁鏄剧ず锛堥粯璁ゅ彇 PrefManager.isLogin锛夈€? * @param onBack 杩斿洖锛堣€佷唬鐮?activity.finish()锛夈€? * @param onSearch 鐐瑰嚮鎼滅储鑿滃崟锛岃烦杞?SearchActivity(pageType=apk, pageParam=appId)銆? * @param onLogoClick 鐐瑰嚮搴旂敤鍥炬爣锛屽ぇ鍥鹃瑙堬紙鑰佷唬鐮?ImageUtil.startBigImgViewSimple / Mojito锛夈€? * @param onWriteReply 鐐瑰嚮 FAB 鍙戣〃鍥炲锛宼argetId = 1000000000 + appId銆? * @param onDownloadStart 涓嬭浇瀹炵幇鍥炶皟锛涗负 null 鏃跺唴缃€佷唬鐮佺殑 downloadApk 鈫?ACTION_VIEW 鈫?澶嶅埗閾炬帴鍏滃簳閾俱€? * @param onRetry 鍔犺浇澶辫触鍚庣殑閲嶈瘯銆? * @param tabContent 璇勮 tab 鍐呭妲戒綅锛堣€佷唬鐮?AppContentFragment 涓変釜 pager锛夛紝
+ *   榛樿鍗犱綅锛岀敱鍚庣画鎺ョ嚎浼犲叆 Compose 鐗堣瘎璁哄垪琛ㄣ€? */
 @Composable
 fun AppDetailScreen(
     viewModel: AppViewModel,
@@ -104,26 +89,23 @@ fun AppDetailScreen(
 ) {
     val context = LocalContext.current
 
-    // LiveData → Compose 状态桥接
-    val activityState by viewModel.activityState.observeAsState()
+    // LiveData 鈫?Compose 鐘舵€佹ˉ鎺?    val activityState by viewModel.activityState.observeAsState()
     val followEvent by viewModel.followState.observeAsState()
     val blockEvent by viewModel.blockState.observeAsState()
     val downloadEvent by viewModel.download.observeAsState()
     val toastEvent by viewModel.toastText.observeAsState()
 
-    // appData / tabList / errMsg 是普通字段，activityState 变化会触发重组并读到最新值
-    val appData = viewModel.appData
+    // appData / tabList / errMsg 鏄櫘閫氬瓧娈碉紝activityState 鍙樺寲浼氳Е鍙戦噸缁勫苟璇诲埌鏈€鏂板€?    val appData = viewModel.appData
     val tabList = viewModel.tabList
     val errMsg = viewModel.errMsg
 
-    // 菜单 / 弹窗的界面状态（老代码由 followState / blockState 事件驱动）
-    var follow by remember { mutableStateOf(appData?.userAction?.follow ?: 0) }
+    // 鑿滃崟 / 寮圭獥鐨勭晫闈㈢姸鎬侊紙鑰佷唬鐮佺敱 followState / blockState 浜嬩欢椹卞姩锛?    var follow by remember { mutableStateOf(appData?.userAction?.follow ?: 0) }
     var isBlocked by remember { mutableStateOf(false) }
     var showBlockDialog by remember { mutableStateOf(false) }
     var showChangelog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // 老代码 AppFragment.onDownload()：downloadApk 失败 → ACTION_VIEW → 复制链接
+    // 鑰佷唬鐮?AppFragment.onDownload()锛歞ownloadApk 澶辫触 鈫?ACTION_VIEW 鈫?澶嶅埗閾炬帴
     fun startDownload() {
         val url = viewModel.downloadUrl ?: return
         val data = viewModel.appData
@@ -138,7 +120,7 @@ fun AppDetailScreen(
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                 } catch (e2: ActivityNotFoundException) {
-                    Toast.makeText(context, "下载失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "涓嬭浇澶辫触", Toast.LENGTH_SHORT).show()
                     ClipboardUtil.copyText(context, url)
                     e2.printStackTrace()
                 }
@@ -163,19 +145,19 @@ fun AppDetailScreen(
         }
     }
 
-    val followLabel = if (follow == 1) "取消关注" else "关注"
-    val blockLabel = if (isBlocked) "移除黑名单" else "加入黑名单"
+    val followLabel = if (follow == 1) "鍙栨秷鍏虫敞" else "鍏虫敞"
+    val blockLabel = if (isBlocked) "绉婚櫎榛戝悕鍗? else "鍔犲叆榛戝悕鍗?
 
     Scaffold(
         modifier = modifier,
         topBar = {
             SmallTopAppBar(
-                title = appData?.title ?: "应用详情",
+                title = appData?.title ?: "搴旂敤璇︽儏",
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = MiuixIcons.Back,
-                            contentDescription = "返回",
+                            contentDescription = "杩斿洖",
                             tint = MiuixTheme.colorScheme.onBackground,
                         )
                     }
@@ -185,7 +167,7 @@ fun AppDetailScreen(
                         IconButton(onClick = { onSearch(viewModel.appId, appData?.title) }) {
                             Icon(
                                 imageVector = MiuixIcons.Search,
-                                contentDescription = "搜索",
+                                contentDescription = "鎼滅储",
                                 tint = MiuixTheme.colorScheme.onBackground,
                             )
                         }
@@ -220,7 +202,7 @@ fun AppDetailScreen(
                 ) {
                     Icon(
                         imageVector = MiuixIcons.Add,
-                        contentDescription = "发表回复",
+                        contentDescription = "鍙戣〃鍥炲",
                         tint = MiuixTheme.colorScheme.onPrimary,
                     )
                 }
@@ -232,14 +214,14 @@ fun AppDetailScreen(
         if (state is LoadingState.LoadingError) {
             AppDetailMessage(
                 msg = state.errMsg,
-                buttonText = "重试",
+                buttonText = "閲嶈瘯",
                 onClick = onRetry,
                 modifier = Modifier.padding(paddingValues),
             )
         } else if (state is LoadingState.LoadingFailed) {
             AppDetailMessage(
                 msg = state.msg,
-                buttonText = if (state.msg == LOADING_EMPTY) "刷新" else "重试",
+                buttonText = if (state.msg == LOADING_EMPTY) "鍒锋柊" else "閲嶈瘯",
                 onClick = onRetry,
                 modifier = Modifier.padding(paddingValues),
             )
@@ -273,29 +255,27 @@ fun AppDetailScreen(
         }
     }
 
-    // 更新日志弹窗（老代码：点击版本号 → MaterialAlertDialogBuilder）
-    val changelog = appData?.changelog
+    // 鏇存柊鏃ュ織寮圭獥锛堣€佷唬鐮侊細鐐瑰嚮鐗堟湰鍙?鈫?MaterialAlertDialogBuilder锛?    val changelog = appData?.changelog
     if (changelog != null) {
         OverlayDialog(
             show = showChangelog,
-            title = "更新日志",
+            title = "鏇存柊鏃ュ織",
             summary = changelog,
             onDismissRequest = { showChangelog = false },
         ) {
             TextButton(
-                text = "确定",
+                text = "纭畾",
                 onClick = { showChangelog = false },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 
-    // 黑名单确认弹窗（老代码：MaterialAlertDialogBuilder）
-    val title = appData?.title
+    // 榛戝悕鍗曠‘璁ゅ脊绐楋紙鑰佷唬鐮侊細MaterialAlertDialogBuilder锛?    val title = appData?.title
     if (title != null) {
         OverlayDialog(
             show = showBlockDialog,
-            title = "确定将 $title $blockLabel？",
+            title = "纭畾灏?$title $blockLabel锛?,
             onDismissRequest = { showBlockDialog = false },
         ) {
             Row(
@@ -303,12 +283,12 @@ fun AppDetailScreen(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
-                    text = "取消",
+                    text = "鍙栨秷",
                     onClick = { showBlockDialog = false },
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(
-                    text = "确定",
+                    text = "纭畾",
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                     onClick = {
                         showBlockDialog = false
@@ -326,7 +306,7 @@ fun AppDetailScreen(
     }
 }
 
-/** 评论 tab 类型（老代码 AppFragment.typeList） */
+/** 璇勮 tab 绫诲瀷锛堣€佷唬鐮?AppFragment.typeList锛?*/
 private val APP_COMMENT_TYPES = listOf("reply", "pub", "hot")
 
 @Composable
@@ -360,7 +340,7 @@ private fun AppDetailContent(
         if (intro != null) {
             HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
             Text(
-                text = "应用介绍",
+                text = "搴旂敤浠嬬粛",
                 style = MiuixTheme.textStyles.subtitle,
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
@@ -377,8 +357,8 @@ private fun AppDetailContent(
         if (score != null) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "评分 $score 分" +
-                    (appData.starTotalCount?.takeIf { it.isNotBlank() }?.let { "（$it 人评分）" } ?: ""),
+                text = "璇勫垎 $score 鍒? +
+                    (appData.starTotalCount?.takeIf { it.isNotBlank() }?.let { "锛?it 浜鸿瘎鍒嗭級" } ?: ""),
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = Modifier.padding(horizontal = 20.dp),
@@ -397,7 +377,7 @@ private fun AppDetailContent(
             Spacer(modifier = Modifier.height(8.dp))
             tabContent(selectedTab, APP_COMMENT_TYPES.getOrElse(selectedTab) { "" })
         } else if (!errMsg.isNullOrEmpty()) {
-            // 老代码：评论关闭时不显示 tab，只显示 commentStatusText
+            // 鑰佷唬鐮侊細璇勮鍏抽棴鏃朵笉鏄剧ず tab锛屽彧鏄剧ず commentStatusText
             Text(
                 text = errMsg,
                 style = MiuixTheme.textStyles.body2,
@@ -411,7 +391,7 @@ private fun AppDetailContent(
     }
 }
 
-/** 头部：logo / 名称 / 版本 / 大小 / 更新时间 / 下载按钮（对应 base_view_app.xml） */
+/** 澶撮儴锛歭ogo / 鍚嶇О / 鐗堟湰 / 澶у皬 / 鏇存柊鏃堕棿 / 涓嬭浇鎸夐挳锛堝搴?base_view_app.xml锛?*/
 @Composable
 private fun AppDetailHeader(
     appData: HomeFeedResponse.Data,
@@ -445,20 +425,20 @@ private fun AppDetailHeader(
                 Modifier.clickable(onClick = onVersionClick)
             else Modifier
             Text(
-                text = "版本: ${appData.version.orEmpty()}(${appData.apkversioncode.orEmpty()})",
+                text = "鐗堟湰: ${appData.version.orEmpty()}(${appData.apkversioncode.orEmpty()})",
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = versionModifier,
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(
-                text = "大小: ${appData.apksize.orEmpty()}",
+                text = "澶у皬: ${appData.apksize.orEmpty()}",
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(
-                text = "更新时间: " + (appData.lastupdate?.let { DateUtils.fromToday(it) } ?: "null"),
+                text = "鏇存柊鏃堕棿: " + (appData.lastupdate?.let { DateUtils.fromToday(it) } ?: "null"),
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
@@ -469,13 +449,13 @@ private fun AppDetailHeader(
                 onClick = onDownloadClick,
                 colors = ButtonDefaults.buttonColorsPrimary(),
             ) {
-                Text("下载")
+                Text("涓嬭浇")
             }
         }
     }
 }
 
-/** Glide 加载网络 logo（AndroidView 包 ImageView，见 CONVENTIONS.md 第 4 节） */
+/** Glide 鍔犺浇缃戠粶 logo锛圓ndroidView 鍖?ImageView锛岃 CONVENTIONS.md 绗?4 鑺傦級 */
 @Composable
 private fun AppLogoImage(
     url: String?,
@@ -523,7 +503,7 @@ private fun AppDetailMessage(
     }
 }
 
-/** 评论 tab 内容默认占位（后续由接线方传入 AppContentFragment 的 Compose 版列表） */
+/** 璇勮 tab 鍐呭榛樿鍗犱綅锛堝悗缁敱鎺ョ嚎鏂逛紶鍏?AppContentFragment 鐨?Compose 鐗堝垪琛級 */
 @Composable
 private fun AppDetailTabPlaceholder() {
     Box(
@@ -533,7 +513,7 @@ private fun AppDetailTabPlaceholder() {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "评论列表（AppContentFragment 的 Compose 版）由后续接线提供",
+            text = "璇勮鍒楄〃锛圓ppContentFragment 鐨?Compose 鐗堬級鐢卞悗缁帴绾挎彁渚?,
             style = MiuixTheme.textStyles.body2,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             textAlign = TextAlign.Center,

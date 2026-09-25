@@ -74,7 +74,7 @@ fun SettingsParamsScreen(
     // 编辑落库后 +1，驱动各项 summary 重新从 PrefManager 读取
     var revision by remember { mutableStateOf(0) }
     val paramItems = remember { buildParamItems() }
-    val values = remember(revision) { paramItems.map { it.get() } }
+    val values = remember(revision) { paramItems.map { it.current() } }
     val xAppToken = remember(revision) { PrefManager.xAppToken }
     val xAppDevice = remember(revision) { PrefManager.xAppDevice }
 
@@ -279,7 +279,7 @@ fun SettingsParamsScreen(
                     TextButton(
                         text = stringResource(R.string.system_info),
                         onClick = {
-                            editingItem.set(systemValue())
+                            editingItem.write(systemValue())
                             editingItem.onSaved()
                             revision += 1
                             editingIndex = -1
@@ -291,7 +291,7 @@ fun SettingsParamsScreen(
                     TextButton(
                         text = stringResource(R.string.random_value),
                         onClick = {
-                            editingItem.set(randomValue())
+                            editingItem.write(randomValue())
                             editingItem.onSaved()
                             revision += 1
                             editingIndex = -1
@@ -302,7 +302,7 @@ fun SettingsParamsScreen(
                 TextButton(
                     text = stringResource(android.R.string.ok),
                     onClick = {
-                        editingItem.set(editInput.ifEmpty { editingItem.fallback() })
+                        editingItem.write(editInput.ifEmpty { editingItem.fallback() })
                         editingItem.onSaved()
                         revision += 1
                         editingIndex = -1
@@ -500,8 +500,8 @@ fun SettingsParamsScreen(
  */
 private class ParamItem(
     val title: String,
-    val get: () -> String,
-    val set: (String) -> Unit,
+    val current: () -> String,
+    val write: (String) -> Unit,
     val fallback: () -> String,
     val onSaved: () -> Unit = {},
     val systemValue: (() -> String)? = null,
@@ -512,28 +512,28 @@ private class ParamItem(
 private fun buildParamItems(): List<ParamItem> = listOf(
     ParamItem(
         title = "VERSION_NAME",
-        get = { PrefManager.VERSION_NAME },
-        set = { PrefManager.VERSION_NAME = it },
+        current = { PrefManager.VERSION_NAME },
+        write = { PrefManager.VERSION_NAME = it },
         fallback = { Constants.VERSION_NAME },
         onSaved = { updateUserAgent() },
     ),
     ParamItem(
         title = "API_VERSION",
-        get = { PrefManager.API_VERSION },
-        set = { PrefManager.API_VERSION = it },
+        current = { PrefManager.API_VERSION },
+        write = { PrefManager.API_VERSION = it },
         fallback = { Constants.API_VERSION },
     ),
     ParamItem(
         title = "VERSION_CODE",
-        get = { PrefManager.VERSION_CODE },
-        set = { PrefManager.VERSION_CODE = it },
+        current = { PrefManager.VERSION_CODE },
+        write = { PrefManager.VERSION_CODE = it },
         fallback = { Constants.VERSION_CODE },
         onSaved = { updateUserAgent() },
     ),
     ParamItem(
         title = "MANUFACTURER",
-        get = { PrefManager.MANUFACTURER },
-        set = { PrefManager.MANUFACTURER = it },
+        current = { PrefManager.MANUFACTURER },
+        write = { PrefManager.MANUFACTURER = it },
         fallback = { randomManufacturer() },
         onSaved = { PrefManager.xAppDevice = getDeviceCode(false) },
         systemValue = { Build.MANUFACTURER },
@@ -541,8 +541,8 @@ private fun buildParamItems(): List<ParamItem> = listOf(
     ),
     ParamItem(
         title = "BRAND",
-        get = { PrefManager.BRAND },
-        set = { PrefManager.BRAND = it },
+        current = { PrefManager.BRAND },
+        write = { PrefManager.BRAND = it },
         fallback = { randomBrand() },
         onSaved = {
             PrefManager.xAppDevice = getDeviceCode(false)
@@ -553,8 +553,8 @@ private fun buildParamItems(): List<ParamItem> = listOf(
     ),
     ParamItem(
         title = "MODEL",
-        get = { PrefManager.MODEL },
-        set = { PrefManager.MODEL = it },
+        current = { PrefManager.MODEL },
+        write = { PrefManager.MODEL = it },
         fallback = { randomDeviceModel() },
         onSaved = {
             PrefManager.xAppDevice = getDeviceCode(false)
@@ -565,8 +565,8 @@ private fun buildParamItems(): List<ParamItem> = listOf(
     ),
     ParamItem(
         title = "BUILDNUMBER",
-        get = { PrefManager.BUILDNUMBER },
-        set = { PrefManager.BUILDNUMBER = it },
+        current = { PrefManager.BUILDNUMBER },
+        write = { PrefManager.BUILDNUMBER = it },
         fallback = { randHexString(16) },
         onSaved = {
             PrefManager.xAppDevice = getDeviceCode(false)
@@ -577,16 +577,16 @@ private fun buildParamItems(): List<ParamItem> = listOf(
     ),
     ParamItem(
         title = "SDK_INT",
-        get = { PrefManager.SDK_INT },
-        set = { PrefManager.SDK_INT = it },
+        current = { PrefManager.SDK_INT },
+        write = { PrefManager.SDK_INT = it },
         fallback = { randomSdkInt() },
         systemValue = { Build.VERSION.SDK_INT.toString() },
         randomValue = { randomSdkInt() },
     ),
     ParamItem(
         title = "ANDROID_VERSION",
-        get = { PrefManager.ANDROID_VERSION },
-        set = { PrefManager.ANDROID_VERSION = it },
+        current = { PrefManager.ANDROID_VERSION },
+        write = { PrefManager.ANDROID_VERSION = it },
         fallback = { randomAndroidVersionRelease() },
         onSaved = { updateUserAgent() },
         systemValue = { Build.VERSION.RELEASE },
@@ -594,8 +594,8 @@ private fun buildParamItems(): List<ParamItem> = listOf(
     ),
     ParamItem(
         title = "USER_AGENT",
-        get = { PrefManager.USER_AGENT },
-        set = { PrefManager.USER_AGENT = it },
+        current = { PrefManager.USER_AGENT },
+        write = { PrefManager.USER_AGENT = it },
         fallback = { Constants.USER_AGENT },
     ),
 )

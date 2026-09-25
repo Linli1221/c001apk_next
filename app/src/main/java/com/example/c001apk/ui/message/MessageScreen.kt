@@ -46,7 +46,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.livedata.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.c001apk.R
 import com.example.c001apk.adapter.FooterState
@@ -90,18 +90,12 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 「我的 / 消息」页面（迁移 ui/message/ 下 MineFragment + MessageFirst/Second/ThirdAdapter +
- * MessageAdapter 的界面与交互）。
- *
- * - 头部：头像 + 昵称 + 等级 + 经验进度（未登录显示「点击登录」）
- * - 卡片一：动态 / 关注 / 粉丝 计数（MessageFirstAdapter）
- * - 卡片二：我的装备 / 浏览历史 / 我的常去 / 我的收藏 / 我的赞 / 我的回复（MessageSecondAdapter）
- * - 卡片三：@我的动态 / @我的评论 / 我收到的赞 / 好友关注 / 私信（MessageThirdAdapter，带未读角标）
- * - 通知列表：/v6/notification/list 的消息条目（MessageAdapter）
- *
- * 数据流全部复用 [MessageViewModel]（LiveData 用 observeAsState 桥接）；
- * 跳转默认行为复用现有 Activity，也可以用参数回调整体替换。
- */
+ * 銆屾垜鐨?/ 娑堟伅銆嶉〉闈紙杩佺Щ ui/message/ 涓?MineFragment + MessageFirst/Second/ThirdAdapter +
+ * MessageAdapter 鐨勭晫闈笌浜や簰锛夈€? *
+ * - 澶撮儴锛氬ご鍍?+ 鏄电О + 绛夌骇 + 缁忛獙杩涘害锛堟湭鐧诲綍鏄剧ず銆岀偣鍑荤櫥褰曘€嶏級
+ * - 鍗＄墖涓€锛氬姩鎬?/ 鍏虫敞 / 绮変笣 璁℃暟锛圡essageFirstAdapter锛? * - 鍗＄墖浜岋細鎴戠殑瑁呭 / 娴忚鍘嗗彶 / 鎴戠殑甯稿幓 / 鎴戠殑鏀惰棌 / 鎴戠殑璧?/ 鎴戠殑鍥炲锛圡essageSecondAdapter锛? * - 鍗＄墖涓夛細@鎴戠殑鍔ㄦ€?/ @鎴戠殑璇勮 / 鎴戞敹鍒扮殑璧?/ 濂藉弸鍏虫敞 / 绉佷俊锛圡essageThirdAdapter锛屽甫鏈瑙掓爣锛? * - 閫氱煡鍒楄〃锛?v6/notification/list 鐨勬秷鎭潯鐩紙MessageAdapter锛? *
+ * 鏁版嵁娴佸叏閮ㄥ鐢?[MessageViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛紱
+ * 璺宠浆榛樿琛屼负澶嶇敤鐜版湁 Activity锛屼篃鍙互鐢ㄥ弬鏁板洖璋冩暣浣撴浛鎹€? */
 @Composable
 fun MessageScreen(
     viewModel: MessageViewModel = viewModel(),
@@ -160,7 +154,7 @@ fun MessageScreen(
         IntentUtil.startActivity<SettingsActivity>(context) {}
     }
 
-    // ---------------- 状态桥接（LiveData -> Compose） ----------------
+    // ---------------- 鐘舵€佹ˉ鎺ワ紙LiveData -> Compose锛?----------------
     val countList by viewModel.countList.observeAsState(emptyList())
     val messTick by viewModel.messCountList.observeAsState()
     val messageData by viewModel.messageData.observeAsState(emptyList())
@@ -175,9 +169,7 @@ fun MessageScreen(
     var itemMenuTarget by remember { mutableStateOf<Pair<MessageResponse.Data, Int>?>(null) }
     var deleteTarget by remember { mutableStateOf<Pair<MessageResponse.Data, Int>?>(null) }
 
-    // 未读角标：CookieUtil.atme / atcommentme / feedlike / contacts_follow，
-    // messCountList 只是「刷新角标」的触发信号（与 MessageThirdAdapter.updateBadge 等价）。
-    val badgeCounts = remember(messTick) {
+    // 鏈瑙掓爣锛欳ookieUtil.atme / atcommentme / feedlike / contacts_follow锛?    // messCountList 鍙槸銆屽埛鏂拌鏍囥€嶇殑瑙﹀彂淇″彿锛堜笌 MessageThirdAdapter.updateBadge 绛変环锛夈€?    val badgeCounts = remember(messTick) {
         listOf(
             CookieUtil.atme ?: 0,
             CookieUtil.atcommentme ?: 0,
@@ -187,8 +179,7 @@ fun MessageScreen(
         )
     }
 
-    // 首次进入：与 MineFragment.getData() 一致
-    LaunchedEffect(Unit) {
+    // 棣栨杩涘叆锛氫笌 MineFragment.getData() 涓€鑷?    LaunchedEffect(Unit) {
         if (isLogin) {
             viewModel.lastItem = null
             viewModel.page = 1
@@ -200,8 +191,7 @@ fun MessageScreen(
         }
     }
 
-    // onResume：编辑资料（头像）返回后同步头部 + 消息角标清理（MineFragment.onResume）
-    val lifecycleOwner = LocalLifecycleOwner.current
+    // onResume锛氱紪杈戣祫鏂欙紙澶村儚锛夎繑鍥炲悗鍚屾澶撮儴 + 娑堟伅瑙掓爣娓呯悊锛圡ineFragment.onResume锛?    val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -220,7 +210,7 @@ fun MessageScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // 头部资料刷新（MineFragment.showProfile 在 LoadingDone 时执行）
+    // 澶撮儴璧勬枡鍒锋柊锛圡ineFragment.showProfile 鍦?LoadingDone 鏃舵墽琛岋級
     LaunchedEffect(loadingState) {
         if (loadingState is LoadingState.LoadingDone) {
             profile = MessageProfileSnapshot.capture()
@@ -229,20 +219,19 @@ fun MessageScreen(
         if (loadingState is LoadingState.LoadingFailed) refreshing = false
     }
 
-    // footer 进入非 Loading 状态即结束下拉刷新（MineFragment 中 SwipeRefreshLayout 的收起时机）
+    // footer 杩涘叆闈?Loading 鐘舵€佸嵆缁撴潫涓嬫媺鍒锋柊锛圡ineFragment 涓?SwipeRefreshLayout 鐨勬敹璧锋椂鏈猴級
     LaunchedEffect(footerState) {
         if (footerState != null && footerState !is FooterState.Loading) refreshing = false
     }
 
-    // Toast（Event 只消费一次）
+    // Toast锛圗vent 鍙秷璐逛竴娆★級
     LaunchedEffect(toastEvent) {
         toastEvent?.getContentIfNotHandledOrReturnNull()?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
         }
     }
 
-    // 加载更多：滚到最后一条时触发（MineFragment.initScroll 的 loadMore 判断）
-    val listState = rememberLazyListState()
+    // 鍔犺浇鏇村锛氭粴鍒版渶鍚庝竴鏉℃椂瑙﹀彂锛圡ineFragment.initScroll 鐨?loadMore 鍒ゆ柇锛?    val listState = rememberLazyListState()
     val atListEnd by remember {
         derivedStateOf {
             val info = listState.layoutInfo
@@ -262,16 +251,16 @@ fun MessageScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = "我的",
+                title = "鎴戠殑",
                 actions = {
                     if (isLogin) {
                         TextButton(
-                            text = "退出登录",
+                            text = "閫€鍑虹櫥褰?,
                             onClick = { showLogoutDialog = true }
                         )
                     }
                     IconButton(onClick = openSettings) {
-                        Icon(MiuixIcons.Settings, contentDescription = "设置")
+                        Icon(MiuixIcons.Settings, contentDescription = "璁剧疆")
                     }
                 }
             )
@@ -312,7 +301,7 @@ fun MessageScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // 头部：资料卡 / 登录入口
+                    // 澶撮儴锛氳祫鏂欏崱 / 鐧诲綍鍏ュ彛
                     item(key = "profile") {
                         if (isLogin) {
                             ProfileHeader(
@@ -328,14 +317,14 @@ fun MessageScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Button(onClick = login) {
-                                        Text("点击登录")
+                                        Text("鐐瑰嚮鐧诲綍")
                                     }
                                 }
                             }
                         }
                     }
 
-                    // 动态 / 关注 / 粉丝
+                    // 鍔ㄦ€?/ 鍏虫敞 / 绮変笣
                     if (isLogin) {
                         item(key = "fff") {
                             FffStatsCard(
@@ -345,7 +334,7 @@ fun MessageScreen(
                         }
                     }
 
-                    // 我的装备 / 浏览历史 / 我的常去 / 我的收藏 / 我的赞 / 我的回复
+                    // 鎴戠殑瑁呭 / 娴忚鍘嗗彶 / 鎴戠殑甯稿幓 / 鎴戠殑鏀惰棌 / 鎴戠殑璧?/ 鎴戠殑鍥炲
                     item(key = "mine") {
                         MineEntryCard(
                             isLogin = isLogin,
@@ -356,7 +345,7 @@ fun MessageScreen(
                         )
                     }
 
-                    // @我的动态 / @我的评论 / 我收到的赞 / 好友关注 / 私信
+                    // @鎴戠殑鍔ㄦ€?/ @鎴戠殑璇勮 / 鎴戞敹鍒扮殑璧?/ 濂藉弸鍏虫敞 / 绉佷俊
                     if (isLogin) {
                         item(key = "mess") {
                             MessageEntryCard(
@@ -375,7 +364,7 @@ fun MessageScreen(
                         }
                     }
 
-                    // 通知列表
+                    // 閫氱煡鍒楄〃
                     if (messageData.isEmpty() && isLogin && !refreshing) {
                         item(key = "empty") {
                             Box(
@@ -385,7 +374,7 @@ fun MessageScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "暂无消息",
+                                    text = "鏆傛棤娑堟伅",
                                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
                             }
@@ -417,9 +406,8 @@ fun MessageScreen(
                 }
             }
 
-            // 退出登录确认（原 MineFragment.doLogout 的 MaterialAlertDialog）
-            OverlayDialog(
-                title = "确定退出登录？",
+            // 閫€鍑虹櫥褰曠‘璁わ紙鍘?MineFragment.doLogout 鐨?MaterialAlertDialog锛?            OverlayDialog(
+                title = "纭畾閫€鍑虹櫥褰曪紵",
                 show = showLogoutDialog,
                 onDismissRequest = { showLogoutDialog = false }
             ) {
@@ -428,12 +416,12 @@ fun MessageScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextButton(
-                        text = "取消",
+                        text = "鍙栨秷",
                         onClick = { showLogoutDialog = false },
                         modifier = Modifier.weight(1f)
                     )
                     TextButton(
-                        text = "确定",
+                        text = "纭畾",
                         onClick = {
                             showLogoutDialog = false
                             performLogout(viewModel)
@@ -445,16 +433,15 @@ fun MessageScreen(
                 }
             }
 
-            // 条目菜单（原 MessageAdapter 的 PopupMenu：加入黑名单 / 举报）
-            itemMenuTarget?.let { (data, position) ->
+            // 鏉＄洰鑿滃崟锛堝師 MessageAdapter 鐨?PopupMenu锛氬姞鍏ラ粦鍚嶅崟 / 涓炬姤锛?            itemMenuTarget?.let { (data, position) ->
                 OverlayDialog(
-                    title = "来自 ${data.fromusername} 的通知",
+                    title = "鏉ヨ嚜 ${data.fromusername} 鐨勯€氱煡",
                     show = true,
                     onDismissRequest = { itemMenuTarget = null }
                 ) {
                     Column {
                         BasicComponent(
-                            title = "加入黑名单",
+                            title = "鍔犲叆榛戝悕鍗?,
                             onClick = {
                                 itemMenuTarget = null
                                 viewModel.saveUid(data.fromuid)
@@ -467,7 +454,7 @@ fun MessageScreen(
                             }
                         )
                         BasicComponent(
-                            title = "举报",
+                            title = "涓炬姤",
                             onClick = {
                                 itemMenuTarget = null
                                 IntentUtil.startActivity<WebViewActivity>(context) {
@@ -482,10 +469,9 @@ fun MessageScreen(
                 }
             }
 
-            // 长按删除（原 ItemListener.onMessLongClicked）
-            deleteTarget?.let { (data, position) ->
+            // 闀挎寜鍒犻櫎锛堝師 ItemListener.onMessLongClicked锛?            deleteTarget?.let { (data, position) ->
                 OverlayDialog(
-                    title = "删除来自 ${data.fromusername} 的通知？",
+                    title = "鍒犻櫎鏉ヨ嚜 ${data.fromusername} 鐨勯€氱煡锛?,
                     show = true,
                     onDismissRequest = { deleteTarget = null }
                 ) {
@@ -494,12 +480,12 @@ fun MessageScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         TextButton(
-                            text = "取消",
+                            text = "鍙栨秷",
                             onClick = { deleteTarget = null },
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(
-                            text = "确定",
+                            text = "纭畾",
                             onClick = {
                                 deleteTarget = null
                                 viewModel.onPostDelete(position, data.id)
@@ -513,9 +499,9 @@ fun MessageScreen(
     }
 }
 
-// ---------------------------------------------------------------- 页面分区
+// ---------------------------------------------------------------- 椤甸潰鍒嗗尯
 
-/** 头像 + 昵称 + 等级 + 经验进度（fragment_mine.xml 的 profileLayout） */
+/** 澶村儚 + 鏄电О + 绛夌骇 + 缁忛獙杩涘害锛坒ragment_mine.xml 鐨?profileLayout锛?*/
 @Composable
 private fun ProfileHeader(
     snapshot: MessageProfileSnapshot,
@@ -574,13 +560,13 @@ private fun ProfileHeader(
     }
 }
 
-/** 动态 / 关注 / 粉丝 三列计数（item_message_fff.xml + MessageFirstAdapter） */
+/** 鍔ㄦ€?/ 鍏虫敞 / 绮変笣 涓夊垪璁℃暟锛坕tem_message_fff.xml + MessageFirstAdapter锛?*/
 @Composable
 private fun FffStatsCard(
     counts: List<String>,
     onClick: (String) -> Unit
 ) {
-    val titles = listOf("动态", "关注", "粉丝")
+    val titles = listOf("鍔ㄦ€?, "鍏虫敞", "绮変笣")
     val types = listOf("feed", "follow", "fans")
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -619,7 +605,7 @@ private fun FffStatsCard(
     }
 }
 
-/** 我的装备 / 浏览历史 / 我的常去 / 我的收藏 / 我的赞 / 我的回复（item_message_mine.xml + MessageSecondAdapter） */
+/** 鎴戠殑瑁呭 / 娴忚鍘嗗彶 / 鎴戠殑甯稿幓 / 鎴戠殑鏀惰棌 / 鎴戠殑璧?/ 鎴戠殑鍥炲锛坕tem_message_mine.xml + MessageSecondAdapter锛?*/
 @Composable
 private fun MineEntryCard(
     isLogin: Boolean,
@@ -631,12 +617,12 @@ private fun MineEntryCard(
     data class Entry(val icon: Int, val title: String, val onClick: () -> Unit)
 
     val entries = listOf(
-        Entry(R.drawable.ic_device, "我的装备", { if (isLogin) onOpenDevice() }),
-        Entry(R.drawable.ic_history, "浏览历史", onOpenHistory),
-        Entry(R.drawable.ic_freq, "我的常去", { if (isLogin) onOpenFffList("recentHistory") }),
-        Entry(R.drawable.ic_star, "我的收藏", { if (isLogin) onOpenCollection() }),
-        Entry(R.drawable.ic_fav, "我的赞", { if (isLogin) onOpenFffList("like") }),
-        Entry(R.drawable.ic_chat, "我的回复", { if (isLogin) onOpenFffList("reply") })
+        Entry(R.drawable.ic_device, "鎴戠殑瑁呭", { if (isLogin) onOpenDevice() }),
+        Entry(R.drawable.ic_history, "娴忚鍘嗗彶", onOpenHistory),
+        Entry(R.drawable.ic_freq, "鎴戠殑甯稿幓", { if (isLogin) onOpenFffList("recentHistory") }),
+        Entry(R.drawable.ic_star, "鎴戠殑鏀惰棌", { if (isLogin) onOpenCollection() }),
+        Entry(R.drawable.ic_fav, "鎴戠殑璧?, { if (isLogin) onOpenFffList("like") }),
+        Entry(R.drawable.ic_chat, "鎴戠殑鍥炲", { if (isLogin) onOpenFffList("reply") })
     )
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -677,7 +663,7 @@ private fun MineEntryCard(
     }
 }
 
-/** @我的动态 / @我的评论 / 我收到的赞 / 好友关注 / 私信（item_message_mess.xml + MessageThirdAdapter） */
+/** @鎴戠殑鍔ㄦ€?/ @鎴戠殑璇勮 / 鎴戞敹鍒扮殑璧?/ 濂藉弸鍏虫敞 / 绉佷俊锛坕tem_message_mess.xml + MessageThirdAdapter锛?*/
 @Composable
 private fun MessageEntryCard(
     badgeCounts: List<Int>,
@@ -691,26 +677,26 @@ private fun MessageEntryCard(
         val contentColor: androidx.compose.ui.graphics.Color
     )
 
-    // 老代码用硬编码 hex 做图标底色；按迁移契约改为 MiuixTheme 语义色对
+    // 鑰佷唬鐮佺敤纭紪鐮?hex 鍋氬浘鏍囧簳鑹诧紱鎸夎縼绉诲绾︽敼涓?MiuixTheme 璇箟鑹插
     val entries = listOf(
         Entry(
-            "@我的动态", "atMe", R.drawable.ic_at,
+            "@鎴戠殑鍔ㄦ€?, "atMe", R.drawable.ic_at,
             MiuixTheme.colorScheme.primary, MiuixTheme.colorScheme.onPrimary
         ),
         Entry(
-            "@我的评论", "atCommentMe", R.drawable.ic_comment,
+            "@鎴戠殑璇勮", "atCommentMe", R.drawable.ic_comment,
             MiuixTheme.colorScheme.secondary, MiuixTheme.colorScheme.onSecondary
         ),
         Entry(
-            "我收到的赞", "feedLike", R.drawable.ic_thumb,
+            "鎴戞敹鍒扮殑璧?, "feedLike", R.drawable.ic_thumb,
             MiuixTheme.colorScheme.tertiaryContainer, MiuixTheme.colorScheme.onTertiaryContainer
         ),
         Entry(
-            "好友关注", "contactsFollow", R.drawable.ic_add,
+            "濂藉弸鍏虫敞", "contactsFollow", R.drawable.ic_add,
             MiuixTheme.colorScheme.error, MiuixTheme.colorScheme.onError
         ),
         Entry(
-            "私信", "list", R.drawable.ic_message1,
+            "绉佷俊", "list", R.drawable.ic_message1,
             MiuixTheme.colorScheme.secondaryContainer, MiuixTheme.colorScheme.onSecondaryContainer
         )
     )
@@ -771,7 +757,7 @@ private fun MessageEntryCard(
     }
 }
 
-/** 通知条目（item_message_item.xml + MessageAdapter） */
+/** 閫氱煡鏉＄洰锛坕tem_message_item.xml + MessageAdapter锛?*/
 @Composable
 private fun MessageNotificationItem(
     data: MessageResponse.Data,
@@ -811,7 +797,7 @@ private fun MessageNotificationItem(
                     ) {
                         Icon(
                             imageVector = MiuixIcons.More,
-                            contentDescription = "更多",
+                            contentDescription = "鏇村",
                             tint = MiuixTheme.colorScheme.onSurfaceVariantActions
                         )
                     }
@@ -836,9 +822,8 @@ private fun MessageNotificationItem(
     }
 }
 
-// ---------------------------------------------------------------- 公共小组件
-
-/** 用 Glide 链路加载圆形头像（不引入新图片库，见 CONVENTIONS §4） */
+// ---------------------------------------------------------------- 鍏叡灏忕粍浠?
+/** 鐢?Glide 閾捐矾鍔犺浇鍦嗗舰澶村儚锛堜笉寮曞叆鏂板浘鐗囧簱锛岃 CONVENTIONS 搂4锛?*/
 @Composable
 private fun GlideAvatar(
     url: String?,
@@ -866,7 +851,7 @@ internal fun MessageFooterRow(
     footerState: FooterState?,
     onRetry: () -> Unit
 ) {
-    when (footerState) {
+    when (val footer = footerState) {
         is FooterState.Loading -> {
             Box(
                 modifier = Modifier
@@ -886,11 +871,11 @@ internal fun MessageFooterRow(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = footerState.errMsg,
+                    text = footer.errMsg,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.error
                 )
-                TextButton(text = "重试", onClick = onRetry)
+                TextButton(text = "閲嶈瘯", onClick = onRetry)
             }
         }
 
@@ -902,7 +887,7 @@ internal fun MessageFooterRow(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = footerState.msg,
+                    text = footer.msg,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
@@ -913,14 +898,14 @@ internal fun MessageFooterRow(
     }
 }
 
-/** Html -> 纯文本（老代码用 LinkTextView 渲染 note/message，Compose 里先按纯文本显示） */
+/** Html -> 绾枃鏈紙鑰佷唬鐮佺敤 LinkTextView 娓叉煋 note/message锛孋ompose 閲屽厛鎸夌函鏂囨湰鏄剧ず锛?*/
 internal fun htmlToPlainText(html: String?): String {
     if (html.isNullOrEmpty()) return ""
     @Suppress("DEPRECATION")
     return Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY).toString().trim()
 }
 
-/** 原 MineFragment.doLogout 的状态清理（recreate 交给宿主 [onAfterLogout]） */
+/** 鍘?MineFragment.doLogout 鐨勭姸鎬佹竻鐞嗭紙recreate 浜ょ粰瀹夸富 [onAfterLogout]锛?*/
 private fun performLogout(viewModel: MessageViewModel) {
     viewModel.countList.value = emptyList()
     CookieUtil.atme = null
@@ -939,7 +924,7 @@ private fun performLogout(viewModel: MessageViewModel) {
     PrefManager.userAvatar = ""
 }
 
-/** 头部资料快照（PrefManager -> Compose 状态） */
+/** 澶撮儴璧勬枡蹇収锛圥refManager -> Compose 鐘舵€侊級 */
 internal data class MessageProfileSnapshot(
     val name: String,
     val level: String,
@@ -963,9 +948,8 @@ internal data class MessageProfileSnapshot(
 }
 
 /**
- * 默认跳转行为：复用老代码 ItemListener / IntentUtil 的跳转目标，
- * Screen 级回调参数可以整体替换。
- */
+ * 榛樿璺宠浆琛屼负锛氬鐢ㄨ€佷唬鐮?ItemListener / IntentUtil 鐨勮烦杞洰鏍囷紝
+ * Screen 绾у洖璋冨弬鏁板彲浠ユ暣浣撴浛鎹€? */
 internal object MessageNav {
 
     fun viewUser(context: Context, uid: String?) {
@@ -993,7 +977,7 @@ internal object MessageNav {
         }
     }
 
-    /** 复用 ItemListener.onMessClicked 的 note 链接解析（跳动态 / 网页） */
+    /** 澶嶇敤 ItemListener.onMessClicked 鐨?note 閾炬帴瑙ｆ瀽锛堣烦鍔ㄦ€?/ 缃戦〉锛?*/
     fun openMessNote(context: Context, note: String) {
         object : ItemListener {}.onMessClicked(View(context), note)
     }

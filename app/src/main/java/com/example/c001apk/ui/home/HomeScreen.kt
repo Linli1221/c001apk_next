@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.R
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -29,21 +29,13 @@ import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.icon.extended.Search
 
 /**
- * 首页骨架（迁移自 HomeFragment + fragment_home.xml）：
- * 顶部 TabRow（tab 列表来自 HomeViewModel.tabListLiveData，数据库为空时回落默认 tab）
- * + 搜索按钮（SearchActivity）+ 编辑 Tab 按钮（CopyActivity("homeMenu")），
- * 内容区是插槽，由宿主按 tab 标题决定放哪个页面（关注/头条/热榜/酷图 → HomeFeedScreen，
- * 应用 → AppList、话题/数码 → HomeTopic，均为其它迁移组的产出）。
- *
- * 状态复用现有 [HomeViewModel]（LiveData 用 observeAsState 桥接），不在本文件写业务逻辑。
- *
- * @param viewModel 复用现有 HomeViewModel（tab 数据源、position）
- * @param onSearchClick 搜索按钮点击（原：跳 SearchActivity，接线轮由宿主实现）
- * @param onEditTabsClick 编辑 Tab 按钮点击（原：跳 CopyActivity("homeMenu")）
- * @param onTabReselected tab 再次点击（原「关注」弹分组选择、其余回顶+刷新并显示底部导航）
- * @param tabContent 内容区插槽：(当前 tab 标题, tab 再选计数器)；计数器每次 tab 重选 +1，
- * 便于子页面（如 HomeFeedScreen）响应「回到顶部/弹关注分组」
- */
+ * 棣栭〉楠ㄦ灦锛堣縼绉昏嚜 HomeFragment + fragment_home.xml锛夛細
+ * 椤堕儴 TabRow锛坱ab 鍒楄〃鏉ヨ嚜 HomeViewModel.tabListLiveData锛屾暟鎹簱涓虹┖鏃跺洖钀介粯璁?tab锛? * + 鎼滅储鎸夐挳锛圫earchActivity锛? 缂栬緫 Tab 鎸夐挳锛圕opyActivity("homeMenu")锛夛紝
+ * 鍐呭鍖烘槸鎻掓Ы锛岀敱瀹夸富鎸?tab 鏍囬鍐冲畾鏀惧摢涓〉闈紙鍏虫敞/澶存潯/鐑/閰峰浘 鈫?HomeFeedScreen锛? * 搴旂敤 鈫?AppList銆佽瘽棰?鏁扮爜 鈫?HomeTopic锛屽潎涓哄叾瀹冭縼绉荤粍鐨勪骇鍑猴級銆? *
+ * 鐘舵€佸鐢ㄧ幇鏈?[HomeViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛紝涓嶅湪鏈枃浠跺啓涓氬姟閫昏緫銆? *
+ * @param viewModel 澶嶇敤鐜版湁 HomeViewModel锛坱ab 鏁版嵁婧愩€乸osition锛? * @param onSearchClick 鎼滅储鎸夐挳鐐瑰嚮锛堝師锛氳烦 SearchActivity锛屾帴绾胯疆鐢卞涓诲疄鐜帮級
+ * @param onEditTabsClick 缂栬緫 Tab 鎸夐挳鐐瑰嚮锛堝師锛氳烦 CopyActivity("homeMenu")锛? * @param onTabReselected tab 鍐嶆鐐瑰嚮锛堝師銆屽叧娉ㄣ€嶅脊鍒嗙粍閫夋嫨銆佸叾浣欏洖椤?鍒锋柊骞舵樉绀哄簳閮ㄥ鑸級
+ * @param tabContent 鍐呭鍖烘彃妲斤細(褰撳墠 tab 鏍囬, tab 鍐嶉€夎鏁板櫒)锛涜鏁板櫒姣忔 tab 閲嶉€?+1锛? * 渚夸簬瀛愰〉闈紙濡?HomeFeedScreen锛夊搷搴斻€屽洖鍒伴《閮?寮瑰叧娉ㄥ垎缁勩€? */
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -57,7 +49,7 @@ fun HomeScreen(
     var tabReselectedTick by remember { mutableIntStateOf(0) }
     var selectedIndex by remember { mutableIntStateOf(-1) }
 
-    // 与旧 HomeFragment 观察者一致：数据库空 → 写默认 tab；全部被禁用 → 恢复默认
+    // 涓庢棫 HomeFragment 瑙傚療鑰呬竴鑷达細鏁版嵁搴撶┖ 鈫?鍐欓粯璁?tab锛涘叏閮ㄨ绂佺敤 鈫?鎭㈠榛樿
     LaunchedEffect(tabList) {
         val list = tabList.orEmpty()
         when {
@@ -72,11 +64,10 @@ fun HomeScreen(
         else titles
     }
 
-    // 首次进入默认落在「头条」（对应旧 viewModel.isInit 分支）
-    val currentIndex: Int = when {
+    // 棣栨杩涘叆榛樿钀藉湪銆屽ご鏉°€嶏紙瀵瑰簲鏃?viewModel.isInit 鍒嗘敮锛?    val currentIndex: Int = when {
         selectedIndex in enableList.indices -> selectedIndex
         enableList.isEmpty() -> 0
-        else -> enableList.indexOfFirst { it == "头条" }.coerceAtLeast(0)
+        else -> enableList.indexOfFirst { it == "澶存潯" }.coerceAtLeast(0)
     }
 
     Scaffold(

@@ -36,7 +36,7 @@ c001apk_next 是一个 View 体系（XML + ViewBinding/DataBinding + Material）
 - 一个页面级 `@Composable`（可拆多个文件），放自己的目录，命名 `<名字>Screen.kt`。
 - 函数参数：把业务状态/回调**提升**为参数（或复用现有 ViewModel），不要在 Composable 里 new 业务逻辑。
 - 复用现有 ViewModel（`androidx.lifecycle.ViewModel` + `LiveData`）：
-  - 在 `Screen` 里用 `viewModel.xxx.observeAsState()`（`androidx.lifecycle:lifecycle-livedata-compose`）或
+  - 在 `Screen` 里用 `viewModel.xxx.observeAsState()`（**import `androidx.compose.runtime.livedata.observeAsState`**，来自 `androidx.compose.runtime:runtime-livedata`——注意不是 `androidx.lifecycle.compose.*`，那个制品不存在）或
     `by viewModel.xxx`（`lifecycle-viewmodel-compose`）取状态；不要重写 ViewModel/Repository。
 - **不要自己套 `MiuixTheme`**：根主题是 `com.example.c001apk.ui.theme.MiuixAppTheme`（另一代理在写，签名如下，
   可以假定存在）：

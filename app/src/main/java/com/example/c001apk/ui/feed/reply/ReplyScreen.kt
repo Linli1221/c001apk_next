@@ -1,7 +1,6 @@
 package com.example.c001apk.ui.feed.reply
 
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -39,7 +38,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.state.ToggleableState
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.R
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.logic.model.HomeFeedResponse
@@ -66,14 +65,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.util.UUID
 
 /*
- * 回复页（Compose 版 ReplyActivity + activity_reply.xml）：
- * 回复列表（可选，数据由宿主传入） + 发回复输入区（正文 / 表情 / 图片 / @用户 / #话题# / 外链 / 发布）。
- *
- * 数据流完全复用 [ReplyViewModel]（LiveData 用 observeAsState 桥接），本文件只负责界面与交互。
- * 发布时的 replyAndFeedData 组装逻辑按 ReplyActivity.onClick(R.id.publish) 原样移植。
- */
+ * 鍥炲椤碉紙Compose 鐗?ReplyActivity + activity_reply.xml锛夛細
+ * 鍥炲鍒楄〃锛堝彲閫夛紝鏁版嵁鐢卞涓讳紶鍏ワ級 + 鍙戝洖澶嶈緭鍏ュ尯锛堟鏂?/ 琛ㄦ儏 / 鍥剧墖 / @鐢ㄦ埛 / #璇濋# / 澶栭摼 / 鍙戝竷锛夈€? *
+ * 鏁版嵁娴佸畬鍏ㄥ鐢?[ReplyViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛紝鏈枃浠跺彧璐熻矗鐣岄潰涓庝氦浜掋€? * 鍙戝竷鏃剁殑 replyAndFeedData 缁勮閫昏緫鎸?ReplyActivity.onClick(R.id.publish) 鍘熸牱绉绘銆? */
 
-/** 选中的图片附件（Glide 缩略图 + OSS 上传准备信息） */
+/** 閫変腑鐨勫浘鐗囬檮浠讹紙Glide 缂╃暐鍥?+ OSS 涓婁紶鍑嗗淇℃伅锛?*/
 private class ReplyAttachment(
     val uri: Uri,
     val type: String,
@@ -105,13 +101,13 @@ fun ReplyScreen(
 ) {
     val context = LocalContext.current
 
-    // 与 ReplyActivity.onCreate 一致：先把 type/rid 交给 ViewModel
+    // 涓?ReplyActivity.onCreate 涓€鑷达細鍏堟妸 type/rid 浜ょ粰 ViewModel
     LaunchedEffect(Unit) {
         viewModel.type = type
         viewModel.rid = rid
     }
 
-    // ---------- 状态 ----------
+    // ---------- 鐘舵€?----------
     var text by remember {
         mutableStateOf(
             TextFieldValue(
@@ -146,7 +142,7 @@ fun ReplyScreen(
 
     val canPublish = text.text.isNotBlank()
 
-    // ---------- 光标处插入 / 删除（表情、@、#话题#） ----------
+    // ---------- 鍏夋爣澶勬彃鍏?/ 鍒犻櫎锛堣〃鎯呫€丂銆?璇濋#锛?----------
     fun insertAtCursor(s: String) {
         val start = text.selection.min
         val end = text.selection.max
@@ -163,8 +159,7 @@ fun ReplyScreen(
     }
 
     fun insertAtResult(s: String) {
-        // 用户输入「@」触发时替换掉光标前的 @（对应老代码 isFromAt 分支）
-        val cursor = text.selection.start
+        // 鐢ㄦ埛杈撳叆銆孈銆嶈Е鍙戞椂鏇挎崲鎺夊厜鏍囧墠鐨?@锛堝搴旇€佷唬鐮?isFromAt 鍒嗘敮锛?        val cursor = text.selection.start
         if (isFromAt && cursor > 0 && text.text.getOrNull(cursor - 1) == '@') {
             val newText = text.text.replaceRange(cursor - 1, cursor, s)
             text = TextFieldValue(newText, TextRange(cursor - 1 + s.length))
@@ -174,13 +169,13 @@ fun ReplyScreen(
         isFromAt = false
     }
 
-    // ---------- 选图（PickMultipleVisualMedia(9)，逻辑按 ReplyActivity.initPhotoPick 移植） ----------
+    // ---------- 閫夊浘锛圥ickMultipleVisualMedia(9)锛岄€昏緫鎸?ReplyActivity.initPhotoPick 绉绘锛?----------
     val pickMultipleMedia =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(9)) { uris ->
             runCatching {
                 uris.forEach { uri ->
                     if (attachments.size == 9) {
-                        onToast("最多选择9张图片")
+                        onToast("鏈€澶氶€夋嫨9寮犲浘鐗?)
                         return@forEach
                     }
                     val result = getImageDimensionsAndMD5(context.contentResolver, uri)
@@ -205,11 +200,11 @@ fun ReplyScreen(
                     )
                 }
             }.onFailure {
-                onToast("获取图片信息失败: ${it.message}")
+                onToast("鑾峰彇鍥剧墖淇℃伅澶辫触: ${it.message}")
             }
         }
 
-    // ---------- LiveData 事件桥接 ----------
+    // ---------- LiveData 浜嬩欢妗ユ帴 ----------
     val overEvent by viewModel.over.observeAsState()
     val toastEvent by viewModel.toastText.observeAsState()
     val uploadEvent by viewModel.uploadImage.observeAsState()
@@ -219,7 +214,7 @@ fun ReplyScreen(
     LaunchedEffect(overEvent) {
         overEvent?.getContentIfNotHandledOrReturnNull()?.let {
             posting = false
-            onToast(if (type == "createFeed" || type == "rating") "发布成功" else "回复成功")
+            onToast(if (type == "createFeed" || type == "rating") "鍙戝竷鎴愬姛" else "鍥炲鎴愬姛")
             onFinish()
         }
     }
@@ -249,8 +244,7 @@ fun ReplyScreen(
         }
     }
 
-    // 图片上传（逻辑按 ReplyActivity.initObserve 的 uploadImage 分支移植）
-    LaunchedEffect(uploadEvent) {
+    // 鍥剧墖涓婁紶锛堥€昏緫鎸?ReplyActivity.initObserve 鐨?uploadImage 鍒嗘敮绉绘锛?    LaunchedEffect(uploadEvent) {
         val responseData = uploadEvent?.getContentIfNotHandledOrReturnNull() ?: return@LaunchedEffect
         val uriList = attachments.map { it.uri }
         viewModel.replyAndFeedData["pic"] =
@@ -272,24 +266,24 @@ fun ReplyScreen(
                 },
                 iOnFailure = {
                     posting = false
-                    onToast("图片上传失败")
+                    onToast("鍥剧墖涓婁紶澶辫触")
                 },
                 closeDialog = {},
             )
         }.onFailure {
             posting = false
-            onToast("图片上传失败: ${it.message}")
+            onToast("鍥剧墖涓婁紶澶辫触: ${it.message}")
         }
     }
 
-    // ---------- 发布（按 ReplyActivity.onClick(R.id.publish) 移植） ----------
+    // ---------- 鍙戝竷锛堟寜 ReplyActivity.onClick(R.id.publish) 绉绘锛?----------
     fun publish() {
         when (type) {
             "createFeed" -> {
                 viewModel.replyAndFeedData["id"] = ""
                 viewModel.replyAndFeedData["message"] = text.text
                 viewModel.replyAndFeedData["type"] = "feed"
-                // 酷安 16.2.2 起「仅自己可见」改为 publish_status：1=仅自己可见，0=公开
+                // 閰峰畨 16.2.2 璧枫€屼粎鑷繁鍙銆嶆敼涓?publish_status锛?=浠呰嚜宸卞彲瑙侊紝0=鍏紑
                 viewModel.replyAndFeedData["status"] = "1"
                 viewModel.replyAndFeedData["publish_status"] = if (replyAndForward) "1" else "0"
                 targetType?.let {
@@ -300,8 +294,7 @@ fun ReplyScreen(
             }
 
             "rating" -> {
-                // rating_score_1 为 0~10 总体分，v4_score_item_1..n 为各子项 0~5 分
-                viewModel.replyAndFeedData.apply {
+                // rating_score_1 涓?0~10 鎬讳綋鍒嗭紝v4_score_item_1..n 涓哄悇瀛愰」 0~5 鍒?                viewModel.replyAndFeedData.apply {
                     put("id", "")
                     put("message", text.text)
                     put("type", "rating")
@@ -334,15 +327,14 @@ fun ReplyScreen(
         }
     }
 
-    // ---------- 页面 ----------
+    // ---------- 椤甸潰 ----------
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            // 上半区：回复列表（有数据时）/ 点击空白关闭（对应老布局的 out 视图）
-            if (replyList.isNotEmpty()) {
+            // 涓婂崐鍖猴細鍥炲鍒楄〃锛堟湁鏁版嵁鏃讹級/ 鐐瑰嚮绌虹櫧鍏抽棴锛堝搴旇€佸竷灞€鐨?out 瑙嗗浘锛?            if (replyList.isNotEmpty()) {
                 val listState = rememberLazyListState()
                 LazyColumn(
                     state = listState,
@@ -386,7 +378,7 @@ fun ReplyScreen(
                 )
             }
 
-            // 发表点评（type=rating）：评分面板
+            // 鍙戣〃鐐硅瘎锛坱ype=rating锛夛細璇勫垎闈㈡澘
             if (type == "rating") {
                 RatingInputPanel(
                     ratingTarget = ratingTarget.orEmpty(),
@@ -404,7 +396,7 @@ fun ReplyScreen(
                 )
             }
 
-            // 发回复输入区
+            // 鍙戝洖澶嶈緭鍏ュ尯
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 0.dp,
@@ -412,17 +404,17 @@ fun ReplyScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = when (type) {
-                            "createFeed" -> "发布动态"
-                            "createArticle" -> "发布图文"
-                            "rating" -> "发表点评"
-                            else -> "回复"
+                            "createFeed" -> "鍙戝竷鍔ㄦ€?
+                            "createArticle" -> "鍙戝竷鍥炬枃"
+                            "rating" -> "鍙戣〃鐐硅瘎"
+                            else -> "鍥炲"
                         },
                         style = MiuixTheme.textStyles.title3,
                         modifier = Modifier.padding(vertical = 12.dp),
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(
-                        text = "发布",
+                        text = "鍙戝竷",
                         onClick = { if (canPublish && !posting) publish() },
                         enabled = canPublish && !posting,
                         colors = if (canPublish) ButtonDefaults.textButtonColors(
@@ -447,8 +439,8 @@ fun ReplyScreen(
                             }
                         }
                     },
-                    label = if (type != "createFeed" && !username.isNullOrEmpty()) "回复: $username"
-                    else "说点什么…",
+                    label = if (type != "createFeed" && !username.isNullOrEmpty()) "鍥炲: $username"
+                    else "璇寸偣浠€涔堚€?,
                     useLabelAsPlaceholder = true,
                     minLines = 4,
                     maxLines = 8,
@@ -465,8 +457,7 @@ fun ReplyScreen(
                         .padding(end = 20.dp, top = 4.dp),
                 )
 
-                // 外链卡片（createFeed 添加网络链接后展示，点击移除）
-                if (extraUrl.isNotEmpty()) {
+                // 澶栭摼鍗＄墖锛坈reateFeed 娣诲姞缃戠粶閾炬帴鍚庡睍绀猴紝鐐瑰嚮绉婚櫎锛?                if (extraUrl.isNotEmpty()) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -514,15 +505,14 @@ fun ReplyScreen(
                             onClick = { replyAndForward = !replyAndForward },
                         )
                         Text(
-                            text = if (type == "createFeed") "仅自己可见" else "回复并转发",
+                            text = if (type == "createFeed") "浠呰嚜宸卞彲瑙? else "鍥炲骞惰浆鍙?,
                             style = MiuixTheme.textStyles.body2,
                             modifier = Modifier.clickable { replyAndForward = !replyAndForward },
                         )
                     }
                 }
 
-                // 图片附件缩略图（点击移除）
-                if (attachments.isNotEmpty()) {
+                // 鍥剧墖闄勪欢缂╃暐鍥撅紙鐐瑰嚮绉婚櫎锛?                if (attachments.isNotEmpty()) {
                     LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -549,14 +539,14 @@ fun ReplyScreen(
                     thickness = 0.5.dp,
                 )
 
-                // 工具栏：表情 / 图片 / @用户 / #话题# / 外链(仅 createFeed) / 键盘
+                // 宸ュ叿鏍忥細琛ㄦ儏 / 鍥剧墖 / @鐢ㄦ埛 / #璇濋# / 澶栭摼(浠?createFeed) / 閿洏
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     ToolbarIconButton(
                         icon = R.drawable.ic_emoji,
-                        contentDescription = "表情",
+                        contentDescription = "琛ㄦ儏",
                         modifier = Modifier.weight(1f),
                         onClick = {
                             showEmojiSheet = !showEmojiSheet
@@ -564,7 +554,7 @@ fun ReplyScreen(
                     )
                     ToolbarIconButton(
                         icon = R.drawable.ic_image,
-                        contentDescription = "图片",
+                        contentDescription = "鍥剧墖",
                         modifier = Modifier.weight(1f),
                         onClick = {
                             pickMultipleMedia.launch(
@@ -574,7 +564,7 @@ fun ReplyScreen(
                     )
                     ToolbarIconButton(
                         icon = R.drawable.ic_at,
-                        contentDescription = "@用户",
+                        contentDescription = "@鐢ㄦ埛",
                         modifier = Modifier.weight(1f),
                         onClick = {
                             isFromAt = false
@@ -583,24 +573,24 @@ fun ReplyScreen(
                     )
                     ToolbarIconButton(
                         icon = R.drawable.outline_tag_24,
-                        contentDescription = "#话题#",
+                        contentDescription = "#璇濋#",
                         modifier = Modifier.weight(1f),
                         onClick = { showTopicSheet = true },
                     )
                     if (type == "createFeed") {
                         ToolbarIconButton(
                             icon = R.drawable.outline_add_circle_outline_24,
-                            contentDescription = "添加网络链接",
+                            contentDescription = "娣诲姞缃戠粶閾炬帴",
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                // 外链录入：OverlayDialog 输入网址后走 loadShareUrl
+                                // 澶栭摼褰曞叆锛歄verlayDialog 杈撳叆缃戝潃鍚庤蛋 loadShareUrl
                                 showUrlDialog = true
                             },
                         )
                     }
                     ToolbarIconButton(
                         icon = R.drawable.outline_keyboard_show_24,
-                        contentDescription = "收起表情面板",
+                        contentDescription = "鏀惰捣琛ㄦ儏闈㈡澘",
                         modifier = Modifier.weight(1f),
                         onClick = {
                             if (showEmojiSheet) showEmojiSheet = false
@@ -610,7 +600,7 @@ fun ReplyScreen(
             }
         }
 
-        // ---------- 弹层（Overlay* 需要 Scaffold 祖先） ----------
+        // ---------- 寮瑰眰锛圤verlay* 闇€瑕?Scaffold 绁栧厛锛?----------
         EmojiPickerSheet(
             show = showEmojiSheet,
             onDismissRequest = { showEmojiSheet = false },
@@ -635,8 +625,7 @@ fun ReplyScreen(
             onToast = onToast,
         )
 
-        // 添加网络链接（createFeed）
-        UrlInputDialog(
+        // 娣诲姞缃戠粶閾炬帴锛坈reateFeed锛?        UrlInputDialog(
             show = showUrlDialog,
             onDismissRequest = { showUrlDialog = false },
             onConfirm = { url ->
@@ -648,8 +637,7 @@ fun ReplyScreen(
             },
         )
 
-        // 图形验证码（err_request_captcha）
-        if (captchaBitmap != null) {
+        // 鍥惧舰楠岃瘉鐮侊紙err_request_captcha锛?        if (captchaBitmap != null) {
             OverlayDialog(
                 show = true,
                 title = "captcha",
@@ -665,7 +653,7 @@ fun ReplyScreen(
                     TextField(
                         value = captchaCode,
                         onValueChange = { captchaCode = it },
-                        label = "验证码",
+                        label = "楠岃瘉鐮?,
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                         modifier = Modifier
@@ -674,13 +662,13 @@ fun ReplyScreen(
                     )
                     Row(modifier = Modifier.padding(top = 12.dp)) {
                         TextButton(
-                            text = "取消",
+                            text = "鍙栨秷",
                             onClick = { captchaBitmap = null },
                             modifier = Modifier.weight(1f),
                         )
                         Spacer(modifier = Modifier.width(20.dp))
                         TextButton(
-                            text = "验证并继续",
+                            text = "楠岃瘉骞剁户缁?,
                             onClick = {
                                 viewModel.requestValidateData = HashMap<String, String?>().apply {
                                     put("type", "err_request_captcha")
@@ -703,7 +691,7 @@ fun ReplyScreen(
             }
         }
 
-        // 发送中遮罩（替代老的 dialog_refresh 进度对话框）
+        // 鍙戦€佷腑閬僵锛堟浛浠ｈ€佺殑 dialog_refresh 杩涘害瀵硅瘽妗嗭級
         if (posting) {
             Box(
                 modifier = Modifier
@@ -718,7 +706,7 @@ fun ReplyScreen(
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            text = "发送中…",
+                            text = "鍙戦€佷腑鈥?,
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.padding(top = 12.dp),
@@ -730,7 +718,7 @@ fun ReplyScreen(
     }
 }
 
-/** 工具栏图标按钮（对应老布局底部一排 ImageView 按钮） */
+/** 宸ュ叿鏍忓浘鏍囨寜閽紙瀵瑰簲鑰佸竷灞€搴曢儴涓€鎺?ImageView 鎸夐挳锛?*/
 @Composable
 private fun ToolbarIconButton(
     icon: Int,
@@ -751,7 +739,7 @@ private fun ToolbarIconButton(
     }
 }
 
-/** 简易星级打分（0..max）：Miuix 无星评组件，用基础组件拼（自定义 wrapper，应用层持有） */
+/** 绠€鏄撴槦绾ф墦鍒嗭紙0..max锛夛細Miuix 鏃犳槦璇勭粍浠讹紝鐢ㄥ熀纭€缁勪欢鎷硷紙鑷畾涔?wrapper锛屽簲鐢ㄥ眰鎸佹湁锛?*/
 @Composable
 private fun StarRatingBar(
     rating: Int,
@@ -762,7 +750,7 @@ private fun StarRatingBar(
     Row(modifier = modifier) {
         for (i in 1..max) {
             Text(
-                text = "★",
+                text = "鈽?,
                 style = MiuixTheme.textStyles.main,
                 color = if (i <= rating) MiuixTheme.colorScheme.primary
                 else MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -775,9 +763,7 @@ private fun StarRatingBar(
 }
 
 /**
- * 发表点评（type=rating）评分面板：总体评分 + 各子项 + 优点/不足 + 已购机。
- * 对应 activity_reply.xml 的 ratingLayout。
- */
+ * 鍙戣〃鐐硅瘎锛坱ype=rating锛夎瘎鍒嗛潰鏉匡細鎬讳綋璇勫垎 + 鍚勫瓙椤?+ 浼樼偣/涓嶈冻 + 宸茶喘鏈恒€? * 瀵瑰簲 activity_reply.xml 鐨?ratingLayout銆? */
 @Composable
 private fun RatingInputPanel(
     ratingTarget: String,
@@ -805,7 +791,7 @@ private fun RatingInputPanel(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = "总体评分",
+            text = "鎬讳綋璇勫垎",
             style = MiuixTheme.textStyles.body1,
             modifier = Modifier.padding(top = 12.dp),
         )
@@ -829,7 +815,7 @@ private fun RatingInputPanel(
                 modifier = Modifier.padding(top = 2.dp),
             )
             Text(
-                text = if (star > 0) item.starDesc?.getOrNull(star - 1)?.let { "${item.name}：$it" }.orEmpty()
+                text = if (star > 0) item.starDesc?.getOrNull(star - 1)?.let { "${item.name}锛?it" }.orEmpty()
                 else "",
                 style = MiuixTheme.textStyles.footnote2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -838,7 +824,7 @@ private fun RatingInputPanel(
         TextField(
             value = goodText,
             onValueChange = onGoodTextChange,
-            label = "优点（选填）",
+            label = "浼樼偣锛堥€夊～锛?,
             useLabelAsPlaceholder = true,
             minLines = 1,
             maxLines = 3,
@@ -849,7 +835,7 @@ private fun RatingInputPanel(
         TextField(
             value = badText,
             onValueChange = onBadTextChange,
-            label = "不足（选填）",
+            label = "涓嶈冻锛堥€夊～锛?,
             useLabelAsPlaceholder = true,
             minLines = 1,
             maxLines = 3,
@@ -866,7 +852,7 @@ private fun RatingInputPanel(
                 onClick = { onBuyStatusChange(!buyStatus) },
             )
             Text(
-                text = "已购买此机型",
+                text = "宸茶喘涔版鏈哄瀷",
                 style = MiuixTheme.textStyles.body2,
                 modifier = Modifier.clickable { onBuyStatusChange(!buyStatus) },
             )
@@ -874,7 +860,7 @@ private fun RatingInputPanel(
     }
 }
 
-/** 验证码图片（Bitmap → AndroidView） */
+/** 楠岃瘉鐮佸浘鐗囷紙Bitmap 鈫?AndroidView锛?*/
 @Composable
 private fun CaptchaImage(
     bitmap: android.graphics.Bitmap?,
@@ -887,7 +873,7 @@ private fun CaptchaImage(
     )
 }
 
-/** 添加网络链接输入对话框（createFeed，对应老代码 urlBtn 的 MaterialAlertDialog） */
+/** 娣诲姞缃戠粶閾炬帴杈撳叆瀵硅瘽妗嗭紙createFeed锛屽搴旇€佷唬鐮?urlBtn 鐨?MaterialAlertDialog锛?*/
 @Composable
 private fun UrlInputDialog(
     show: Boolean,
@@ -897,7 +883,7 @@ private fun UrlInputDialog(
     var url by remember(show) { mutableStateOf("") }
     OverlayDialog(
         show = show,
-        title = "添加网络链接",
+        title = "娣诲姞缃戠粶閾炬帴",
         onDismissRequest = onDismissRequest,
     ) {
         Column {
@@ -911,13 +897,13 @@ private fun UrlInputDialog(
             )
             Row(modifier = Modifier.padding(top = 12.dp)) {
                 TextButton(
-                    text = "取消",
+                    text = "鍙栨秷",
                     onClick = onDismissRequest,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(modifier = Modifier.width(20.dp))
                 TextButton(
-                    text = "确定",
+                    text = "纭畾",
                     onClick = { onConfirm(url) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColors(

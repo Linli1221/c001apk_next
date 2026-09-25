@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_EMPTY
@@ -57,35 +57,16 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 /**
- * 通用「feed 列表页」：SwipeRefreshLayout + RecyclerView（BaseAppFragment）的 Compose 对应物。
- *
- * 冷图（CoolPic）、轮播/活动（Carousel）两组页面的列表内容都由 [BaseAppViewModel] 系
- * （[com.example.c001apk.ui.collection.CollectionContentViewModel] / [CarouselViewModel]）驱动，
- * 因此这里统一桥接：`dataList` / `loadingState` / `footerState` / `toastText` 用 observeAsState
- * 取状态，刷新/翻页直接调用 ViewModel 现有方法（复刻 BaseViewFragment 的 refreshData/loadMore 语义）。
- *
- * **数据流（与老代码对齐）**
- * - 首次组合：`loadingState = Loading` 后 `refreshFromStart()`（= 旧 `loadingState=Loading → refreshData()`）。
- * - 下拉刷新：[PullToRefresh] 包 LazyColumn，`onRefresh` 走 `refreshFromStart()`。
- * - 触底翻页：滚动停止（等价旧 SCROLL_STATE_IDLE）且最后一项可见时 `loadMore()`；
- *   底部 footer 出错时也可点击重试。
- * - `listSize` 在 dataList 变化时回写 ViewModel（旧 BaseAppFragment 同款，VM 分页判断依赖它）。
- *
- * **图片**：沿用 ui/common 的 [SimpleImage] / [NineGrid]（AndroidView + 现有 Glide 链路，
- * 九宫格自带 Mojito 大图预览），不引入新图片库。
- *
- * **参数**
- * @param viewModel 列表 ViewModel（BaseAppViewModel 子类），状态全部来自它，不在本组件内创建业务逻辑。
- * @param modifier 应用于最外层容器的 [Modifier]。
- * @param contentPadding LazyColumn 的内容内边距（顶栏/标签栏占位由调用方折算）。
- * @param onOpenItem 点击条目回调（跳动态详情等，由宿主接线）。
- * @param onOpenImage 点击大图回调（默认走 NineGrid 内部 Mojito 预览，通常不用传）。
- * @param onOpenUser 点击头像/昵称回调（跳用户主页）。
- * @param onShowCollection 点击「图集/合集」条目回调（旧 `showCollection` 事件）。
- * @param onLikeClick 点赞回调；null 时点赞项不可点击（点赞走 VM `ItemListener.onLikeClick`，由宿主接线）。
- *
- * **祖先要求**：必须位于根主题 `MiuixAppTheme` 之内。本组件不含 Scaffold/TopAppBar，由页面 Screen 提供。
- */
+ * 閫氱敤銆宖eed 鍒楄〃椤点€嶏細SwipeRefreshLayout + RecyclerView锛圔aseAppFragment锛夌殑 Compose 瀵瑰簲鐗┿€? *
+ * 鍐峰浘锛圕oolPic锛夈€佽疆鎾?娲诲姩锛圕arousel锛変袱缁勯〉闈㈢殑鍒楄〃鍐呭閮界敱 [BaseAppViewModel] 绯? * 锛圼com.example.c001apk.ui.collection.CollectionContentViewModel] / [CarouselViewModel]锛夐┍鍔紝
+ * 鍥犳杩欓噷缁熶竴妗ユ帴锛歚dataList` / `loadingState` / `footerState` / `toastText` 鐢?observeAsState
+ * 鍙栫姸鎬侊紝鍒锋柊/缈婚〉鐩存帴璋冪敤 ViewModel 鐜版湁鏂规硶锛堝鍒?BaseViewFragment 鐨?refreshData/loadMore 璇箟锛夈€? *
+ * **鏁版嵁娴侊紙涓庤€佷唬鐮佸榻愶級**
+ * - 棣栨缁勫悎锛歚loadingState = Loading` 鍚?`refreshFromStart()`锛? 鏃?`loadingState=Loading 鈫?refreshData()`锛夈€? * - 涓嬫媺鍒锋柊锛歔PullToRefresh] 鍖?LazyColumn锛宍onRefresh` 璧?`refreshFromStart()`銆? * - 瑙﹀簳缈婚〉锛氭粴鍔ㄥ仠姝紙绛変环鏃?SCROLL_STATE_IDLE锛変笖鏈€鍚庝竴椤瑰彲瑙佹椂 `loadMore()`锛? *   搴曢儴 footer 鍑洪敊鏃朵篃鍙偣鍑婚噸璇曘€? * - `listSize` 鍦?dataList 鍙樺寲鏃跺洖鍐?ViewModel锛堟棫 BaseAppFragment 鍚屾锛孷M 鍒嗛〉鍒ゆ柇渚濊禆瀹冿級銆? *
+ * **鍥剧墖**锛氭部鐢?ui/common 鐨?[SimpleImage] / [NineGrid]锛圓ndroidView + 鐜版湁 Glide 閾捐矾锛? * 涔濆鏍艰嚜甯?Mojito 澶у浘棰勮锛夛紝涓嶅紩鍏ユ柊鍥剧墖搴撱€? *
+ * **鍙傛暟**
+ * @param viewModel 鍒楄〃 ViewModel锛圔aseAppViewModel 瀛愮被锛夛紝鐘舵€佸叏閮ㄦ潵鑷畠锛屼笉鍦ㄦ湰缁勪欢鍐呭垱寤轰笟鍔￠€昏緫銆? * @param modifier 搴旂敤浜庢渶澶栧眰瀹瑰櫒鐨?[Modifier]銆? * @param contentPadding LazyColumn 鐨勫唴瀹瑰唴杈硅窛锛堥《鏍?鏍囩鏍忓崰浣嶇敱璋冪敤鏂规姌绠楋級銆? * @param onOpenItem 鐐瑰嚮鏉＄洰鍥炶皟锛堣烦鍔ㄦ€佽鎯呯瓑锛岀敱瀹夸富鎺ョ嚎锛夈€? * @param onOpenImage 鐐瑰嚮澶у浘鍥炶皟锛堥粯璁よ蛋 NineGrid 鍐呴儴 Mojito 棰勮锛岄€氬父涓嶇敤浼狅級銆? * @param onOpenUser 鐐瑰嚮澶村儚/鏄电О鍥炶皟锛堣烦鐢ㄦ埛涓婚〉锛夈€? * @param onShowCollection 鐐瑰嚮銆屽浘闆?鍚堥泦銆嶆潯鐩洖璋冿紙鏃?`showCollection` 浜嬩欢锛夈€? * @param onLikeClick 鐐硅禐鍥炶皟锛沶ull 鏃剁偣璧為」涓嶅彲鐐瑰嚮锛堢偣璧炶蛋 VM `ItemListener.onLikeClick`锛岀敱瀹夸富鎺ョ嚎锛夈€? *
+ * **绁栧厛瑕佹眰**锛氬繀椤讳綅浜庢牴涓婚 `MiuixAppTheme` 涔嬪唴銆傛湰缁勪欢涓嶅惈 Scaffold/TopAppBar锛岀敱椤甸潰 Screen 鎻愪緵銆? */
 @Composable
 fun FeedListPage(
     viewModel: BaseAppViewModel,
@@ -103,18 +84,18 @@ fun FeedListPage(
     val toast = viewModel.toastText.observeAsState().value
     val context = LocalContext.current
 
-    // 与旧 BaseAppFragment 一致：dataList 变化时回写 listSize（VM 的分页/空列表判断依赖它）
-    LaunchedEffect(dataList) { viewModel.listSize = dataList.size }
+    // 涓庢棫 BaseAppFragment 涓€鑷达細dataList 鍙樺寲鏃跺洖鍐?listSize锛圴M 鐨勫垎椤?绌哄垪琛ㄥ垽鏂緷璧栧畠锛?    LaunchedEffect(dataList) { viewModel.listSize = dataList.size }
 
-    // toastText 一次性事件 → Toast
+    // toastText 涓€娆℃€т簨浠?鈫?Toast
     LaunchedEffect(toast) {
-        toast?.getContentIfNotHandledOrReturnNull()?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        toast?.getContentIfNotHandledOrReturnNull()?.let { msg ->
+            if (!msg.isNullOrEmpty()) {
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    // 复刻 BaseViewFragment.refreshData()：从头加载
-    fun refreshFromStart() {
+    // 澶嶅埢 BaseViewFragment.refreshData()锛氫粠澶村姞杞?    fun refreshFromStart() {
         viewModel.loadingState.value = LoadingState.Loading
         viewModel.lastItem = null
         viewModel.page = 1
@@ -124,16 +105,14 @@ fun FeedListPage(
         viewModel.fetchData()
     }
 
-    // 复刻 BaseViewFragment.loadMore()
+    // 澶嶅埢 BaseViewFragment.loadMore()
     fun loadMore() {
         if (viewModel.isEnd || viewModel.isRefreshing || viewModel.isLoadMore) return
         viewModel.isLoadMore = true
         viewModel.fetchData()
     }
 
-    // 首次组合自动加载（等价旧「loadingState=Loading → refreshData()」链路）；
-    // 页面在 pager 里被回收重建时已有数据/正在加载则不重复拉
-    LaunchedEffect(Unit) {
+    // 棣栨缁勫悎鑷姩鍔犺浇锛堢瓑浠锋棫銆宭oadingState=Loading 鈫?refreshData()銆嶉摼璺級锛?    // 椤甸潰鍦?pager 閲岃鍥炴敹閲嶅缓鏃跺凡鏈夋暟鎹?姝ｅ湪鍔犺浇鍒欎笉閲嶅鎷?    LaunchedEffect(Unit) {
         if (viewModel.dataList.value.isNullOrEmpty() &&
             viewModel.loadingState.value !is LoadingState.Loading &&
             !viewModel.isRefreshing && !viewModel.isLoadMore
@@ -142,13 +121,11 @@ fun FeedListPage(
         }
     }
 
-    // 下拉刷新指示器
-    var isRefreshing by remember { mutableStateOf(false) }
+    // 涓嬫媺鍒锋柊鎸囩ず鍣?    var isRefreshing by remember { mutableStateOf(false) }
     LaunchedEffect(isRefreshing) {
         if (!isRefreshing) return@LaunchedEffect
-        // 老 VM 在 fetch 收敛时把 isRefreshing/isLoadMore 置回 false；个别早退分支不复位，
-        // 所以再兜一个超时，避免指示器卡住
-        val start = System.currentTimeMillis()
+        // 鑰?VM 鍦?fetch 鏀舵暃鏃舵妸 isRefreshing/isLoadMore 缃洖 false锛涗釜鍒棭閫€鍒嗘敮涓嶅浣嶏紝
+        // 鎵€浠ュ啀鍏滀竴涓秴鏃讹紝閬垮厤鎸囩ず鍣ㄥ崱浣?        val start = System.currentTimeMillis()
         while (viewModel.isRefreshing || viewModel.isLoadMore) {
             if (System.currentTimeMillis() - start > 30_000) break
             delay(80)
@@ -161,8 +138,7 @@ fun FeedListPage(
         }
     }
 
-    // 触底翻页：等价旧 RecyclerView.SCROLL_STATE_IDLE + 最后一项可见
-    val listState = rememberLazyListState()
+    // 瑙﹀簳缈婚〉锛氱瓑浠锋棫 RecyclerView.SCROLL_STATE_IDLE + 鏈€鍚庝竴椤瑰彲瑙?    val listState = rememberLazyListState()
     LaunchedEffect(listState) {
         var wasScrolling = false
         snapshotFlow { listState.isScrollInProgress }
@@ -188,7 +164,7 @@ fun FeedListPage(
                     onRetry = { refreshFromStart() },
                     modifier = Modifier.fillMaxSize(),
                     message = state.errMsg,
-                    retryText = "重试",
+                    retryText = "閲嶈瘯",
                 )
 
                 is LoadingState.LoadingFailed -> {
@@ -196,7 +172,7 @@ fun FeedListPage(
                         EmptyState(
                             modifier = Modifier.fillMaxSize(),
                             text = state.msg,
-                            actionText = "刷新",
+                            actionText = "鍒锋柊",
                             onAction = { refreshFromStart() },
                         )
                     } else {
@@ -204,7 +180,7 @@ fun FeedListPage(
                             onRetry = { refreshFromStart() },
                             modifier = Modifier.fillMaxSize(),
                             message = state.msg,
-                            retryText = "重试",
+                            retryText = "閲嶈瘯",
                         )
                     }
                 }
@@ -212,7 +188,7 @@ fun FeedListPage(
                 LoadingState.LoadingDone -> EmptyState(
                     modifier = Modifier.fillMaxSize(),
                     text = LOADING_EMPTY,
-                    actionText = "刷新",
+                    actionText = "鍒锋柊",
                     onAction = { refreshFromStart() },
                 )
             }
@@ -259,7 +235,7 @@ fun FeedListPage(
     }
 }
 
-/** 列表底部加载条：加载中 / 没有更多了 / 出错点击重试（对应旧 FooterAdapter）。 */
+/** 鍒楄〃搴曢儴鍔犺浇鏉★細鍔犺浇涓?/ 娌℃湁鏇村浜?/ 鍑洪敊鐐瑰嚮閲嶈瘯锛堝搴旀棫 FooterAdapter锛夈€?*/
 @Composable
 private fun ListFooter(
     footerState: FooterState?,
@@ -294,7 +270,7 @@ private fun ListFooter(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "${footerState.errMsg}，点击重试",
+                text = "${footerState.errMsg}锛岀偣鍑婚噸璇?,
                 style = MiuixTheme.textStyles.footnote1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
@@ -304,7 +280,7 @@ private fun ListFooter(
     }
 }
 
-/** 按实体类型分发条目渲染（旧 AppAdapter 的 getItemViewType 对应，简化为三类卡片）。 */
+/** 鎸夊疄浣撶被鍨嬪垎鍙戞潯鐩覆鏌擄紙鏃?AppAdapter 鐨?getItemViewType 瀵瑰簲锛岀畝鍖栦负涓夌被鍗＄墖锛夈€?*/
 @Composable
 private fun FeedItem(
     data: HomeFeedResponse.Data,
@@ -336,7 +312,7 @@ private fun FeedItem(
     }
 }
 
-/** 动态/话题/产品/用户/图文卡片（item_home_feed.xml 的简化 Compose 形态）。 */
+/** 鍔ㄦ€?璇濋/浜у搧/鐢ㄦ埛/鍥炬枃鍗＄墖锛坕tem_home_feed.xml 鐨勭畝鍖?Compose 褰㈡€侊級銆?*/
 @Composable
 private fun FeedCard(
     data: HomeFeedResponse.Data,
@@ -368,7 +344,7 @@ private fun FeedCard(
                                 data.userInfo?.username ?: data.username,
                             )
                         },
-                    contentDescription = "头像",
+                    contentDescription = "澶村儚",
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -382,7 +358,7 @@ private fun FeedCard(
                     val meta = listOfNotNull(
                         data.deviceTitle?.takeIf { it.isNotEmpty() },
                         data.dateline?.let { DateUtils.fromToday(it) },
-                    ).joinToString(" · ")
+                    ).joinToString(" 路 ")
                     if (meta.isNotEmpty()) {
                         Text(
                             text = meta,
@@ -400,7 +376,7 @@ private fun FeedCard(
         val title = data.title ?: data.messageTitle ?: data.goodsTitle
         if (!title.isNullOrBlank()) {
             Text(
-                text = title,
+                text = title.orEmpty(),
                 style = MiuixTheme.textStyles.body1,
                 fontWeight = FontWeight.Medium,
                 color = MiuixTheme.colorScheme.onSurface,
@@ -411,7 +387,7 @@ private fun FeedCard(
         val body = data.message ?: data.description ?: data.goodsPromoTitle
         if (!body.isNullOrBlank()) {
             Text(
-                text = body,
+                text = body.orEmpty(),
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurface,
             )
@@ -434,14 +410,14 @@ private fun FeedCard(
             replyCount = data.replynum ?: data.commentnum ?: "0",
             forwardCount = data.forwardnum ?: "0",
             isLiked = data.userAction?.like == 1,
-            onLikeClick = onLikeClick?.let { { it(data) } },
+            onLikeClick = onLikeClick?.let { handler -> { handler(data) } },
             onReplyClick = { onOpenItem(data) },
             onForwardClick = { onOpenItem(data) },
         )
     }
 }
 
-/** 图集/合集条目（item_collection_list_item.xml 的简化 Compose 形态）。 */
+/** 鍥鹃泦/鍚堥泦鏉＄洰锛坕tem_collection_list_item.xml 鐨勭畝鍖?Compose 褰㈡€侊級銆?*/
 @Composable
 private fun CollectionCard(
     data: HomeFeedResponse.Data,
@@ -463,7 +439,7 @@ private fun CollectionCard(
                 url = data.coverPic ?: data.pic,
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.size(84.dp),
-                contentDescription = "图集封面",
+                contentDescription = "鍥鹃泦灏侀潰",
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -478,7 +454,7 @@ private fun CollectionCard(
                 if (!description.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = description,
+                        text = description.orEmpty(),
                         style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 2,
@@ -488,10 +464,10 @@ private fun CollectionCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = listOfNotNull(
-                        if (data.isOpen == 0) "私密" else "公开",
-                        data.followNum?.takeIf { it.isNotEmpty() }?.let { "$it 人关注" },
-                        data.itemNum?.takeIf { it.isNotEmpty() }?.let { "$it 个内容" },
-                    ).joinToString(" · "),
+                        if (data.isOpen == 0) "绉佸瘑" else "鍏紑",
+                        data.followNum?.takeIf { it.isNotEmpty() }?.let { "$it 浜哄叧娉? },
+                        data.itemNum?.takeIf { it.isNotEmpty() }?.let { "$it 涓唴瀹? },
+                    ).joinToString(" 路 "),
                     style = MiuixTheme.textStyles.footnote2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -500,7 +476,7 @@ private fun CollectionCard(
     }
 }
 
-/** 图片轮播卡（imageCarouselCard 等带 entities 的卡片）：HorizontalPager 画廊 + 页码 + 标题。 */
+/** 鍥剧墖杞挱鍗★紙imageCarouselCard 绛夊甫 entities 鐨勫崱鐗囷級锛欻orizontalPager 鐢诲粖 + 椤电爜 + 鏍囬銆?*/
 @Composable
 private fun ImageCarouselCard(
     data: HomeFeedResponse.Data,
@@ -552,7 +528,7 @@ private fun ImageCarouselCard(
     }
 }
 
-/** 条目图片地址集合：picArr 优先，其次单图/封面/商品图（覆盖 feed/topic/product/card/pear_goods）。 */
+/** 鏉＄洰鍥剧墖鍦板潃闆嗗悎锛歱icArr 浼樺厛锛屽叾娆″崟鍥?灏侀潰/鍟嗗搧鍥撅紙瑕嗙洊 feed/topic/product/card/pear_goods锛夈€?*/
 private fun resolveImages(data: HomeFeedResponse.Data): List<String> {
     if (!data.picArr.isNullOrEmpty()) return data.picArr!!
     return listOfNotNull(

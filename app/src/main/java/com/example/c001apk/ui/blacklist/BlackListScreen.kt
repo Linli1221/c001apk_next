@@ -27,7 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.R
 import com.example.c001apk.logic.model.BlackListUser
 import com.example.c001apk.util.ImageUtil
@@ -46,17 +46,11 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 用户黑名单（云端）页面 —— 对应老的 [BlackListActivity] + [UserBlackListAdapter]（type = "user"）。
- *
- * 数据流完全复用 [BlackListViewModel]（LiveData 用 observeAsState 桥接），本文件只负责界面与交互：
- * 头像 / 昵称 / UID / 移出按钮，移出前用 Miuix [OverlayDialog] 确认，顶部返回 + 标题。
- *
- * 注意：
- * - 不自带 MiuixAppTheme（根主题由 Activity 接线时套）；页面自含一个 Scaffold（OverlayDialog 需要 Scaffold 祖先）。
- * - [BlackListViewModel] 是 Hilt assisted ViewModel，需在 Activity 侧用
- *   `viewModels(extrasProducer = … withCreationCallback<BlackListViewModel.Factory> …)` 创建后传入。
- * - 头像沿用 Glide 链路（ImageUtil.showIMG + AndroidView 包 ImageView），未引入新图片库。
- */
+ * 鐢ㄦ埛榛戝悕鍗曪紙浜戠锛夐〉闈?鈥斺€?瀵瑰簲鑰佺殑 [BlackListActivity] + [UserBlackListAdapter]锛坱ype = "user"锛夈€? *
+ * 鏁版嵁娴佸畬鍏ㄥ鐢?[BlackListViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛紝鏈枃浠跺彧璐熻矗鐣岄潰涓庝氦浜掞細
+ * 澶村儚 / 鏄电О / UID / 绉诲嚭鎸夐挳锛岀Щ鍑哄墠鐢?Miuix [OverlayDialog] 纭锛岄《閮ㄨ繑鍥?+ 鏍囬銆? *
+ * 娉ㄦ剰锛? * - 涓嶈嚜甯?MiuixAppTheme锛堟牴涓婚鐢?Activity 鎺ョ嚎鏃跺锛夛紱椤甸潰鑷惈涓€涓?Scaffold锛圤verlayDialog 闇€瑕?Scaffold 绁栧厛锛夈€? * - [BlackListViewModel] 鏄?Hilt assisted ViewModel锛岄渶鍦?Activity 渚х敤
+ *   `viewModels(extrasProducer = 鈥?withCreationCallback<BlackListViewModel.Factory> 鈥?` 鍒涘缓鍚庝紶鍏ャ€? * - 澶村儚娌跨敤 Glide 閾捐矾锛圛mageUtil.showIMG + AndroidView 鍖?ImageView锛夛紝鏈紩鍏ユ柊鍥剧墖搴撱€? */
 @Composable
 fun BlackListScreen(
     viewModel: BlackListViewModel,
@@ -64,35 +58,33 @@ fun BlackListScreen(
     onUserClick: (uid: String) -> Unit = {},
     onToast: (String) -> Unit = {},
 ) {
-    // observeAsState 返回 State<T?>，统一在这里归一化
-    val users by viewModel.cloudUsers.observeAsState(emptyList())
+    // observeAsState 杩斿洖 State<T?>锛岀粺涓€鍦ㄨ繖閲屽綊涓€鍖?    val users by viewModel.cloudUsers.observeAsState(emptyList())
     val loading by viewModel.loading.observeAsState(false)
     val toastEvent by viewModel.toastText.observeAsState()
     val userList = users.orEmpty()
     val isLoading = loading == true
 
-    // 进入页面拉取云端黑名单（与老 Activity 的 initObserve 一致）
+    // 杩涘叆椤甸潰鎷夊彇浜戠榛戝悕鍗曪紙涓庤€?Activity 鐨?initObserve 涓€鑷达級
     LaunchedEffect(Unit) {
         viewModel.loadCloudUsers()
     }
 
-    // toast 事件桥接（Event 语义：只会被消费一次）
+    // toast 浜嬩欢妗ユ帴锛圗vent 璇箟锛氬彧浼氳娑堣垂涓€娆★級
     LaunchedEffect(toastEvent) {
         toastEvent?.getContentIfNotHandledOrReturnNull()?.let { onToast(it) }
     }
 
-    // 待确认移出的用户（null = 不显示确认对话框）
-    var pendingRemove by remember { mutableStateOf<BlackListUser?>(null) }
+    // 寰呯‘璁ょЩ鍑虹殑鐢ㄦ埛锛坣ull = 涓嶆樉绀虹‘璁ゅ璇濇锛?    var pendingRemove by remember { mutableStateOf<BlackListUser?>(null) }
 
     Scaffold(
         topBar = {
             SmallTopAppBar(
-                title = "${stringResource(R.string.user_black_list)}（${userList.size}）",
+                title = "${stringResource(R.string.user_black_list)}锛?{userList.size}锛?,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             MiuixIcons.Back,
-                            contentDescription = "返回",
+                            contentDescription = "杩斿洖",
                         )
                     }
                 },
@@ -113,7 +105,7 @@ fun BlackListScreen(
 
                 userList.isEmpty() -> {
                     Text(
-                        text = "黑名单为空",
+                        text = "榛戝悕鍗曚负绌?,
                         modifier = Modifier.align(Alignment.Center),
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -133,22 +125,22 @@ fun BlackListScreen(
                 }
             }
 
-            // 移出确认对话框（OverlayDialog 需要 Scaffold 祖先，放在 Scaffold content 内）
+            // 绉诲嚭纭瀵硅瘽妗嗭紙OverlayDialog 闇€瑕?Scaffold 绁栧厛锛屾斁鍦?Scaffold content 鍐咃級
             OverlayDialog(
-                title = "移出黑名单",
-                summary = "确定将「${pendingRemove?.name.orEmpty()}」移出黑名单吗？",
+                title = "绉诲嚭榛戝悕鍗?,
+                summary = "纭畾灏嗐€?{pendingRemove?.name.orEmpty()}銆嶇Щ鍑洪粦鍚嶅崟鍚楋紵",
                 show = pendingRemove != null,
                 onDismissRequest = { pendingRemove = null },
             ) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     TextButton(
-                        text = "取消",
+                        text = "鍙栨秷",
                         onClick = { pendingRemove = null },
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(modifier = Modifier.width(20.dp))
                     TextButton(
-                        text = "移出",
+                        text = "绉诲嚭",
                         onClick = {
                             val target = pendingRemove
                             pendingRemove = null
@@ -165,7 +157,7 @@ fun BlackListScreen(
     }
 }
 
-/** 一行黑名单用户：头像 + 昵称 + UID + 移出按钮（对应 item_user_black_list.xml） */
+/** 涓€琛岄粦鍚嶅崟鐢ㄦ埛锛氬ご鍍?+ 鏄电О + UID + 绉诲嚭鎸夐挳锛堝搴?item_user_black_list.xml锛?*/
 @Composable
 private fun UserBlackListRow(
     user: BlackListUser,
@@ -202,13 +194,13 @@ private fun UserBlackListRow(
         IconButton(onClick = onRemoveClick) {
             Icon(
                 MiuixIcons.Close,
-                contentDescription = "移出黑名单",
+                contentDescription = "绉诲嚭榛戝悕鍗?,
             )
         }
     }
 }
 
-/** 圆形头像：Glide（ImageUtil.showIMG）+ AndroidView 包 ImageView，圆角裁剪交给 Compose */
+/** 鍦嗗舰澶村儚锛欸lide锛圛mageUtil.showIMG锛? AndroidView 鍖?ImageView锛屽渾瑙掕鍓氦缁?Compose */
 @Composable
 private fun UserAvatar(url: String?) {
     AndroidView(
@@ -218,7 +210,7 @@ private fun UserAvatar(url: String?) {
             }
         },
         update = { imageView ->
-            // url 变化才重新走 Glide，避免每次重组都发起加载
+            // url 鍙樺寲鎵嶉噸鏂拌蛋 Glide锛岄伩鍏嶆瘡娆￠噸缁勯兘鍙戣捣鍔犺浇
             if (imageView.tag != url) {
                 imageView.tag = url
                 ImageUtil.showIMG(imageView, url)

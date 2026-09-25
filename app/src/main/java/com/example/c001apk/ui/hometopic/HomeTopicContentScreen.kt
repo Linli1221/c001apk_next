@@ -29,10 +29,11 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_EMPTY
+import com.example.c001apk.logic.model.HomeFeedResponse
 import kotlinx.coroutines.flow.distinctUntilChanged
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
@@ -43,19 +44,13 @@ import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 话题/节点内容流列表页（页面级 composable，内容区自含 Scaffold 之外，可单独使用或嵌入）。
- *
- * 对应老实现：[HomeTopicContentFragment] + [com.example.c001apk.ui.base.BaseAppFragment] +
- * [com.example.c001apk.ui.base.BaseViewFragment]（SwipeRefreshLayout + RecyclerView + Footer）。
- * 数据流完全复用 [HomeTopicContentViewModel]（LiveData 用 observeAsState 桥接）：
- *  - 初始/重试：置 `loadingState = Loading` → 本页副作用按老逻辑 [refreshContent]；
- *  - 下拉刷新：[PullToRefresh] `isRefreshing` 提升，`onRefresh` 同步置 true 并刷新；
- *  - 上拉加载：滚到 footer 且 `!isEnd && !isLoadMore && !isRefreshing` 时 loadMore；
- *  - footer：[FooterState] 驱动 加载中/没有更多了/加载失败重试。
- *
- * 老逻辑里 `viewModel.listSize` 由 Fragment 的 dataList observer 维护，本页同样在 dataList
- * 变化时回写，保证 [HomeTopicContentViewModel.fetchData] 的 listSize 分支语义与 View 时代一致。
- */
+ * 璇濋/鑺傜偣鍐呭娴佸垪琛ㄩ〉锛堥〉闈㈢骇 composable锛屽唴瀹瑰尯鑷惈 Scaffold 涔嬪锛屽彲鍗曠嫭浣跨敤鎴栧祵鍏ワ級銆? *
+ * 瀵瑰簲鑰佸疄鐜帮細[HomeTopicContentFragment] + [com.example.c001apk.ui.base.BaseAppFragment] +
+ * [com.example.c001apk.ui.base.BaseViewFragment]锛圫wipeRefreshLayout + RecyclerView + Footer锛夈€? * 鏁版嵁娴佸畬鍏ㄥ鐢?[HomeTopicContentViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛細
+ *  - 鍒濆/閲嶈瘯锛氱疆 `loadingState = Loading` 鈫?鏈〉鍓綔鐢ㄦ寜鑰侀€昏緫 [refreshContent]锛? *  - 涓嬫媺鍒锋柊锛歔PullToRefresh] `isRefreshing` 鎻愬崌锛宍onRefresh` 鍚屾缃?true 骞跺埛鏂帮紱
+ *  - 涓婃媺鍔犺浇锛氭粴鍒?footer 涓?`!isEnd && !isLoadMore && !isRefreshing` 鏃?loadMore锛? *  - footer锛歔FooterState] 椹卞姩 鍔犺浇涓?娌℃湁鏇村浜?鍔犺浇澶辫触閲嶈瘯銆? *
+ * 鑰侀€昏緫閲?`viewModel.listSize` 鐢?Fragment 鐨?dataList observer 缁存姢锛屾湰椤靛悓鏍峰湪 dataList
+ * 鍙樺寲鏃跺洖鍐欙紝淇濊瘉 [HomeTopicContentViewModel.fetchData] 鐨?listSize 鍒嗘敮璇箟涓?View 鏃朵唬涓€鑷淬€? */
 @Composable
 fun HomeTopicContentScreen(
     viewModel: HomeTopicContentViewModel,
@@ -64,16 +59,18 @@ fun HomeTopicContentScreen(
     onTopicClick: (type: String?, title: String?, url: String?, id: String?) -> Unit = { _, _, _, _ -> },
     onListScrolled: (dy: Int) -> Unit = {},
 ) {
-    val dataList by viewModel.dataList.observeAsState(emptyList())
+    // observeAsState 鐨勮繑鍥炲彲绌烘€ч殢 lifecycle 鐗堟湰鐣ユ湁宸紓锛岃繖閲岀粺涓€鎸夊彲绌鸿鍙栧悗鍏滃簳
+    val dataList: List<HomeFeedResponse.Data> =
+        viewModel.dataList.observeAsState(emptyList()).value ?: emptyList()
     val loadingState by viewModel.loadingState.observeAsState()
     val footerState by viewModel.footerState.observeAsState()
 
-    // 与 BaseAppFragment.initObserve 的 viewModel.listSize = it.size 对齐
+    // 涓?BaseAppFragment.initObserve 鐨?viewModel.listSize = it.size 瀵归綈
     LaunchedEffect(dataList) {
         viewModel.listSize = dataList.size
     }
 
-    // 首次组合：与 BaseViewFragment.onResume 的 initData() 对齐，置 Loading 触发首刷
+    // 棣栨缁勫悎锛氫笌 BaseViewFragment.onResume 鐨?initData() 瀵归綈锛岀疆 Loading 瑙﹀彂棣栧埛
     LaunchedEffect(Unit) {
         if (viewModel.isInit) {
             viewModel.isInit = false
@@ -81,22 +78,21 @@ fun HomeTopicContentScreen(
         }
     }
 
-    // 与 BaseViewFragment.initObserve 对齐：Loading → refreshData()（loadMore 触发的 Loading 不重刷）
+    // 涓?BaseViewFragment.initObserve 瀵归綈锛歀oading 鈫?refreshData()锛坙oadMore 瑙﹀彂鐨?Loading 涓嶉噸鍒凤級
     LaunchedEffect(loadingState) {
         if (loadingState is LoadingState.Loading && !viewModel.isLoadMore) {
             refreshContent(viewModel)
         }
     }
 
-    // 下拉刷新指示器：任意结果状态（footer/主状态变化）到达即结束
-    var isRefreshing by remember { mutableStateOf(false) }
+    // 涓嬫媺鍒锋柊鎸囩ず鍣細浠绘剰缁撴灉鐘舵€侊紙footer/涓荤姸鎬佸彉鍖栵級鍒拌揪鍗崇粨鏉?    var isRefreshing by remember { mutableStateOf(false) }
     LaunchedEffect(footerState, loadingState) {
         if (footerState !is FooterState.Loading) {
             isRefreshing = false
         }
     }
 
-    // 上拉加载：滚到列表末尾（footer 可见）且无进行中的请求时触发，对齐 BaseViewFragment.initScroll
+    // 涓婃媺鍔犺浇锛氭粴鍒板垪琛ㄦ湯灏撅紙footer 鍙锛変笖鏃犺繘琛屼腑鐨勮姹傛椂瑙﹀彂锛屽榻?BaseViewFragment.initScroll
     LaunchedEffect(listState, footerState, loadingState, dataList) {
         snapshotFlow {
             val info = listState.layoutInfo
@@ -116,7 +112,7 @@ fun HomeTopicContentScreen(
             }
     }
 
-    // 滚动方向回调（老实现里用于显示/隐藏底部导航栏）
+    // 婊氬姩鏂瑰悜鍥炶皟锛堣€佸疄鐜伴噷鐢ㄤ簬鏄剧ず/闅愯棌搴曢儴瀵艰埅鏍忥級
     val currentOnListScrolled by rememberUpdatedState(onListScrolled)
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
@@ -129,21 +125,16 @@ fun HomeTopicContentScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         when (val state = loadingState) {
-            null, is LoadingState.Loading -> HomeTopicLoadingView(
-                modifier = Modifier.align(Alignment.Center)
-            )
-
             is LoadingState.LoadingError -> HomeTopicErrorView(
                 message = state.errMsg,
-                retryText = "重试",
+                retryText = "閲嶈瘯",
                 onRetry = { viewModel.loadingState.value = LoadingState.Loading },
                 modifier = Modifier.align(Alignment.Center)
             )
 
             is LoadingState.LoadingFailed -> HomeTopicErrorView(
                 message = state.msg,
-                // 空态用「刷新」，失败用「重试」，与老实现一致
-                retryText = if (state.msg == LOADING_EMPTY) "刷新" else "重试",
+                // 绌烘€佺敤銆屽埛鏂般€嶏紝澶辫触鐢ㄣ€岄噸璇曘€嶏紝涓庤€佸疄鐜颁竴鑷?                retryText = if (state.msg == LOADING_EMPTY) "鍒锋柊" else "閲嶈瘯",
                 onRetry = { viewModel.loadingState.value = LoadingState.Loading },
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -183,7 +174,7 @@ fun HomeTopicContentScreen(
                             ListFooter(
                                 footerState = footerState,
                                 onRetry = {
-                                    // 与 BaseAppFragment.ReloadListener.onReLoad 对齐
+                                    // 涓?BaseAppFragment.ReloadListener.onReLoad 瀵归綈
                                     viewModel.isEnd = false
                                     viewModel.isLoadMore = true
                                     viewModel.fetchData()
@@ -193,21 +184,25 @@ fun HomeTopicContentScreen(
                     }
                 }
             }
+
+            // null锛堢姸鎬佸皻鏈骇鐢燂級涓庢湭鐭ョ姸鎬佸厹搴曚负鍔犺浇涓?            else -> HomeTopicLoadingView(
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
 }
 
 // ---------------------------------------------------------------------------
-// 状态视图（自含实现；ui/common 收敛后可替换为公共组件）
+// 鐘舵€佽鍥撅紙鑷惈瀹炵幇锛泆i/common 鏀舵暃鍚庡彲鏇挎崲涓哄叕鍏辩粍浠讹級
 // ---------------------------------------------------------------------------
 
-/** 加载中：对应老 `item_indicator`（不确定进度指示器）。 */
+/** 鍔犺浇涓細瀵瑰簲鑰?`item_indicator`锛堜笉纭畾杩涘害鎸囩ず鍣級銆?*/
 @Composable
 internal fun HomeTopicLoadingView(modifier: Modifier = Modifier) {
     InfiniteProgressIndicator(modifier = modifier)
 }
 
-/** 错误/空态：对应老 `item_error_layout` / `item_error_message`（消息 + 重试按钮）。 */
+/** 閿欒/绌烘€侊細瀵瑰簲鑰?`item_error_layout` / `item_error_message`锛堟秷鎭?+ 閲嶈瘯鎸夐挳锛夈€?*/
 @Composable
 internal fun HomeTopicErrorView(
     message: String,
@@ -234,7 +229,7 @@ internal fun HomeTopicErrorView(
     }
 }
 
-/** 列表 footer：对应老 `FooterAdapter`（加载中 / 没有更多了 / 出错重试）。 */
+/** 鍒楄〃 footer锛氬搴旇€?`FooterAdapter`锛堝姞杞戒腑 / 娌℃湁鏇村浜?/ 鍑洪敊閲嶈瘯锛夈€?*/
 @Composable
 private fun ListFooter(
     footerState: FooterState?,
@@ -252,7 +247,7 @@ private fun ListFooter(
                 InfiniteProgressIndicator(size = 16.dp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "加载中…",
+                    text = "鍔犺浇涓€?,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -271,7 +266,7 @@ private fun ListFooter(
                     color = MiuixTheme.colorScheme.error,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                TextButton(text = "重试", onClick = onRetry)
+                TextButton(text = "閲嶈瘯", onClick = onRetry)
             }
 
             else -> {}
@@ -280,10 +275,9 @@ private fun ListFooter(
 }
 
 // ---------------------------------------------------------------------------
-// 数据流辅助（只操作现有 ViewModel 的公开字段，不改写 ViewModel）
-// ---------------------------------------------------------------------------
+// 鏁版嵁娴佽緟鍔╋紙鍙搷浣滅幇鏈?ViewModel 鐨勫叕寮€瀛楁锛屼笉鏀瑰啓 ViewModel锛?// ---------------------------------------------------------------------------
 
-/** 对应 BaseViewFragment.refreshData()：重置分页游标后重新拉第一页。 */
+/** 瀵瑰簲 BaseViewFragment.refreshData()锛氶噸缃垎椤垫父鏍囧悗閲嶆柊鎷夌涓€椤点€?*/
 private fun refreshContent(viewModel: HomeTopicContentViewModel) {
     viewModel.lastItem = null
     viewModel.page = 1

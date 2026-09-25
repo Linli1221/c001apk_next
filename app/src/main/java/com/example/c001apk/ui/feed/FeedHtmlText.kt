@@ -34,6 +34,7 @@ fun FeedHtmlText(
     imgList: List<String>? = null,
     lineSpacingMultiplier: Float = 1.3f,
     onLongClick: (() -> Unit)? = null,
+    onShowMoreReply: (() -> Unit)? = null,
 ) {
     val currentOnLongClick by rememberUpdatedState(onLongClick)
     // emoji span 尺寸按字号像素值计算，与老代码 SpannableStringBuilderUtil.setText 的 size 参数一致
@@ -54,8 +55,9 @@ fun FeedHtmlText(
             }
         },
         update = { textView ->
-            textView.text =
-                SpannableStringBuilderUtil.setText(textView.context, text, sizePx, imgList)
+            textView.text = SpannableStringBuilderUtil.setText(
+                textView.context, text, sizePx, imgList, onShowMoreReply,
+            )
             textView.setTextColor(color.toArgb())
             textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, sizePx)
             textView.setLineSpacing(0f, lineSpacingMultiplier)

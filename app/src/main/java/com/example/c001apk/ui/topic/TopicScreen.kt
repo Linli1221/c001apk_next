@@ -32,7 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants
 import com.example.c001apk.logic.model.TopicBean
@@ -59,23 +59,18 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 话题 / 产品页（TopicActivity + TopicFragment + TopicHeader 的 Compose 版）。
+ * 璇濋 / 浜у搧椤碉紙TopicActivity + TopicFragment + TopicHeader 鐨?Compose 鐗堬級銆? *
+ * 鐘舵€佸叏閮ㄨ蛋鐜版湁 [TopicViewModel]锛圠iveData 鐢?observeAsState 妗ユ帴锛夛細
+ * - [TopicViewModel.activityState]锛氶〉闈㈢骇 鍔犺浇涓?/ 閿欒娑堟伅 / 澶辫触閲嶈瘯锛堝榻?BaseViewActivity 鐘舵€佹満锛? * - [TopicViewModel.headerState]锛氬ご閮ㄨ瘽棰樺崱锛坙ogo / 鏍囬 / 鐑害 / 鍏虫敞鑰呭ご鍍忥級
+ * - [TopicViewModel.followState]锛氬叧娉ㄦ寜閽袱鎬侊紙Event 涓€娆℃€ф秷璐癸級
+ * - [TopicViewModel.toastText]锛歵oast锛圗vent 涓€娆℃€ф秷璐癸級
  *
- * 状态全部走现有 [TopicViewModel]（LiveData 用 observeAsState 桥接）：
- * - [TopicViewModel.activityState]：页面级 加载中 / 错误消息 / 失败重试（对齐 BaseViewActivity 状态机）
- * - [TopicViewModel.headerState]：头部话题卡（logo / 标题 / 热度 / 关注者头像）
- * - [TopicViewModel.followState]：关注按钮两态（Event 一次性消费）
- * - [TopicViewModel.toastText]：toast（Event 一次性消费）
- *
- * 关注按钮点击逻辑与 TopicFragment.onSubscribeClick 一致（话题 tag / 机型 product 两种协议），
- * 直接调用现有 ViewModel 方法，不新增业务逻辑。
- *
- * 各 tab 的内容（TopicContentFragment 的列表 / WebViewFragment 的 H5）通过 [tabContent]
- * 插槽由接线层提供，本文件不关心其内部实现。
- *
- * 悬浮发布按钮：产品页且有评分子项时先弹「发布动态 / 发表点评」二选一（OverlayDialog），
- * 否则直接回调 onPublishClick("createFeed")；具体跳转 ReplyActivity 由接线层处理。
- */
+ * 鍏虫敞鎸夐挳鐐瑰嚮閫昏緫涓?TopicFragment.onSubscribeClick 涓€鑷达紙璇濋 tag / 鏈哄瀷 product 涓ょ鍗忚锛夛紝
+ * 鐩存帴璋冪敤鐜版湁 ViewModel 鏂规硶锛屼笉鏂板涓氬姟閫昏緫銆? *
+ * 鍚?tab 鐨勫唴瀹癸紙TopicContentFragment 鐨勫垪琛?/ WebViewFragment 鐨?H5锛夐€氳繃 [tabContent]
+ * 鎻掓Ы鐢辨帴绾垮眰鎻愪緵锛屾湰鏂囦欢涓嶅叧蹇冨叾鍐呴儴瀹炵幇銆? *
+ * 鎮诞鍙戝竷鎸夐挳锛氫骇鍝侀〉涓旀湁璇勫垎瀛愰」鏃跺厛寮广€屽彂甯冨姩鎬?/ 鍙戣〃鐐硅瘎銆嶄簩閫変竴锛圤verlayDialog锛夛紝
+ * 鍚﹀垯鐩存帴鍥炶皟 onPublishClick("createFeed")锛涘叿浣撹烦杞?ReplyActivity 鐢辨帴绾垮眰澶勭悊銆? */
 @Composable
 fun TopicScreen(
     viewModel: TopicViewModel,
@@ -93,7 +88,7 @@ fun TopicScreen(
     val followState by viewModel.followState.observeAsState()
     val toastText by viewModel.toastText.observeAsState()
 
-    // 关注按钮状态：初值取 ViewModel，后续由 followState 事件刷新
+    // 鍏虫敞鎸夐挳鐘舵€侊細鍒濆€煎彇 ViewModel锛屽悗缁敱 followState 浜嬩欢鍒锋柊
     var followed by remember { mutableStateOf(viewModel.isFollow) }
     var showPublishDialog by remember { mutableStateOf(false) }
 
@@ -107,7 +102,7 @@ fun TopicScreen(
         }
     }
 
-    // 页面级状态机（对齐 BaseViewActivity）：Loading → 拉取布局；重试按钮 = 重新置 Loading
+    // 椤甸潰绾х姸鎬佹満锛堝榻?BaseViewActivity锛夛細Loading 鈫?鎷夊彇甯冨眬锛涢噸璇曟寜閽?= 閲嶆柊缃?Loading
     LaunchedEffect(activityState) {
         if (activityState is LoadingState.Loading) {
             when (viewModel.type) {
@@ -139,15 +134,15 @@ fun TopicScreen(
                 subtitle = viewModel.subtitle.orEmpty(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, contentDescription = "返回")
+                        Icon(MiuixIcons.Back, contentDescription = "杩斿洖")
                     }
                 },
                 actions = {
                     IconButton(onClick = onSearchClick) {
-                        Icon(MiuixIcons.Basic.Search, contentDescription = "搜索")
+                        Icon(MiuixIcons.Basic.Search, contentDescription = "鎼滅储")
                     }
                     IconButton(onClick = onMoreClick) {
-                        Icon(MiuixIcons.More, contentDescription = "更多")
+                        Icon(MiuixIcons.More, contentDescription = "鏇村")
                     }
                 },
             )
@@ -156,14 +151,13 @@ fun TopicScreen(
             if (PrefManager.isLogin && !viewModel.topicList.isNullOrEmpty()) {
                 FloatingActionButton(
                     onClick = {
-                        // 机型页可以发动态，也可以发表点评（type=rating）
-                        if (viewModel.type == "product" && !viewModel.ratingItemInfo.isNullOrEmpty())
+                        // 鏈哄瀷椤靛彲浠ュ彂鍔ㄦ€侊紝涔熷彲浠ュ彂琛ㄧ偣璇勶紙type=rating锛?                        if (viewModel.type == "product" && !viewModel.ratingItemInfo.isNullOrEmpty())
                             showPublishDialog = true
                         else
                             onPublishClick("createFeed")
                     }
                 ) {
-                    Icon(MiuixIcons.Add, contentDescription = "发布")
+                    Icon(MiuixIcons.Add, contentDescription = "鍙戝竷")
                 }
             }
         },
@@ -203,7 +197,7 @@ fun TopicScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(
-                            text = if (state.msg == Constants.LOADING_EMPTY) "刷新" else "重试",
+                            text = if (state.msg == Constants.LOADING_EMPTY) "鍒锋柊" else "閲嶈瘯",
                             onClick = { viewModel.activityState.value = LoadingState.Loading },
                         )
                     }
@@ -219,8 +213,7 @@ fun TopicScreen(
                             style = MiuixTheme.textStyles.body2,
                         )
                     } else {
-                        // 服务端指定的默认 tab，用完即清（对齐 TopicFragment.initSelected）
-                        val initialPage = remember {
+                        // 鏈嶅姟绔寚瀹氱殑榛樿 tab锛岀敤瀹屽嵆娓咃紙瀵归綈 TopicFragment.initSelected锛?                        val initialPage = remember {
                             val page = (viewModel.tabSelected ?: 0).coerceIn(0, tabs.lastIndex)
                             viewModel.tabSelected = null
                             page
@@ -259,15 +252,15 @@ fun TopicScreen(
                 }
             }
 
-            // 产品页「发布动态 / 发表点评」二选一（对齐 TopicFragment.initFab 的弹窗）
+            // 浜у搧椤点€屽彂甯冨姩鎬?/ 鍙戣〃鐐硅瘎銆嶄簩閫変竴锛堝榻?TopicFragment.initFab 鐨勫脊绐楋級
             OverlayDialog(
                 show = showPublishDialog,
-                title = "发布",
+                title = "鍙戝竷",
                 onDismissRequest = { showPublishDialog = false },
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     TextButton(
-                        text = "发布动态",
+                        text = "鍙戝竷鍔ㄦ€?,
                         onClick = {
                             showPublishDialog = false
                             onPublishClick("createFeed")
@@ -275,7 +268,7 @@ fun TopicScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     TextButton(
-                        text = "发表点评",
+                        text = "鍙戣〃鐐硅瘎",
                         onClick = {
                             showPublishDialog = false
                             onPublishClick("rating")
@@ -289,9 +282,7 @@ fun TopicScreen(
 }
 
 /**
- * 关注 / 取消关注（与 TopicFragment.onSubscribeClick 一致）：
- * 话题（topic）走 getFollow 协议，机型（product）走 postFollow 协议。
- */
+ * 鍏虫敞 / 鍙栨秷鍏虫敞锛堜笌 TopicFragment.onSubscribeClick 涓€鑷达級锛? * 璇濋锛坱opic锛夎蛋 getFollow 鍗忚锛屾満鍨嬶紙product锛夎蛋 postFollow 鍗忚銆? */
 private fun onSubscribeClick(viewModel: TopicViewModel) {
     when (viewModel.type) {
         "topic" -> {
@@ -315,9 +306,7 @@ private fun onSubscribeClick(viewModel: TopicViewModel) {
 }
 
 /**
- * 话题页头部卡片（item_topic_header.xml 的 Compose 版）：
- * logo + 标题 + 热度/讨论数 + 最近关注者头像行 + 关注按钮。
- */
+ * 璇濋椤靛ご閮ㄥ崱鐗囷紙item_topic_header.xml 鐨?Compose 鐗堬級锛? * logo + 鏍囬 + 鐑害/璁ㄨ鏁?+ 鏈€杩戝叧娉ㄨ€呭ご鍍忚 + 鍏虫敞鎸夐挳銆? */
 @Composable
 private fun TopicHeaderCard(
     header: TopicHeader,
@@ -351,11 +340,11 @@ private fun TopicHeaderCard(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            // 服务端只下发数字（如「1.2万」），单位在本地点上
+            // 鏈嶅姟绔彧涓嬪彂鏁板瓧锛堝銆?.2涓囥€嶏級锛屽崟浣嶅湪鏈湴鐐逛笂
             val stats = listOfNotNull(
                 header.hotNum?.takeIf { it.isNotEmpty() },
-                header.commentNum?.takeIf { it.isNotEmpty() }?.let { "${it}讨论" },
-            ).joinToString(" · ")
+                header.commentNum?.takeIf { it.isNotEmpty() }?.let { "${it}璁ㄨ" },
+            ).joinToString(" 路 ")
             if (stats.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -369,7 +358,7 @@ private fun TopicHeaderCard(
 
             val avatars = header.avatars.take(3)
             val followText =
-                header.followNum?.takeIf { it.isNotEmpty() }?.let { "${it}人关注" }.orEmpty()
+                header.followNum?.takeIf { it.isNotEmpty() }?.let { "${it}浜哄叧娉? }.orEmpty()
             if (avatars.isNotEmpty() || followText.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
@@ -396,7 +385,7 @@ private fun TopicHeaderCard(
                         )
                     }
                     Text(
-                        text = "›",
+                        text = "鈥?,
                         style = MiuixTheme.textStyles.footnote2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
@@ -404,7 +393,7 @@ private fun TopicHeaderCard(
             }
         }
 
-        // 关注 / 已关注：未关注 = 主题色填充，已关注 = 弱化底色（对齐 bindFollowBtn 两态配色）
+        // 鍏虫敞 / 宸插叧娉細鏈叧娉?= 涓婚鑹插～鍏咃紝宸插叧娉?= 寮卞寲搴曡壊锛堝榻?bindFollowBtn 涓ゆ€侀厤鑹诧級
         if (showFollowBtn) {
             Button(
                 onClick = onFollowClick,
@@ -416,7 +405,7 @@ private fun TopicHeaderCard(
                 insideMargin = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
             ) {
                 Text(
-                    text = if (isFollow) "已关注" else "关注",
+                    text = if (isFollow) "宸插叧娉? else "鍏虫敞",
                     style = MiuixTheme.textStyles.button,
                 )
             }
@@ -425,9 +414,7 @@ private fun TopicHeaderCard(
 }
 
 /**
- * 图片走现有 Glide 链路（Glide 没有官方 Compose 集成，用 AndroidView 包 ImageView）。
- * TODO: ui/common 提供公共图片组件后替换为统一实现。
- */
+ * 鍥剧墖璧扮幇鏈?Glide 閾捐矾锛圙lide 娌℃湁瀹樻柟 Compose 闆嗘垚锛岀敤 AndroidView 鍖?ImageView锛夈€? * TODO: ui/common 鎻愪緵鍏叡鍥剧墖缁勪欢鍚庢浛鎹负缁熶竴瀹炵幇銆? */
 @Composable
 private fun GlideImage(
     url: String?,

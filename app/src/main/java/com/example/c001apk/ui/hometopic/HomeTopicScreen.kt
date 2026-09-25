@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants.LOADING_EMPTY
 import top.yukonga.miuix.kmp.basic.Icon
@@ -37,20 +37,13 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * 话题 / 数码（节点）页面：左侧标签栏 + 右侧内容流。
- *
- * 对应老实现：[HomeTopicFragment]（fragment_home_topic.xml：左 BrandLabelAdapter 标签栏 +
- * 右 HomeTopicContentFragment 内容流）。数据流完全复用 [HomeTopicViewModel]（LiveData 用
- * observeAsState 桥接）：
- *  - 首次进入置 `loadingState = Loading`，Loading 副作用按老逻辑抓取标签表
- *   （topic → V11_VERTICAL_TOPIC，product → 产品表）；
- *  - LoadingDone 后渲染标签栏 + 当前标签的内容流；
- *  - LoadingError / LoadingFailed → 错误与空态 + 重试。
- *
- * 每个标签的内容流 ViewModel 通过 [contentViewModelFactory]（由接线层用 Hilt AssistedFactory
- * 提供）创建并按标签缓存，切换标签不丢数据；列表滚动位置用 [LazyListState] 缓存近似还原
- * 老实现「hide/show Fragment 保状态」的行为。
- */
+ * 璇濋 / 鏁扮爜锛堣妭鐐癸級椤甸潰锛氬乏渚ф爣绛炬爮 + 鍙充晶鍐呭娴併€? *
+ * 瀵瑰簲鑰佸疄鐜帮細[HomeTopicFragment]锛坒ragment_home_topic.xml锛氬乏 BrandLabelAdapter 鏍囩鏍?+
+ * 鍙?HomeTopicContentFragment 鍐呭娴侊級銆傛暟鎹祦瀹屽叏澶嶇敤 [HomeTopicViewModel]锛圠iveData 鐢? * observeAsState 妗ユ帴锛夛細
+ *  - 棣栨杩涘叆缃?`loadingState = Loading`锛孡oading 鍓綔鐢ㄦ寜鑰侀€昏緫鎶撳彇鏍囩琛? *   锛坱opic 鈫?V11_VERTICAL_TOPIC锛宲roduct 鈫?浜у搧琛級锛? *  - LoadingDone 鍚庢覆鏌撴爣绛炬爮 + 褰撳墠鏍囩鐨勫唴瀹规祦锛? *  - LoadingError / LoadingFailed 鈫?閿欒涓庣┖鎬?+ 閲嶈瘯銆? *
+ * 姣忎釜鏍囩鐨勫唴瀹规祦 ViewModel 閫氳繃 [contentViewModelFactory]锛堢敱鎺ョ嚎灞傜敤 Hilt AssistedFactory
+ * 鎻愪緵锛夊垱寤哄苟鎸夋爣绛剧紦瀛橈紝鍒囨崲鏍囩涓嶄涪鏁版嵁锛涘垪琛ㄦ粴鍔ㄤ綅缃敤 [LazyListState] 缂撳瓨杩戜技杩樺師
+ * 鑰佸疄鐜般€宧ide/show Fragment 淇濈姸鎬併€嶇殑琛屼负銆? */
 @Composable
 fun HomeTopicScreen(
     viewModel: HomeTopicViewModel,
@@ -63,12 +56,11 @@ fun HomeTopicScreen(
 ) {
     val loadingState by viewModel.loadingState.observeAsState()
 
-    // 各标签的内容流 ViewModel / 列表状态缓存（对应老实现的 childFragmentManager 复用）
-    val contentViewModels = remember { mutableMapOf<Int, HomeTopicContentViewModel>() }
+    // 鍚勬爣绛剧殑鍐呭娴?ViewModel / 鍒楄〃鐘舵€佺紦瀛橈紙瀵瑰簲鑰佸疄鐜扮殑 childFragmentManager 澶嶇敤锛?    val contentViewModels = remember { mutableMapOf<Int, HomeTopicContentViewModel>() }
     val contentListStates = remember { mutableMapOf<Int, LazyListState>() }
     var selectedIndex by remember { mutableIntStateOf(viewModel.position) }
 
-    // 与 HomeTopicFragment.onResume 对齐：首次进入置 Loading 触发抓取
+    // 涓?HomeTopicFragment.onResume 瀵归綈锛氶娆¤繘鍏ョ疆 Loading 瑙﹀彂鎶撳彇
     LaunchedEffect(Unit) {
         if (viewModel.isInit) {
             viewModel.isInit = false
@@ -76,12 +68,11 @@ fun HomeTopicScreen(
         }
     }
 
-    // 与 HomeTopicFragment.initObserve 的 Loading 分支对齐：按 type 抓取标签表
-    LaunchedEffect(loadingState) {
+    // 涓?HomeTopicFragment.initObserve 鐨?Loading 鍒嗘敮瀵归綈锛氭寜 type 鎶撳彇鏍囩琛?    LaunchedEffect(loadingState) {
         if (loadingState is LoadingState.Loading) {
             if (viewModel.type == "topic") {
                 viewModel.url = "/page?url=V11_VERTICAL_TOPIC"
-                viewModel.title = "话题"
+                viewModel.title = "璇濋"
                 viewModel.fetchTopicList()
             } else {
                 viewModel.fetchProductList()
@@ -89,7 +80,7 @@ fun HomeTopicScreen(
         }
     }
 
-    val pageTitle = title ?: viewModel.title ?: if (viewModel.type == "topic") "话题" else "数码"
+    val pageTitle = title ?: viewModel.title ?: if (viewModel.type == "topic") "璇濋" else "鏁扮爜"
 
     Scaffold(
         modifier = modifier,
@@ -101,7 +92,7 @@ fun HomeTopicScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
-                                contentDescription = "返回",
+                                contentDescription = "杩斿洖",
                                 tint = MiuixTheme.colorScheme.onSurface,
                             )
                         }
@@ -116,21 +107,16 @@ fun HomeTopicScreen(
                 .padding(paddingValues)
         ) {
             when (val state = loadingState) {
-                null, is LoadingState.Loading -> HomeTopicLoadingView(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-
                 is LoadingState.LoadingError -> HomeTopicErrorView(
                     message = state.errMsg,
-                    retryText = "重试",
+                    retryText = "閲嶈瘯",
                     onRetry = { viewModel.loadingState.value = LoadingState.Loading },
                     modifier = Modifier.align(Alignment.Center)
                 )
 
                 is LoadingState.LoadingFailed -> HomeTopicErrorView(
                     message = state.msg,
-                    // 空态用「刷新」，失败用「重试」，与老实现一致
-                    retryText = if (state.msg == LOADING_EMPTY) "刷新" else "重试",
+                    // 绌烘€佺敤銆屽埛鏂般€嶏紝澶辫触鐢ㄣ€岄噸璇曘€嶏紝涓庤€佸疄鐜颁竴鑷?                    retryText = if (state.msg == LOADING_EMPTY) "鍒锋柊" else "閲嶈瘯",
                     onRetry = { viewModel.loadingState.value = LoadingState.Loading },
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -141,7 +127,7 @@ fun HomeTopicScreen(
                     if (labels.isEmpty() || tabs.isEmpty()) {
                         HomeTopicErrorView(
                             message = LOADING_EMPTY,
-                            retryText = "刷新",
+                            retryText = "鍒锋柊",
                             onRetry = { viewModel.loadingState.value = LoadingState.Loading },
                             modifier = Modifier.align(Alignment.Center)
                         )
@@ -182,15 +168,19 @@ fun HomeTopicScreen(
                         }
                     }
                 }
+
+                // Loading 涓?null锛堢姸鎬佸皻鏈骇鐢燂級鍏滃簳涓哄姞杞戒腑
+                else -> HomeTopicLoadingView(
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
     }
 }
 
 /**
- * 左侧标签栏（对应 BrandLabelAdapter + item_brand_label.xml）：
- * 选中项主色文字 + 左侧 3dp 主色指示条 + 浅色底。
- */
+ * 宸︿晶鏍囩鏍忥紙瀵瑰簲 BrandLabelAdapter + item_brand_label.xml锛夛細
+ * 閫変腑椤逛富鑹叉枃瀛?+ 宸︿晶 3dp 涓昏壊鎸囩ず鏉?+ 娴呰壊搴曘€? */
 @Composable
 private fun HomeTopicLabelRail(
     labels: List<String>,
@@ -200,7 +190,7 @@ private fun HomeTopicLabelRail(
 ) {
     val listState = rememberLazyListState()
 
-    // 对应老实现 scrollToCenter()：选中后把标签滚到可见位置
+    // 瀵瑰簲鑰佸疄鐜?scrollToCenter()锛氶€変腑鍚庢妸鏍囩婊氬埌鍙浣嶇疆
     LaunchedEffect(selectedIndex) {
         listState.animateScrollToItem(selectedIndex)
     }

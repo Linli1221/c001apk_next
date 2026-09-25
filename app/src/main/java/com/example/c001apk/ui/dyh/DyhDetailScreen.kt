@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.observeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.c001apk.adapter.FooterState
 import com.example.c001apk.adapter.LoadingState
 import com.example.c001apk.constant.Constants
@@ -45,18 +45,12 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 /**
- * 看看号单个 tab 的动态列表（DyhDetailFragment 的 Compose 版）。
- *
- * 数据流全部复用现有 [DyhViewModel]（BaseAppViewModel 的 dataList / loadingState /
- * footerState / toastText，LiveData 用 observeAsState 桥接）：
- * - 首次加载 / 重试：置 loadingState = Loading 触发刷新（对齐 BaseViewFragment.initObserve）
- * - 下拉刷新：refreshData() 语义（lastItem/page/isEnd/isRefreshing/isLoadMore 归位后 fetchData）
- * - 上拉加载：footer 进入可视区且 !isEnd && !isRefreshing && !isLoadMore 时 loadMore
- * - 空态 / 加载失败 / 错误消息与 footer（加载中 / 出错重试 / 没有更多了）都按原状态渲染
- *
- * 列表项默认是简化的动态卡片（头像 + 用户名 + 正文），完整九宫格 / 视频 / 投票等
- * 动态卡片由公共 feed 卡片组件通过 [itemContent] 插槽替换；点击占位走 [onItemClick]。
- */
+ * 鐪嬬湅鍙峰崟涓?tab 鐨勫姩鎬佸垪琛紙DyhDetailFragment 鐨?Compose 鐗堬級銆? *
+ * 鏁版嵁娴佸叏閮ㄥ鐢ㄧ幇鏈?[DyhViewModel]锛圔aseAppViewModel 鐨?dataList / loadingState /
+ * footerState / toastText锛孡iveData 鐢?observeAsState 妗ユ帴锛夛細
+ * - 棣栨鍔犺浇 / 閲嶈瘯锛氱疆 loadingState = Loading 瑙﹀彂鍒锋柊锛堝榻?BaseViewFragment.initObserve锛? * - 涓嬫媺鍒锋柊锛歳efreshData() 璇箟锛坙astItem/page/isEnd/isRefreshing/isLoadMore 褰掍綅鍚?fetchData锛? * - 涓婃媺鍔犺浇锛歠ooter 杩涘叆鍙鍖轰笖 !isEnd && !isRefreshing && !isLoadMore 鏃?loadMore
+ * - 绌烘€?/ 鍔犺浇澶辫触 / 閿欒娑堟伅涓?footer锛堝姞杞戒腑 / 鍑洪敊閲嶈瘯 / 娌℃湁鏇村浜嗭級閮芥寜鍘熺姸鎬佹覆鏌? *
+ * 鍒楄〃椤归粯璁ゆ槸绠€鍖栫殑鍔ㄦ€佸崱鐗囷紙澶村儚 + 鐢ㄦ埛鍚?+ 姝ｆ枃锛夛紝瀹屾暣涔濆鏍?/ 瑙嗛 / 鎶曠エ绛? * 鍔ㄦ€佸崱鐗囩敱鍏叡 feed 鍗＄墖缁勪欢閫氳繃 [itemContent] 鎻掓Ы鏇挎崲锛涚偣鍑诲崰浣嶈蛋 [onItemClick]銆? */
 @Composable
 fun DyhDetailScreen(
     viewModel: DyhViewModel,
@@ -71,8 +65,7 @@ fun DyhDetailScreen(
     val toastText by viewModel.toastText.observeAsState()
     val list = dataList.orEmpty()
 
-    // 下拉刷新指示器（isRefreshing 提升到本地，任一加载态结束后收起）
-    var isRefreshing by remember { mutableStateOf(false) }
+    // 涓嬫媺鍒锋柊鎸囩ず鍣紙isRefreshing 鎻愬崌鍒版湰鍦帮紝浠讳竴鍔犺浇鎬佺粨鏉熷悗鏀惰捣锛?    var isRefreshing by remember { mutableStateOf(false) }
 
     fun refresh() {
         viewModel.lastItem = null
@@ -92,11 +85,9 @@ fun DyhDetailScreen(
         }
     }
 
-    // 与 BaseAppFragment 一致：listSize 参与 fetchData 里 loadingState / footerState 的分支
-    LaunchedEffect(list.size) { viewModel.listSize = list.size }
+    // 涓?BaseAppFragment 涓€鑷达細listSize 鍙備笌 fetchData 閲?loadingState / footerState 鐨勫垎鏀?    LaunchedEffect(list.size) { viewModel.listSize = list.size }
 
-    // 对齐 BaseViewFragment：loadingState = Loading 是「刷新」的触发器（首次加载 / 出错重试）
-    LaunchedEffect(loadingState) {
+    // 瀵归綈 BaseViewFragment锛歭oadingState = Loading 鏄€屽埛鏂般€嶇殑瑙﹀彂鍣紙棣栨鍔犺浇 / 鍑洪敊閲嶈瘯锛?    LaunchedEffect(loadingState) {
         if (loadingState is LoadingState.Loading && !viewModel.isLoadMore) {
             refresh()
         }
@@ -129,11 +120,11 @@ fun DyhDetailScreen(
             }
         },
         modifier = modifier.fillMaxSize(),
-        refreshTexts = listOf("下拉刷新", "释放刷新", "正在刷新…", "刷新成功"),
+        refreshTexts = listOf("涓嬫媺鍒锋柊", "閲婃斁鍒锋柊", "姝ｅ湪鍒锋柊鈥?, "鍒锋柊鎴愬姛"),
     ) {
         val state = loadingState
         when {
-            // 首屏加载
+            // 棣栧睆鍔犺浇
             state is LoadingState.Loading && list.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -143,8 +134,7 @@ fun DyhDetailScreen(
                 }
             }
 
-            // 空态 / 加载失败（列表为空时全屏展示）
-            (state is LoadingState.LoadingFailed || state is LoadingState.LoadingError)
+            // 绌烘€?/ 鍔犺浇澶辫触锛堝垪琛ㄤ负绌烘椂鍏ㄥ睆灞曠ず锛?            (state is LoadingState.LoadingFailed || state is LoadingState.LoadingError)
                     && list.isEmpty() -> {
                 val msg = when (state) {
                     is LoadingState.LoadingFailed -> state.msg
@@ -164,7 +154,7 @@ fun DyhDetailScreen(
                     if (state is LoadingState.LoadingFailed) {
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(
-                            text = if (msg == Constants.LOADING_EMPTY) "刷新" else "重试",
+                            text = if (msg == Constants.LOADING_EMPTY) "鍒锋柊" else "閲嶈瘯",
                             onClick = { viewModel.loadingState.value = LoadingState.Loading },
                         )
                     }
@@ -197,9 +187,7 @@ fun DyhDetailScreen(
 }
 
 /**
- * 列表尾（FooterAdapter 的 Compose 版）：加载中 / 出错重试 / 没有更多了。
- * 进入可视区时尝试加载下一页（对齐原 RecyclerView 滚动监听的触底加载）。
- */
+ * 鍒楄〃灏撅紙FooterAdapter 鐨?Compose 鐗堬級锛氬姞杞戒腑 / 鍑洪敊閲嶈瘯 / 娌℃湁鏇村浜嗐€? * 杩涘叆鍙鍖烘椂灏濊瘯鍔犺浇涓嬩竴椤碉紙瀵归綈鍘?RecyclerView 婊氬姩鐩戝惉鐨勮Е搴曞姞杞斤級銆? */
 @Composable
 private fun LoadMoreFooter(
     footerState: FooterState?,
@@ -220,7 +208,7 @@ private fun LoadMoreFooter(
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "加载中…",
+                    text = "鍔犺浇涓€?,
                     style = MiuixTheme.textStyles.footnote2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -236,11 +224,11 @@ private fun LoadMoreFooter(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "加载失败：${footerState.errMsg}",
+                    text = "鍔犺浇澶辫触锛?{footerState.errMsg}",
                     style = MiuixTheme.textStyles.footnote2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
-                TextButton(text = "重试", onClick = onRetry)
+                TextButton(text = "閲嶈瘯", onClick = onRetry)
             }
         }
 
@@ -264,10 +252,7 @@ private fun LoadMoreFooter(
 }
 
 /**
- * 默认动态卡片（占位简化版）：头像 + 用户名 + 正文。
- * 完整动态卡片（图片九宫格 / 视频 / 转发 / 点赞等）待公共 feed 卡片组件就绪后
- * 通过 [DyhDetailScreen] 的 itemContent 插槽替换。
- */
+ * 榛樿鍔ㄦ€佸崱鐗囷紙鍗犱綅绠€鍖栫増锛夛細澶村儚 + 鐢ㄦ埛鍚?+ 姝ｆ枃銆? * 瀹屾暣鍔ㄦ€佸崱鐗囷紙鍥剧墖涔濆鏍?/ 瑙嗛 / 杞彂 / 鐐硅禐绛夛級寰呭叕鍏?feed 鍗＄墖缁勪欢灏辩华鍚? * 閫氳繃 [DyhDetailScreen] 鐨?itemContent 鎻掓Ы鏇挎崲銆? */
 @Composable
 private fun DefaultFeedItem(
     item: HomeFeedResponse.Data,
@@ -288,7 +273,11 @@ private fun DefaultFeedItem(
                     .size(40.dp)
                     .clip(CircleShape),
             )
-            Column(modifier = Modifier.padding(start = 10.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp)
+            ) {
                 Text(
                     text = item.username.orEmpty(),
                     style = MiuixTheme.textStyles.subtitle,
@@ -312,9 +301,7 @@ private fun DefaultFeedItem(
 }
 
 /**
- * 图片走现有 Glide 链路（Glide 没有官方 Compose 集成，用 AndroidView 包 ImageView）。
- * TODO: ui/common 提供公共图片组件后替换为统一实现。
- */
+ * 鍥剧墖璧扮幇鏈?Glide 閾捐矾锛圙lide 娌℃湁瀹樻柟 Compose 闆嗘垚锛岀敤 AndroidView 鍖?ImageView锛夈€? * TODO: ui/common 鎻愪緵鍏叡鍥剧墖缁勪欢鍚庢浛鎹负缁熶竴瀹炵幇銆? */
 @Composable
 private fun GlideImage(
     url: String?,

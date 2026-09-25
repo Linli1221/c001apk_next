@@ -1,7 +1,7 @@
 package com.example.c001apk.ui.feed
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,10 +51,6 @@ fun FeedContentCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { onLongCopyText(data.message) },
-            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         // 头像 + 昵称 + 关注 + 时间 / 设备 / 私密角标
@@ -213,7 +209,7 @@ fun FeedContentCard(
                 style = MiuixTheme.textStyles.footnote2,
                 color = if (isLike == 1) MiuixTheme.colorScheme.primary
                 else MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.combinedClickable(
+                modifier = Modifier.clickable(
                     onClick = {
                         data.id?.let { onLikeFeed(it, isLike) }
                     },
